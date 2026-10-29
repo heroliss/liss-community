@@ -1,0 +1,292 @@
+/* Reading, identity and management share the room palette; content stays still. */
+:is(.identity-reading,.identity-profile,.identity-followers,.identity-settings,.identity-editor,.identity-auth,.identity-welcome,.identity-status,.identity-admin) {
+  min-width: 0; overflow-wrap: anywhere;
+}
+:is(.identity-reading,.identity-profile,.identity-followers,.identity-settings,.identity-editor,.identity-auth,.identity-welcome,.identity-status,.identity-admin) :is(a,button,input,textarea,select,summary):focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 4px;
+}
+:is(.identity-reading,.identity-profile,.identity-followers,.identity-settings,.identity-editor,.identity-auth,.identity-welcome,.identity-status) .back-link {
+  min-height: 44px; margin-bottom: 26px; color: var(--muted); font-size: 13px;
+}
+:is(.identity-reading,.identity-profile,.identity-followers,.identity-settings,.identity-editor,.identity-auth,.identity-welcome,.identity-status) .back-link:hover { color: var(--accent); }
+
+/* An article is a reading measure, followed by an independently paced discussion. */
+.reading-column.identity-reading { width: min(100%,820px); max-width: 820px; margin: 0 auto 64px; }
+.identity-reading .reader-navigation { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 34px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.identity-reading .reader-navigation .back-link { margin: 0; }
+.identity-reading .reader-discussion-link { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; color: var(--muted); font-size: 13px; }
+.identity-reading .reader-discussion-link .icon { width: 16px; height: 16px; }
+.identity-reading .reader-article .post-detail { padding: 0 0 32px; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.identity-reading .post-detail .post-meta { margin-bottom: 40px; }
+.identity-reading .post-detail .post-body { font-size: 18px; line-height: 1.95; }
+.identity-reading .post-body h1 { margin: 42px 0 28px; font-size: clamp(32px,3.3vw,46px); font-weight: 550; line-height: 1.32; letter-spacing: -.035em; }
+.identity-reading .post-body h2 { margin: 48px 0 20px; font-size: 28px; line-height: 1.45; }
+.identity-reading .post-body h3 { margin: 36px 0 16px; font-size: 22px; line-height: 1.5; }
+.identity-reading .post-body > :first-child { margin-top: 0; }
+.identity-reading .post-body :is(p,ul,ol) { margin-bottom: 24px; }
+.identity-reading .post-body li { margin-block: 6px; }
+.identity-reading .post-body blockquote { margin: 34px 0; padding: 6px 0 6px 24px; background: transparent; border-left: 2px solid var(--accent); }
+.identity-reading .post-body img { display: block; height: auto; max-width: 100%; margin-block: 30px; border-radius: 3px; }
+.identity-reading .post-body pre { max-width: 100%; margin-block: 28px; padding: 24px; border-radius: 5px; font-size: 14px; }
+.identity-reading .post-body :not(pre) > code { color: var(--text); background: var(--raised); }
+.identity-reading .post-body :is(table,pre) { overflow-x: auto; }
+.identity-reading .post-detail .post-footer { margin-top: 34px; padding-top: 20px; border-top: 1px solid var(--line); }
+.identity-reading .discussion { margin-top: 30px; padding-top: 42px; border-top: 1px solid var(--line); }
+.identity-reading .discussion-heading { justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 32px; }
+.identity-reading .discussion-heading h2 { font-size: 30px; font-weight: 500; letter-spacing: -.025em; }
+.identity-reading .discussion-heading > span { color: var(--muted); font-size: 13px; white-space: nowrap; padding-bottom: 4px; }
+.identity-reading .comment-form { gap: 18px; margin-bottom: 38px; }
+.identity-reading .comment-form > .avatar { margin-top: 30px; }
+.identity-reading .comment-write .form-control { min-height: 132px; padding: 15px 17px; font-size: 16px; }
+.identity-reading .comment-write .form-actions { justify-content: flex-start; }
+.identity-reading .join-discussion { padding: 22px 0; background: transparent; border-radius: 0; font-size: 15px; line-height: 1.9; }
+.identity-reading .comments .comment { padding: 30px 0; gap: 18px; }
+.identity-reading .comment-meta { gap: 7px 12px; margin-bottom: 12px; }
+.identity-reading .comment-author { font-size: 15px; font-weight: 550; color: var(--text); }
+.identity-reading .comment-date { color: var(--muted); font-size: 12px; }
+.identity-reading .comment-body { font-size: 16px; line-height: 1.9; }
+.identity-reading .discussion-empty { padding-block: 28px 16px; font-size: 15px; color: var(--muted); }
+
+/* People have a masthead, followed by their actual writing and relationships. */
+.profile-column.identity-profile,.profile-column.identity-followers { width: min(100%,1000px); max-width: 1000px; margin: 0 auto 64px; }
+.identity-profile .profile-header { padding: 15px 0 0; margin-bottom: 50px; }
+.identity-profile .profile-top { display: grid; grid-template-columns: 72px minmax(0,1fr) auto; align-items: center; gap: 24px; margin-bottom: 32px; }
+.identity-profile .profile-top > .avatar { width: 72px; height: 72px; font-size: 26px; }
+.identity-profile .profile-identity h1 { margin-bottom: 13px; font-size: clamp(32px,3.8vw,50px); font-weight: 500; line-height: 1.2; letter-spacing: -.04em; }
+.identity-profile .profile-handle { font-size: 13px; }
+.identity-profile .profile-actions { max-width: 270px; justify-content: flex-end; gap: 9px; }
+.identity-profile .profile-actions form { margin: 0; }
+.identity-profile .profile-bio { max-width: 40em; margin-bottom: 26px; font-size: 19px; line-height: 1.9; }
+.identity-profile .profile-facts { gap: 9px 24px; margin-bottom: 30px; color: var(--muted); font-size: 13px; }
+.identity-profile .profile-stats { gap: 18px 34px; align-items: baseline; border-block: 1px solid var(--line); padding-block: 22px; font-size: 14px; }
+.identity-profile .profile-stats strong { margin-right: 4px; font-size: 24px; font-weight: 500; }
+.identity-profile .profile-stats a { min-height: 44px; display: inline-flex; align-items: baseline; gap: 4px; padding-block: 5px; }
+.identity-profile .profile-identity-note { max-width: 58em; margin-top: 22px; color: var(--muted); font-size: 14px; line-height: 1.9; }
+.identity-profile .profile-articles .feed-toolbar { margin-bottom: 12px; border: 0; }
+.identity-profile .profile-articles .feed-toolbar h2 { font-size: 26px; font-weight: 500; }
+.identity-profile .profile-articles .post { padding-block: 30px; background: transparent; border-radius: 0; box-shadow: none; }
+.identity-profile .profile-articles .post-title { font-size: 24px; line-height: 1.5; }
+.identity-profile .profile-articles .post-excerpt { font-size: 16px; line-height: 1.85; }
+.identity-followers .page-heading { margin-bottom: 40px; }
+.identity-followers .page-heading h1 { font-size: clamp(32px,3.5vw,46px); font-weight: 500; margin-bottom: 15px; }
+.identity-followers .people-list > li { gap: 24px; padding-block: 27px; }
+.identity-followers .person-link { gap: 18px; min-height: 62px; }
+.identity-followers .person-link strong { font-size: 18px; font-weight: 500; }
+.identity-followers .person-link small { max-width: 48em; font-size: 14px; line-height: 1.8; }
+.identity-followers .person-since { font-size: 12px; color: var(--muted); }
+.identity-followers .people-list .empty-state { justify-content: flex-start; text-align: left; padding-block: 40px; }
+
+/* Forms are steady working surfaces, separated by spacing rather than a card. */
+.settings-column.identity-settings { display: grid; grid-template-columns: minmax(220px,.8fr) minmax(0,1.4fr); column-gap: clamp(40px,6vw,96px); width: min(100%,1000px); max-width: 1000px; margin: 14px auto 80px; align-items: start; }
+.identity-settings > .back-link { grid-column: 1/-1; justify-self: start; }
+.identity-settings .page-heading { margin: 0; }
+.identity-settings .page-heading h1 { margin: 0 0 20px; font-size: clamp(30px,3vw,40px); line-height: 1.4; font-weight: 500; letter-spacing: -.03em; }
+.identity-settings .page-heading > p { max-width: 30em; font-size: 16px; line-height: 1.9; }
+.identity-settings .settings-workspace { min-width: 0; padding-top: 5px; }
+.identity-settings .settings-note { margin-top: 32px; padding-top: 22px; font-size: 14px; line-height: 1.9; }
+:is(.identity-settings,.identity-auth,.identity-welcome,.identity-editor) .form-group > label { margin-bottom: 10px; font-size: 14px; font-weight: 500; }
+:is(.identity-settings,.identity-auth,.identity-welcome,.identity-editor) .form-control { min-height: 50px; padding: 12px 14px; border-radius: 4px; font-size: 16px; line-height: 1.7; }
+:is(.identity-settings,.identity-auth,.identity-welcome,.identity-editor) .form-group { margin-bottom: 25px; }
+:is(.identity-settings,.identity-auth,.identity-welcome,.identity-editor) :is(.field-help,.form-pending) { font-size: 13px; color: var(--muted); line-height: 1.85; }
+:is(.identity-settings,.identity-auth,.identity-welcome,.identity-editor) .field-error { font-size: 14px; line-height: 1.8; color: var(--error); }
+:is(.identity-settings,.identity-auth,.identity-welcome) .form-actions { margin-top: 30px; }
+:is(.identity-settings,.identity-auth,.identity-welcome) .form-notice { padding: 15px 18px; border-left: 2px solid var(--accent); border-radius: 0; background: var(--raised); font-size: 14px; line-height: 1.85; color: var(--text); }
+.identity-settings textarea.form-control { min-height: 180px; }
+.editor-page.identity-editor { max-width: 1080px; margin: 0 auto 70px; }
+.identity-editor .page-heading { display: flex; align-items: end; justify-content: space-between; gap: 25px 50px; margin-bottom: 38px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+.identity-editor .page-heading h1 { margin: 0; font-size: clamp(30px,3vw,42px); font-weight: 500; }
+.identity-editor .page-heading > p { max-width: 27em; margin: 0; color: var(--muted); font-size: 15px; line-height: 1.9; }
+.identity-editor .writing-label { margin-bottom: 15px; }
+.identity-editor .writing-label label { font-size: 15px; }
+.identity-editor .writing-workspace textarea { min-height: 460px; }
+.identity-editor .form-actions { padding-top: 6px; }
+
+.auth-layout.identity-auth { grid-template-columns: minmax(0,1fr) minmax(0,1.05fr); gap: clamp(40px,6vw,90px); max-width: 1040px; margin: 34px auto 90px; }
+.identity-auth .auth-intro { padding-top: 13px; }
+.identity-auth .auth-intro h1 { max-width: 9em; margin-bottom: 25px; font-size: clamp(36px,3.6vw,50px); line-height: 1.35; font-weight: 500; letter-spacing: -.035em; }
+.identity-auth .auth-intro > p { max-width: 26em; font-size: 19px; line-height: 1.9; margin-bottom: 36px; }
+.identity-auth .auth-panel { border: 0; border-left: 1px solid var(--line); border-radius: 0; padding: 12px 0 12px clamp(28px,4vw,55px); background: transparent; }
+.identity-auth .auth-panel h2 { font-size: 24px; font-weight: 500; margin-bottom: 28px; }
+.identity-auth .auth-panel .form-actions > .button { width: auto; min-width: 140px; }
+.identity-auth :is(.auth-switch,.auth-help,.auth-visitor) { font-size: 14px; line-height: 1.85; }
+.identity-auth .auth-switch { margin-top: 28px; padding-top: 23px; }
+.identity-auth .auth-visitor { min-height: 44px; margin-top: 8px; }
+.identity-auth .account-writing-note { margin-block: 0 27px; padding: 0; background: transparent; border: 0; font-size: 14px; line-height: 1.85; }
+.welcome-page.identity-welcome { grid-template-columns: minmax(0,1fr) minmax(0,.92fr); grid-template-areas: 'intro action' 'context action'; gap: 26px clamp(40px,6vw,90px); align-items: start; max-width: 1080px; margin: 34px auto 90px; }
+.identity-welcome .welcome-copy { grid-area: intro; padding-top: 10px; }
+.identity-welcome .welcome-context { grid-area: context; min-width: 0; align-self: start; }
+.identity-welcome .welcome-context > p { max-width: 38ch; margin: 0 0 24px; color: var(--muted); font-size: 16px; line-height: 1.9; }
+.identity-welcome .welcome-copy h1 { margin-bottom: 25px; font-size: clamp(34px,3.6vw,48px); line-height: 1.35; font-weight: 500; letter-spacing: -.035em; }
+.identity-welcome .welcome-copy .welcome-lead { font-size: 23px; line-height: 1.8; color: var(--text); margin-bottom: 26px; }
+.identity-welcome .welcome-copy > p:not(.welcome-lead) { font-size: 16px; line-height: 1.9; }
+.identity-welcome .welcome-features { margin: 0; }
+.identity-welcome .welcome-features > li { gap: 13px; padding-block: 8px; font-size: 15px; }
+.identity-welcome .welcome-features .icon { color: var(--muted); }
+.identity-welcome .welcome-action { grid-area: action; padding: 12px 0 12px clamp(28px,4vw,55px); background: transparent; border: 0; border-left: 1px solid var(--line); border-radius: 0; }
+.identity-welcome .welcome-action h2 { font-size: 25px; font-weight: 500; margin-block: 24px 14px; }
+.identity-welcome .welcome-action > p { font-size: 15px; line-height: 1.9; }
+.identity-welcome .welcome-action .account-writing-note { margin: 0; padding: 0 0 22px; background: transparent; border: 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.identity-welcome .welcome-action .button { width: auto; min-width: 160px; }
+.identity-welcome .welcome-action .entry-privacy { margin-block: 20px 0; color: var(--muted); font-size: 13px; line-height: 1.9; }
+.identity-welcome .entry-account { margin-top: 26px; padding-top: 21px; }
+.identity-welcome .entry-account p { font-size: 14px; }
+
+.status-page.identity-status { width: min(100%,760px); max-width: 760px; margin: 10px auto 50px; padding: 42px 0 60px; text-align: left; }
+.identity-status .status-code { margin: 0 0 32px; color: var(--muted); font-size: clamp(70px,8vw,108px); line-height: 1; font-weight: 400; letter-spacing: -.05em; }
+.identity-status h1 { max-width: 20em; margin-bottom: 22px; font-size: clamp(28px,3vw,38px); font-weight: 500; line-height: 1.4; }
+.identity-status > p:not(.status-code) { max-width: 44em; margin-bottom: 24px; color: var(--muted); font-size: 16px; line-height: 1.95; }
+.identity-status .status-symbol { margin-bottom: 25px; }
+.identity-status .status-symbol .icon { width: 32px; height: 32px; }
+.identity-status > .button { margin-block: 6px 20px; }
+.identity-status .site-form { margin-block: 18px 28px; }
+
+/* The management room keeps real counts and controls; no decorative dashboards. */
+.admin-layout.identity-admin { grid-template-columns: 185px minmax(0,1fr); gap: clamp(28px,4vw,60px); padding-block: 4px 50px; }
+.identity-admin .admin-home { padding-top: 0; padding-bottom: 25px; font-size: 18px; }
+.identity-admin .admin-home .icon { color: var(--muted); }
+.identity-admin .admin-nav a { border-radius: 3px; font-size: 14px; }
+.identity-admin .admin-nav a.is-active { background: var(--raised); color: var(--text); }
+.identity-admin .admin-heading { margin-bottom: 28px; }
+.identity-admin .admin-heading h1 { margin-bottom: 11px; font-size: 30px; font-weight: 500; line-height: 1.4; }
+.identity-admin .admin-heading p { font-size: 14px; line-height: 1.85; }
+.identity-admin .admin-stats { padding-block: 26px; margin-bottom: 38px; }
+.identity-admin .admin-stats strong { font-size: 29px; font-weight: 400; }
+.identity-admin .admin-stats small { font-size: 12px; line-height: 1.8; }
+.identity-admin .admin-section-head h2 { font-size: 18px; font-weight: 500; }
+.identity-admin .admin-quicklinks strong { font-size: 16px; }
+.identity-admin .admin-quicklinks small { font-size: 13px; }
+.identity-admin .admin-quicklinks a > .icon:first-child { color: var(--muted); }
+.identity-admin .admin-toolbar { padding: 20px 0; margin-bottom: 20px; border-block: 1px solid var(--line); border-radius: 0; background: transparent; }
+.identity-admin .admin-toolbar > label { font-size: 13px; }
+.identity-admin .admin-toolbar :is(input,select) { min-height: 44px; font-size: 14px; border-radius: 4px; }
+.identity-admin .admin-toolbar .button { min-height: 44px; }
+.identity-admin .admin-list-summary { gap: 15px; font-size: 13px; margin-bottom: 16px; }
+.identity-admin .admin-content-row { padding-block: 27px; }
+.identity-admin .admin-row-heading h2 { font-size: 18px; font-weight: 500; }
+.identity-admin .admin-status { padding: 3px 7px; font-size: 12px; border-radius: 3px; }
+.identity-admin .admin-row-meta { gap: 6px 14px; margin-block: 11px 16px; font-size: 12px; line-height: 1.8; }
+.identity-admin .admin-row-excerpt { max-width: 58em; font-size: 15px; line-height: 1.85; }
+.identity-admin .admin-row-actions { gap: 10px; }
+.identity-admin .admin-row-actions .button { min-height: 44px; padding: 10px 13px; font-size: 13px; }
+.identity-admin :is(.admin-preview,.admin-user-details) > summary { min-height: 44px; padding-block: 11px; font-size: 14px; }
+.identity-admin .admin-preview-body { padding: 24px; border-radius: 4px; font-size: 15px; line-height: 1.9; }
+.identity-admin .admin-user-form { border-radius: 4px; padding: 22px; }
+.identity-admin .admin-user-form label { font-size: 14px; }
+.identity-admin .admin-user-form select { min-height: 46px; font-size: 14px; }
+.identity-admin .admin-protection { font-size: 13px; line-height: 1.9; }
+.identity-admin .admin-activity > li { padding-block: 22px; gap: 15px; }
+.identity-admin .admin-activity-mark { border: 0; border-radius: 0; width: 20px; height: 24px; color: var(--muted); }
+.identity-admin .admin-activity p { font-size: 15px; line-height: 1.8; }
+.identity-admin .admin-activity small { font-size: 12px; }
+.identity-admin .admin-settings-form,.identity-admin .admin-confirm { max-width: 760px; }
+.identity-admin .admin-settings-section { padding-bottom: 32px; margin-bottom: 32px; }
+.identity-admin .admin-settings-section legend { font-size: 20px; font-weight: 500; }
+.identity-admin .admin-settings-form .form-control { min-height: 48px; border-radius: 4px; font-size: 15px; }
+.identity-admin .admin-settings-form .field-help { font-size: 13px; }
+.identity-admin .admin-settings-saved { font-size: 13px; }
+.identity-admin .admin-confirm-steps { display: flex; gap: 28px; list-style: none; margin: 0 0 30px; padding: 0; font-size: 13px; color: var(--muted); }
+.identity-admin .admin-confirm-steps li { padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.identity-admin .admin-confirm-steps [aria-current] { color: var(--accent); border-color: var(--accent); }
+.identity-admin .admin-confirm-subject { padding: 22px 0; background: transparent; border: 0; border-block: 1px solid var(--line); border-radius: 0; }
+.identity-admin .admin-confirm-subject h2 { font-size: 15px; color: var(--muted); font-weight: 400; }
+.identity-admin .admin-confirm-subject p { font-size: 17px; color: var(--text); }
+.identity-admin .admin-changes :is(dt,dd) { font-size: 14px; line-height: 1.9; }
+.identity-admin .admin-confirm-note { margin-block: 26px 18px; color: var(--muted); font-size: 14px; }
+.identity-admin .admin-pagination { font-size: 13px; }
+.identity-admin .admin-pagination .button { min-height: 44px; }
+.identity-admin .admin-empty { text-align: left; padding-inline: 0; }
+.identity-admin .admin-empty h2 { font-size: 20px; font-weight: 500; }
+.identity-admin .admin-empty p { font-size: 14px; }
+.identity-admin .admin-empty > .icon { display: none; }
+
+@media (max-width: 900px) {
+  .identity-profile .profile-top { grid-template-columns: 64px minmax(0,1fr); gap: 20px; }
+  .identity-profile .profile-top > .avatar { width: 64px; height: 64px; }
+  .identity-profile .profile-actions { grid-column: 2; justify-content: flex-start; max-width: none; }
+  .settings-column.identity-settings { grid-template-columns: 1fr; max-width: 620px; gap: 0; }
+  .identity-settings .page-heading { margin-bottom: 34px; }
+  .auth-layout.identity-auth,.welcome-page.identity-welcome { gap: 35px; }
+  .identity-auth .auth-panel,.identity-welcome .welcome-action { padding-left: 30px; }
+  .admin-layout.identity-admin { grid-template-columns: 150px minmax(0,1fr); gap: 28px; }
+}
+@media (max-width: 760px) {
+  .reading-column.identity-reading { margin-bottom: 30px; }
+  .identity-reading .reader-navigation { margin-bottom: 28px; gap: 15px; padding-bottom: 12px; }
+  .identity-reading .reader-discussion-link { font-size: 12px; }
+  .identity-reading .post-detail .post-meta { margin-bottom: 28px; }
+  .identity-reading .post-detail .post-body { font-size: 17px; line-height: 1.95; }
+  .identity-reading .post-body h1 { font-size: 31px; }
+  .identity-reading .post-body h2 { font-size: 25px; margin-top: 36px; }
+  .identity-reading .post-body h3 { font-size: 21px; }
+  .identity-reading .post-body pre { padding: 18px; font-size: 13px; }
+  .identity-reading .discussion { padding-top: 30px; }
+  .identity-reading .discussion-heading h2 { font-size: 27px; }
+  .identity-reading .comment-form { gap: 12px; }
+  .identity-reading .comment-form > .avatar { display: none; }
+  .identity-reading .comments .comment { gap: 12px; padding-block: 25px; }
+  .identity-reading .comment-meta { gap: 6px 9px; }
+  .identity-reading .comment-date { flex-basis: 100%; margin-left: 0; }
+  .identity-reading .comment-body { font-size: 15px; }
+  .identity-profile .profile-header { margin-bottom: 38px; }
+  .identity-profile .profile-top { grid-template-columns: 54px minmax(0,1fr); gap: 17px; }
+  .identity-profile .profile-top > .avatar { width: 54px; height: 54px; font-size: 21px; }
+  .identity-profile .profile-identity h1 { font-size: 32px; }
+  .identity-profile .profile-actions { grid-column: 1/-1; margin-top: 5px; }
+  .identity-profile .profile-bio { font-size: 17px; }
+  .identity-profile .profile-stats { gap: 12px 23px; font-size: 13px; }
+  .identity-profile .profile-stats strong { font-size: 22px; }
+  .identity-profile .profile-articles .post-title { font-size: 22px; }
+  .identity-profile .profile-articles .post-excerpt { font-size: 15px; }
+  .identity-followers .page-heading { margin-bottom: 28px; }
+  .identity-followers .people-list > li { flex-wrap: wrap; gap: 8px 15px; padding-block: 23px; }
+  .identity-followers .person-link { flex-basis: 100%; gap: 13px; }
+  .identity-followers .person-link .identity-badge { margin-left: auto; }
+  .identity-followers .person-link strong { font-size: 17px; }
+  .identity-followers .person-since { margin-left: 53px; }
+  .editor-page.identity-editor { margin-bottom: 35px; }
+  .identity-editor .page-heading { display: block; padding-bottom: 23px; margin-bottom: 28px; }
+  .identity-editor .page-heading > p { margin-top: 18px; }
+  .identity-editor .writing-workspace textarea { min-height: 360px; }
+  .auth-layout.identity-auth,.welcome-page.identity-welcome { grid-template-columns: 1fr; gap: 24px; max-width: 620px; margin: 7px auto 45px; }
+  .identity-auth .auth-intro { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; gap: 12px 15px; }
+  .identity-auth .auth-intro h1 { grid-column: 1/-1; margin: 0; font-size: 32px; line-height: 1.35; }
+  .identity-auth .auth-intro > p { grid-column: 1/-1; margin: 0; font-size: 16px; line-height: 1.75; }
+  .identity-auth .auth-intro .quiet-link { grid-column: 1/-1; grid-row: 1; justify-self: start; margin: 0; min-height: 24px; font-size: 12px; }
+  .identity-auth .auth-intro,.identity-welcome .welcome-copy { padding-top: 0; }
+  .identity-auth .auth-panel,.identity-welcome .welcome-action { border: 0; border-top: 1px solid var(--line); padding: 22px 0 0; }
+  .identity-auth .auth-panel h2 { margin-bottom: 20px; font-size: 22px; }
+  .identity-auth .auth-panel .form-notice { margin-bottom: 20px; padding: 12px 14px; font-size: 13px; line-height: 1.75; }
+  .identity-auth .auth-panel .account-writing-note { margin-block: 24px 0; font-size: 13px; }
+  .identity-auth .auth-panel .form-group { margin-bottom: 20px; }
+  .welcome-page.identity-welcome { grid-template-areas: 'intro' 'action' 'context'; }
+  .identity-welcome .welcome-copy h1 { font-size: 32px; margin-bottom: 16px; }
+  .identity-welcome .welcome-copy .welcome-lead { margin-bottom: 14px; font-size: 19px; line-height: 1.65; }
+  .identity-welcome .welcome-copy .quiet-link { min-height: 36px; font-size: 13px; }
+  .identity-welcome .welcome-action h2 { margin-block: 17px 10px; font-size: 23px; }
+  .identity-welcome .welcome-action > p { font-size: 14px; line-height: 1.8; }
+  .identity-welcome .welcome-action .account-writing-note { padding-bottom: 16px; font-size: 13px; }
+  .identity-welcome .welcome-action .entry-privacy { margin-top: 15px; font-size: 13px; }
+  .identity-welcome .welcome-action .form-actions { margin-top: 22px; }
+  .identity-welcome .welcome-context { padding-top: 5px; }
+  .identity-welcome .welcome-context > p { margin-bottom: 18px; font-size: 15px; line-height: 1.85; }
+  .status-page.identity-status { margin-top: 0; padding-block: 30px 35px; }
+  .identity-status h1 { font-size: 29px; }
+  .identity-status .status-code { font-size: 76px; }
+  .admin-layout.identity-admin { display: block; }
+  .identity-admin .admin-home { padding-bottom: 18px; }
+  .identity-admin .admin-nav a { min-height: 44px; font-size: 13px; }
+  .identity-admin .admin-heading { flex-wrap: wrap; }
+  .identity-admin .admin-heading h1 { font-size: 28px; }
+  .identity-admin .admin-stats { grid-template-columns: 1fr 1fr; gap: 24px 0; }
+  .identity-admin .admin-stats strong { font-size: 27px; }
+  .identity-admin .admin-toolbar { padding-block: 18px; gap: 13px; }
+  .identity-admin .admin-toolbar > label { min-width: 100px; }
+  .identity-admin .admin-list-summary { flex-wrap: wrap; }
+  .identity-admin .admin-row-heading { flex-wrap: wrap; justify-content: flex-start; }
+  .identity-admin .admin-row-heading h2 { font-size: 17px; }
+  .identity-admin .admin-preview-body { padding: 17px; font-size: 14px; }
+  .identity-admin .admin-user-form { padding: 17px; }
+  .identity-admin .admin-settings-form .form-control { font-size: 16px; }
+  .identity-admin .admin-confirm-steps { gap: 22px; }
+  .identity-admin .admin-changes > div { grid-template-columns: 1fr; }
+}

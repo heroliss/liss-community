@@ -4,7 +4,7 @@
 {% block title %}{{ super() }}网站管理{% endblock %}
 {% block head %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}?v=20261024-1">{% endblock %}
 {% block page_content %}
-<div class="admin-layout">
+<div class="admin-layout identity-admin">
   <aside class="admin-sidebar" aria-label="网站管理导航">
     <a class="admin-home" href="{{ url_for('admin.index') }}">{{ ui.icon('shield') }}<span>网站管理</span></a>
     <nav class="admin-nav" aria-label="管理功能">

@@ -12,7 +12,9 @@
 
 ## 作品与交流
 
-作品展厅由 Astro 构建并部署到 [Liss Works](https://heroliss.github.io/liss-works/)，旧 `/works/` 入口重定向并保留路径。社区导航可以进入作品，20 项作品各自有 `/projects/<slug>/talk/` 讨论页；这里发表的讨论属于真实文章，可在文章流阅读、继续评论并由原作者编辑。原文章保留，关联表只记录项目关系。
+2026-10-30 新的阅读室视觉版本已在 `design/community-reading-room` 分支完成本地验收，见[设计与验证记录](docs/design-reading-room.md)。此分支的本地隔离预览不代表正式站已经更新。
+
+作品展厅由 Astro 构建并部署到 [Liss Works](https://heroliss.github.io/liss-works/)，旧 `/works/` 入口重定向并保留路径。社区导航可以进入作品，22 项作品各自有 `/projects/<slug>/talk/` 讨论页；这里发表的讨论属于真实文章，可在文章流阅读、继续评论并由原作者编辑。原文章保留，关联表只记录项目关系。
 
 ## 网站管理
 

@@ -1,0 +1,79 @@
+/* Paper, image and margin planes. Reading and native controls keep their geometry. */
+.community-room { --spatial-shadow: #0007; --spatial-contact: #0009; --spatial-edge: color-mix(in srgb,var(--room-warm) 42%,var(--room-paper)); }
+[data-theme=light] .community-room { --spatial-shadow: #253d2b26; --spatial-contact: #253d2b38; }
+.community-room :is(.identity-reading,.identity-profile,.identity-followers,.identity-auth,.identity-welcome,.identity-settings,.identity-editor,.identity-status,.identity-admin) { position: relative; isolation: isolate; }
+.community-room .community-spatial-world { position: absolute; inset: 0; transform-style: preserve-3d; pointer-events: none; transition: transform .55s cubic-bezier(.16,1,.3,1); }
+.community-room .spatial-leaf { position: absolute; display: block; border-radius: 2px; background: color-mix(in srgb,var(--spatial-paint,var(--room-paper)) var(--spatial-strength,100%),transparent); transform-style: preserve-3d; backface-visibility: hidden; pointer-events: none; }
+.community-room .spatial-leaf::before { content: ''; position: absolute; left: 0; right: 0; bottom: -3px; height: 3px; background: var(--spatial-edge); transform-origin: 50% 0; transform: rotateX(-72deg); }
+.community-room .spatial-leaf::after { content: ''; position: absolute; top: 0; left: 12%; width: 52%; height: 1px; background: linear-gradient(90deg,transparent,color-mix(in srgb,var(--room-warm) 80%,white),transparent); opacity: .72; }
+.community-room .spatial-leaf--rear { inset: 22% 4% 7% 17%; --spatial-paint: color-mix(in srgb,var(--room-warm) 9%,var(--room-paper)); transform: translate3d(11px,13px,-30px) rotateZ(5deg); box-shadow: 10px 25px 30px -16px var(--spatial-shadow); }
+.community-room .spatial-leaf--main { inset: 8% 14% 23% 7%; --spatial-paint: color-mix(in srgb,var(--accent) 9%,var(--room-paper)); transform: translateZ(6px); box-shadow: 7px 17px 24px -17px var(--spatial-contact); }
+.community-room .spatial-leaf--fold { inset: 48% 14% 23% 7%; transform-origin: 50% 100%; transform: translateZ(8px) rotateX(-37deg); --spatial-paint: color-mix(in srgb,var(--room-warm) 12%,var(--room-paper)); }
+.community-room .spatial-leaf--fold::after { width: 36%; left: 45%; opacity: .82; }
+
+/* The established header driver owns --room-*. Its illustration becomes a shared camera. */
+.community-room [data-room-scene] .room-fold.has-spatial-model { width: 340px; height: 250px; right: 4px; top: -9px; z-index: -1; opacity: 1; --spatial-strength: 95%; mask-image: none; perspective: 950px; transform: translate3d(var(--room-x),var(--room-y),0); transform-style: preserve-3d; }
+.community-room .room-fold.has-spatial-model > svg { opacity: 0; }
+.community-room .room-fold .community-spatial-world { inset: 14% 3% 5% 7%; transform: rotateX(calc(26deg + var(--room-rx))) rotateY(calc(-27deg + var(--room-ry))) rotateZ(-13deg); }
+.community-room .room-fold .spatial-leaf--main { --spatial-paint: color-mix(in srgb,var(--accent) 13%,var(--room-paper)); }
+.community-room .room-fold .spatial-leaf--main::after { transform: translateX(calc(var(--room-x,0px)*2)); }
+.community-room .room-fold .spatial-paper-score { position: absolute; inset: 30% 19% 40% 19%; transform: translateZ(8px); border-block: 1px solid color-mix(in srgb,var(--room-warm) 32%,transparent); opacity: .6; }
+.community-room [data-room-scene] .discussion-orbit.has-spatial-model { width: 340px; height: 245px; right: 0; top: 7px; opacity: 1; --orbit-ink: .72; mask-image: none; perspective: 1050px; transform: translate3d(var(--room-x),var(--room-y),0); transform-style: preserve-3d; }
+.community-room .discussion-orbit.has-spatial-model > svg { opacity: 0; }
+.community-room .discussion-orbit .community-spatial-world { inset: 3% 0; transform: rotateX(calc(42deg + var(--room-rx))) rotateY(calc(-19deg + var(--room-ry))) rotateZ(-12deg); }
+.community-room .discussion-orbit .spatial-orbit-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; mask-image: linear-gradient(90deg,transparent,#000 23%); }
+.community-room .discussion-orbit .spatial-orbit-layer--rear { transform: translate3d(0,10px,-33px); opacity: calc(var(--orbit-ink,.72)*.38); }
+.community-room .discussion-orbit .spatial-orbit-layer--middle { transform: translateZ(0); opacity: calc(var(--orbit-ink,.72)*.62); }
+.community-room .discussion-orbit .spatial-orbit-layer--front { transform: translate3d(0,-8px,34px); opacity: calc(var(--orbit-ink,.72)*.9); }
+.community-room .discussion-orbit .spatial-orbit-floor { position: absolute; inset: 20% 4% 7%; border-radius: 50%; background: color-mix(in srgb,var(--accent) 5%,var(--room-paper)); transform: translateZ(-42px); box-shadow: 9px 24px 32px -18px var(--spatial-shadow); opacity: .75; }
+
+/* Images lift inside their stationary native anchor. Nothing moves the reading column. */
+.community-room .post-cover[data-spatial-cover] { position: relative; overflow: visible; perspective: 1100px; transform-style: preserve-3d; background: transparent; }
+.community-room .post-cover[data-spatial-cover]::before { content: ''; position: absolute; inset: 5px 3px 0; z-index: -1; border-radius: 4px; background: color-mix(in srgb,var(--room-warm) 22%,var(--room-paper)); transform: translate3d(2px,4px,-8px) rotateX(calc(3deg + var(--spatial-rx,0deg))) rotateY(calc(-5deg + var(--spatial-ry,0deg))); box-shadow: 5px 15px 21px -12px var(--spatial-shadow); pointer-events: none; transition: transform .4s cubic-bezier(.16,1,.3,1); }
+.community-room .post-cover[data-spatial-cover] > img { display: block; pointer-events: none; backface-visibility: hidden; transform: translate3d(var(--spatial-x,0px),var(--spatial-y,0px),12px) rotateX(calc(3deg + var(--spatial-rx,0deg))) rotateY(calc(-5deg + var(--spatial-ry,0deg))); box-shadow: 5px 12px 19px -14px var(--spatial-contact); transition: transform .4s cubic-bezier(.16,1,.3,1),box-shadow .4s; }
+.community-room .post-cover[data-spatial-cover]::after { content: ''; position: absolute; top: 0; left: 9%; width: 39%; height: 1px; background: linear-gradient(90deg,transparent,color-mix(in srgb,var(--room-warm) 65%,white),transparent); opacity: .7; transform: translate3d(var(--spatial-x,0px),var(--spatial-y,0px),14px) rotateY(calc(-5deg + var(--spatial-ry,0deg))); transform-origin: 50% 0; pointer-events: none; transition: transform .4s cubic-bezier(.16,1,.3,1); }
+
+/* One small paper construction at the edge of a page, behind all real content. */
+.community-room .community-spatial-environment { position: absolute; width: 205px; height: 270px; right: clamp(-110px,calc((100% - 100vw)/2 + 52px),0px); top: 106px; z-index: -1; perspective: 1000px; pointer-events: none; opacity: 1; --spatial-strength: 64%; }
+.community-room .community-spatial-environment .community-spatial-world { transform: translate3d(var(--spatial-x,0px),var(--spatial-y,0px),0) rotateX(calc(15deg + var(--spatial-rx,0deg))) rotateY(calc(-34deg + var(--spatial-ry,0deg))) rotateZ(8deg); }
+.community-room .community-spatial-environment .spatial-leaf--rear { inset: 6% 15% 12% 22%; transform: translate3d(8px,13px,-34px) rotateZ(7deg); }
+.community-room .community-spatial-environment .spatial-leaf--main { inset: 15% 20% 20% 5%; }
+.community-room .community-spatial-environment .spatial-leaf--fold { inset: 52% 20% 20% 5%; }
+.community-room .identity-reading .community-spatial-environment { top: 153px; --spatial-strength: 50%; }
+.community-room :is(.identity-auth,.identity-welcome,.identity-settings) .community-spatial-environment { top: 110px; --spatial-strength: 53%; }
+.community-room .identity-profile .community-spatial-environment { top: 54px; }
+.community-room .identity-admin .community-spatial-environment { top: 29px; --spatial-strength: 38%; }
+.community-room .identity-admin .community-spatial-environment .community-spatial-world { transform: translate3d(var(--spatial-x,0px),var(--spatial-y,0px),0) rotateX(calc(9deg + var(--spatial-rx,0deg))) rotateY(calc(-29deg + var(--spatial-ry,0deg))) rotateZ(-7deg); }
+.community-room .identity-status .community-spatial-environment { top: 70px; }
+
+html[data-community-spatial=static] .community-room :is(.community-spatial-world,.post-cover[data-spatial-cover] > img,.post-cover[data-spatial-cover]::before,.post-cover[data-spatial-cover]::after),
+.community-room [data-spatial-visible=false] :is(.community-spatial-world,img),
+.community-room [data-spatial-held=true] :is(.community-spatial-world,img) { transition: none; }
+html[data-community-spatial=static] .community-room [data-room-scene] :is(.room-fold,.discussion-orbit).has-spatial-model { transform: none!important; }
+html[data-community-spatial=static] .community-room .room-fold .community-spatial-world { transform: rotateX(26deg) rotateY(-27deg) rotateZ(-13deg); }
+html[data-community-spatial=static] .community-room .discussion-orbit .community-spatial-world { transform: rotateX(42deg) rotateY(-19deg) rotateZ(-12deg); }
+@media (max-width:1100px) {
+  .community-room .community-spatial-environment { width: 160px; height: 215px; --spatial-strength: 40%; right: 0; }
+  .community-room :is(.identity-auth,.identity-welcome,.identity-settings,.identity-admin) .community-spatial-environment { --spatial-strength: 32%; }
+}
+@media (max-width:800px) {
+  .community-room [data-room-scene] .room-fold.has-spatial-model { width: 270px; height: 210px; right: 0; top: 5px; --spatial-strength: 62%; }
+  .community-room [data-room-scene] .discussion-orbit.has-spatial-model { width: 265px; height: 210px; right: 0; --orbit-ink: .48; }
+}
+@media (max-width:600px) {
+  .community-room [data-room-scene] .room-fold.has-spatial-model { width: 180px; height: 160px; top: 20px; right: 12px; --spatial-strength: 30%; }
+  .community-room [data-room-scene] .discussion-orbit.has-spatial-model { width: 175px; height: 150px; right: 12px; top: 30px; --orbit-ink: .3; }
+  .community-room .room-fold .community-spatial-world { transform: rotateX(24deg) rotateY(-24deg) rotateZ(-13deg); }
+  .community-room .community-spatial-environment { width: 125px; height: 160px; right: 0; top: 15px; --spatial-strength: 25%; }
+  .community-room :is(.identity-auth,.identity-welcome,.identity-settings,.identity-admin,.identity-reading) .community-spatial-environment { top: 15px; --spatial-strength: 20%; }
+  .community-room .post-cover[data-spatial-cover] > img { transform: translateZ(8px) rotateX(2deg) rotateY(-2deg); }
+  .community-room .post-cover[data-spatial-cover]::before { transform: translate3d(2px,3px,-4px) rotateX(2deg) rotateY(-2deg); }
+  .community-room .post-cover[data-spatial-cover]::after { transform: translateZ(10px) rotateY(-2deg); }
+}
+@media (prefers-reduced-motion:reduce) {
+  .community-room :is(.community-spatial-world,.post-cover[data-spatial-cover] > img,.post-cover[data-spatial-cover]::before,.post-cover[data-spatial-cover]::after) { transition: none!important; }
+}
+@media (forced-colors:active) {
+  .community-room :is(.community-spatial-environment,.room-fold,.discussion-orbit),.community-room .post-cover[data-spatial-cover]::before,.community-room .post-cover[data-spatial-cover]::after { display: none; }
+  .community-room .post-cover[data-spatial-cover] > img { transform: none; box-shadow: none; }
+}
