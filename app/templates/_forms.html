@@ -1,4 +1,6 @@
+{% import "_depth.html" as depth with context %}
 {% macro render_form(form, submit_label=none, class_name='', labels={}) %}
+<div class="depth-workpad" data-depth-host data-depth-kind="workspace">{% call depth.layers() %}
 <form method="post" class="site-form {{ class_name }}" novalidate>
   {{ form.hidden_tag() }}
   {% for field in form if field.type not in ['CSRFTokenField','HiddenField'] %}
@@ -18,4 +20,5 @@
   {% endfor %}
   {% if form.csrf_token is defined %}{% for error in form.csrf_token.errors %}<p class="field-error" role="alert">{{ error }} 请刷新页面后重试。</p>{% endfor %}{% endif %}
 </form>
+{% endcall %}</div>
 {% endmacro %}

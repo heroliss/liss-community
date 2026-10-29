@@ -2,6 +2,7 @@
 {% import "_forms.html" as forms with context %}
 {% import "_macros.html" as macros %}
 {% import "_ui.html" as ui with context %}
+{% import "_depth.html" as depth with context %}
 {% set guest_posting_open = (site_settings|default({})).get('guest_posting_open', true) %}
 {% block title %}{{ super() }}{{ project[0] }} · 交流{% endblock %}
 {% block page_content %}
@@ -17,6 +18,6 @@
   {% if not posts %}{{ ui.empty_state('第一段对话，从这里开始。', '目前还没有讨论。体验过作品后，欢迎留下一个想法。') }}{% endif %}
   {{ macros.pagination_widget(pagination, 'community.project_talk', slug=slug) }}
 </div>
-<aside class="community-aside" aria-label="作品与交流入口"><section class="aside-about"><h2>边体验，边交流。</h2><p>截图、技术说明与运行方式在作品页；问题与想法留在这里，方便继续讨论。</p><a class="quiet-link" href="{{ url_for('community.portfolio', path='projects/' ~ slug ~ '/') }}">查看这个作品 {{ ui.icon('arrow') }}</a></section><section class="aside-note"><h2>更多作品</h2><div class="project-talk-list">{% for other_slug, other in project_catalog.items() %}{% if other_slug != slug %}<a href="{{ url_for('community.project_talk', slug=other_slug) }}">{{ other[0] }} {{ ui.icon('arrow') }}</a>{% endif %}{% endfor %}</div></section></aside>
+<aside class="community-aside" aria-label="作品与交流入口"><section class="aside-about" data-depth-host data-depth-kind="ledge">{% call depth.layers() %}<h2>边体验，边交流。</h2><p>截图、技术说明与运行方式在作品页；问题与想法留在这里，方便继续讨论。</p><a class="quiet-link" href="{{ url_for('community.portfolio', path='projects/' ~ slug ~ '/') }}">查看这个作品 {{ ui.icon('arrow') }}</a>{% endcall %}</section><section class="aside-note" data-depth-host data-depth-kind="ledge">{% call depth.layers() %}<h2>更多作品</h2><div class="project-talk-list">{% for other_slug, other in project_catalog.items() %}{% if other_slug != slug %}<a href="{{ url_for('community.project_talk', slug=other_slug) }}">{{ other[0] }} {{ ui.icon('arrow') }}</a>{% endif %}{% endfor %}</div>{% endcall %}</section></aside>
 </div>
 {% endblock %}

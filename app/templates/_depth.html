@@ -1,0 +1,5 @@
+{# Separate owners keep scroll, arrival and pointer transforms from overwriting.
+   The caller supplies the stable semantic host. No content is hidden by default. #}
+{% macro layers() -%}
+<div class="depth-scroll"><div class="depth-arrival"><div class="depth-surface">{{ caller() }}</div></div></div>
+{%- endmacro %}

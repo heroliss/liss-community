@@ -48,7 +48,12 @@
 
 html[data-community-spatial=static] .community-room :is(.community-spatial-world,.post-cover[data-spatial-cover] > img,.post-cover[data-spatial-cover]::before,.post-cover[data-spatial-cover]::after),
 .community-room [data-spatial-visible=false] :is(.community-spatial-world,img),
-.community-room [data-spatial-held=true] :is(.community-spatial-world,img) { transition: none; }
+.community-room [data-spatial-held=true] :is(.community-spatial-world,img),
+.community-room [data-depth-visible=false] :is(.community-spatial-world,img),
+.community-room :is([data-depth-held=true],[data-depth-selecting=true],[data-depth-focus=true]) :is(.community-spatial-world,img) { transition: none; }
+/* community-spatial.js already damps these shared header planes. CSS must not
+   continue an independent tail after pointerdown/selection freezes that pose. */
+.community-room [data-room-scene] :is(.room-fold.has-spatial-model,.discussion-orbit.has-spatial-model,.community-spatial-world) { transition: none; }
 html[data-community-spatial=static] .community-room [data-room-scene] :is(.room-fold,.discussion-orbit).has-spatial-model { transform: none!important; }
 html[data-community-spatial=static] .community-room .room-fold .community-spatial-world { transform: rotateX(26deg) rotateY(-27deg) rotateZ(-13deg); }
 html[data-community-spatial=static] .community-room .discussion-orbit .community-spatial-world { transform: rotateX(42deg) rotateY(-19deg) rotateZ(-12deg); }

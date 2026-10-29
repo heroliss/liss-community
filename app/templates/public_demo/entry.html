@@ -4,10 +4,11 @@
 {% set registration_open = (site_settings|default({})).get('registration_open', true) %}
 {% set guest_posting_open = (site_settings|default({})).get('guest_posting_open', true) %}
 {% set guest_post_limit = (site_settings|default({})).get('guest_post_limit', 10) %}
+{% import "_depth.html" as depth with context %}
 {% block title %}{{ super() }}加入社区{% endblock %}
 {% block page_content %}
 <section class="welcome-page identity-welcome">
-  <div class="welcome-copy"><h1>以访客身份加入</h1><p class="welcome-lead">不用先填一长串资料。<br>从分享第一个想法开始。</p><a class="quiet-link" href="{{ url_for('main.index') }}">先读一会儿 {{ ui.icon('arrow') }}</a></div>
+  <div class="welcome-copy" data-depth-host data-depth-kind="identity">{% call depth.layers() %}<h1>以访客身份加入</h1><p class="welcome-lead">不用先填一长串资料。<br>从分享第一个想法开始。</p><a class="quiet-link" href="{{ url_for('main.index') }}">先读一会儿 {{ ui.icon('arrow') }}</a>{% endcall %}</div>
   <div class="welcome-action">
     <p class="account-writing-note">{% if guest_posting_open %}访客最多 {{ guest_post_limit }} 篇文章或项目讨论。{% if registration_open %}创建账号可解除篇数限制，保留已有内容。{% endif %}{% else %}访客发文暂时关闭，仍可在文章与已有讨论下发表评论。{% endif %}</p>
     <h2>准备好了吗？</h2><p>点击后，为当前浏览器建立一个访客身份。</p>

@@ -108,9 +108,13 @@ class OwnerIdentityUITests(unittest.TestCase):
         article = self.client.get(f'/post/{self.owner_post_id}').get_data(as_text=True)
         self.assertIn('identity-badge identity-author">站点作者</span>', article)
         page = self.client.get(f'/post/{self.reader_post_id}').get_data(as_text=True)
-        comment = re.search(
-            rf'<li class="comment" id="comment-{self.comment_id}">(.*?)</li>',
-            page, re.S).group(1)
+        extra_attribute = r'''\s+[A-Za-z_:][\w:.-]*(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?'''
+        matches = re.findall(
+            rf'<li class="comment" id="comment-{self.comment_id}"(?:{extra_attribute})*\s*>(.*?)</li>',
+            page, re.S)
+        self.assertEqual(len(matches), 1, 'Extract exactly the requested comment, allowing valid extra attributes.')
+        self.assertEqual(page.count(f'id="comment-{self.comment_id}"'), 1)
+        comment = matches[0]
         self.assertIn('identity-badge identity-author">站点作者</span>', comment)
         self.assertIn('Synthetic author reply', comment)
 

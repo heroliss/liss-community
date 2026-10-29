@@ -1,0 +1,325 @@
+/* Six content roles, one camera per stationary host. Scroll, arrival and
+   pointer transforms each have a single owner; real links and forms stay native. */
+html { scrollbar-gutter: stable; }
+.community-room {
+  --depth-paper: color-mix(in srgb,var(--surface) 85%,var(--room-warm));
+  --depth-edge: color-mix(in srgb,var(--line) 66%,var(--room-warm));
+  --depth-shadow: #02090899;
+  --depth-contact: #0208076b;
+  --depth-glint: color-mix(in srgb,var(--room-warm) 48%,var(--text));
+  --depth-ease: cubic-bezier(.16,1,.3,1);
+}
+[data-theme=light] .community-room {
+  --depth-paper: color-mix(in srgb,var(--surface) 94%,var(--room-warm));
+  --depth-edge: color-mix(in srgb,var(--line) 76%,var(--room-warm));
+  --depth-shadow: #243b2b29;
+  --depth-contact: #243b2b20;
+  --depth-glint: color-mix(in srgb,var(--surface) 78%,white);
+}
+.community-room [data-depth-host] {
+  position: relative; min-width: 0; max-width: 100%; perspective: var(--depth-camera,1500px);
+  perspective-origin: 50% 45%; overflow: visible; z-index: 0;
+  --depth-rest-rx: 0deg; --depth-rest-ry: 0deg; --depth-rest-rz: 0deg;
+  --depth-rx: 0deg; --depth-ry: 0deg; --depth-x: 0px; --depth-y: 0px; --depth-z: 0px;
+  --depth-scroll-rx: 0deg; --depth-scroll-y: 0px; --depth-scroll-z: 0px; --depth-scroll-progress: 0;
+  --depth-light-x: 50%; --depth-light-y: 20%;
+}
+.community-room [data-depth-host] > .depth-scroll,
+.community-room [data-depth-host] > .depth-scroll > .depth-arrival,
+.community-room [data-depth-host] > .depth-scroll > .depth-arrival > .depth-surface {
+  display: block; position: relative; min-width: 0; max-width: 100%; transform-style: preserve-3d; overflow: visible;
+}
+.community-room [data-depth-host] [data-depth-host] { perspective: none; transform-style: preserve-3d; }
+/* Transparent camera/animation planes must never intercept the negative-Z
+   half of a tilted child. Only the actual content surface receives input. */
+.community-room [data-depth-host],
+.community-room [data-depth-host] > .depth-scroll,
+.community-room [data-depth-host] > .depth-scroll > .depth-arrival { pointer-events: none; }
+.community-room [data-depth-host] > .depth-scroll > .depth-arrival > .depth-surface { pointer-events: auto; }
+.community-room [data-depth-host][hidden],.community-room :is(.depth-scroll,.depth-arrival,.depth-surface)[hidden] { display: none!important; }
+.community-room [data-depth-host] > .depth-scroll {
+  transform: translate3d(0,var(--depth-scroll-y,0px),var(--depth-scroll-z,0px)) rotateX(var(--depth-scroll-rx,0deg));
+}
+.community-room [data-depth-host] > .depth-scroll > .depth-arrival { transform: none; }
+.community-room [data-depth-host] > .depth-scroll > .depth-arrival > .depth-surface {
+  transform: translate3d(var(--depth-x,0px),var(--depth-y,0px),var(--depth-z,0px))
+    rotateX(calc(var(--depth-rest-rx) + var(--depth-rx,0deg)))
+    rotateY(calc(var(--depth-rest-ry) + var(--depth-ry,0deg))) rotateZ(var(--depth-rest-rz));
+  transition: transform .48s var(--depth-ease); transform-origin: 50% 48%;
+}
+.community-room [data-depth-host][data-depth-active=true] > .depth-scroll,
+.community-room [data-depth-host][data-depth-active=true] > .depth-scroll > .depth-arrival > .depth-surface { transition: none; }
+.community-room .depth-surface::before,
+.community-room .depth-surface::after { position: absolute; display: block; pointer-events: none; backface-visibility: hidden; }
+.community-room [data-depth-host] :is(a,button,summary,input,textarea,select):focus-visible { outline: 2px solid var(--focus); outline-offset: 5px; }
+.community-room :is(.post-body,.comment-body,.post-copy,.profile-bio)::selection,
+.community-room :is(.post-body,.comment-body,.post-copy,.profile-bio) ::selection { color: var(--text); background: color-mix(in srgb,var(--accent) 32%,var(--input)); }
+
+/* Edition: an open journal sheet with one physical spine, not a boxed tile. */
+.community-room [data-depth-host][data-depth-kind=edition] {
+  padding: 0; border: 0; background: transparent; box-shadow: none; border-radius: 0;
+  margin: 23px 0 37px; --depth-rest-rx: 2.4deg; --depth-rest-ry: -3.6deg; --depth-rest-rz: -.35deg;
+}
+.community-room [data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface {
+  padding: 28px clamp(20px,2.5vw,34px) 25px; border-radius: 5px 21px 11px 3px;
+  background: radial-gradient(ellipse at var(--depth-light-x,35%) var(--depth-light-y,20%),color-mix(in srgb,var(--room-warm) 7%,transparent),transparent 68%),linear-gradient(125deg,color-mix(in srgb,var(--surface) 95%,var(--room-warm)),var(--surface) 57%,color-mix(in srgb,var(--surface) 86%,var(--bg)));
+  box-shadow: 12px 23px 32px -25px var(--depth-shadow),2px 4px 7px -5px var(--depth-contact);
+}
+.community-room [data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface::before {
+  content: ''; width: 11px; top: 8px; bottom: 9px; left: 0;
+  background: linear-gradient(90deg,color-mix(in srgb,var(--line) 80%,var(--bg)),var(--depth-edge) 74%,var(--depth-paper));
+  transform-origin: left center; transform: rotateY(-66deg); border-radius: 8px 0 0 8px;
+  box-shadow: -4px 6px 9px -7px var(--depth-contact);
+}
+.community-room [data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface::after {
+  content: ''; height: 5px; left: 10px; right: 18px; bottom: 0;
+  background: linear-gradient(90deg,transparent,var(--depth-paper) 12%,var(--depth-edge) 77%,transparent);
+  transform-origin: center bottom; transform: rotateX(-70deg); border-radius: 0 0 8px 3px; box-shadow: 3px 7px 12px -8px var(--depth-shadow);
+}
+.community-room [data-depth-kind=edition] .post-meta { margin-bottom: 21px; transform: translateZ(9px); }
+.community-room [data-depth-kind=edition] .post-meta .author-avatar { box-shadow: 2px 6px 9px -8px var(--depth-contact); }
+.community-room [data-depth-kind=edition] .post-footer { margin-top: 22px; }
+.community-room [data-depth-kind=edition] .post-title { max-width: 28em; }
+.community-room [data-depth-kind=edition] .post-cover { border: 0; background: transparent; overflow: visible; aspect-ratio: auto; }
+.community-room [data-depth-kind=edition] .post-cover img { height: auto; aspect-ratio: auto; object-fit: contain; }
+.community-room [data-depth-kind=edition]:focus-within { z-index: 3; }
+
+/* Reader: quiet type in an architectural recess. The curved margins carry depth. */
+.community-room [data-depth-host][data-depth-kind=reader] {
+  padding: 0; border: 0; background: transparent; box-shadow: none; border-radius: 0;
+  --depth-camera: 2200px; --depth-rest-rx: 0deg; --depth-rest-ry: 0deg;
+}
+.community-room [data-depth-kind=reader] > .depth-scroll > .depth-arrival > .depth-surface { padding: 0 0 30px; }
+.community-room [data-depth-kind=reader] > .depth-scroll > .depth-arrival > .depth-surface::before {
+  content: ''; top: 71px; left: -24px; width: 18px; height: min(640px,38%); border-radius: 85% 0 0 85%;
+  background: linear-gradient(180deg,transparent,color-mix(in srgb,var(--surface) 90%,var(--room-warm)) 21%,color-mix(in srgb,var(--line) 56%,transparent) 64%,transparent);
+  transform: translateZ(-12px) rotateY(-47deg); transform-origin: right center;
+  box-shadow: -8px 16px 26px -17px var(--depth-contact);
+}
+.community-room [data-depth-kind=reader] > .depth-scroll > .depth-arrival > .depth-surface::after {
+  content: ''; right: -26px; top: 205px; width: 22px; height: min(430px,28%); border-radius: 0 85% 85% 0;
+  background: radial-gradient(ellipse at left center,color-mix(in srgb,var(--line) 60%,transparent),transparent 73%);
+  opacity: calc(.70 + var(--depth-scroll-progress,0) * .12); transform: translateZ(-20px) rotateY(48deg); transform-origin: left center;
+}
+.community-room [data-depth-kind=reader] .post-meta { position: relative; transform: translateZ(14px); }
+.community-room [data-depth-kind=reader] .post-meta::after { content: ''; position: absolute; left: 0; width: 145px; bottom: -16px; height: 2px; background: linear-gradient(90deg,color-mix(in srgb,var(--room-warm) 30%,var(--line)),transparent); transform: translateZ(-8px) rotateX(56deg); pointer-events: none; }
+.community-room [data-depth-kind=reader] .post-meta .author-avatar { box-shadow: 3px 7px 11px -9px var(--depth-contact); }
+.community-room [data-depth-kind=reader] .post-body { position: relative; transform: translateZ(0); }
+.community-room [data-depth-kind=reader] .post-footer { position: relative; transform: translateZ(5px); }
+
+/* Replies: a chronological seam, an author rivet, and a short folded corner. */
+.community-room [data-depth-host][data-depth-kind=reply] {
+  display: block; padding: 0; border: 0; margin: 0 0 29px var(--reply-inset); width: calc(100% - var(--reply-inset)); background: transparent;
+  --depth-speaker: var(--accent); --reply-inset: 0px; --reply-lift: 3px;
+  --depth-rest-rx: 1.8deg; --depth-rest-ry: -2.2deg; --depth-rest-rz: -.25deg;
+}
+.community-room [data-depth-kind=reply][data-speaker="1"] { --depth-speaker: #bfc8e8; --reply-inset: 12px; --reply-lift: 12px; --depth-rest-rx: 1deg; --depth-rest-ry: 1.8deg; --depth-rest-rz: .2deg; }
+.community-room [data-depth-kind=reply][data-speaker="2"] { --depth-speaker: #e0c498; --reply-inset: 4px; --reply-lift: 5px; --depth-rest-rx: 2.3deg; --depth-rest-ry: -1.2deg; --depth-rest-rz: -.15deg; }
+.community-room [data-depth-kind=reply][data-speaker="3"] { --depth-speaker: #afd6d4; --reply-inset: 18px; --reply-lift: 9px; --depth-rest-rx: 1.4deg; --depth-rest-ry: 2.4deg; --depth-rest-rz: .12deg; }
+.community-room [data-depth-kind=reply][data-speaker="4"] { --depth-speaker: #d6bbcc; --reply-inset: 9px; --reply-lift: 16px; --depth-rest-rx: .7deg; --depth-rest-ry: -2.7deg; --depth-rest-rz: -.25deg; }
+[data-theme=light] .community-room [data-depth-kind=reply][data-speaker="1"] { --depth-speaker: #59688c; }
+[data-theme=light] .community-room [data-depth-kind=reply][data-speaker="2"] { --depth-speaker: #886b39; }
+[data-theme=light] .community-room [data-depth-kind=reply][data-speaker="3"] { --depth-speaker: #416e70; }
+[data-theme=light] .community-room [data-depth-kind=reply][data-speaker="4"] { --depth-speaker: #815e75; }
+.community-room [data-depth-kind=reply] > .depth-scroll > .depth-arrival > .depth-surface {
+  display: grid; grid-template-columns: 36px minmax(0,1fr); gap: 18px; align-items: start;
+  padding: 25px 23px 27px 16px; border-radius: 5px 15px 21px 4px;
+  background: radial-gradient(ellipse at var(--depth-light-x,30%) var(--depth-light-y,20%),color-mix(in srgb,var(--depth-speaker) 6%,transparent),transparent 68%),linear-gradient(112deg,color-mix(in srgb,var(--surface) 76%,var(--bg)),color-mix(in srgb,var(--bg) 95%,var(--depth-speaker)));
+  box-shadow: 9px 17px 28px -23px var(--depth-shadow),2px 3px 6px -5px var(--depth-contact);
+  transform: translate3d(var(--depth-x,0px),var(--depth-y,0px),calc(var(--depth-z,0px) + var(--reply-lift))) rotateX(calc(var(--depth-rest-rx) + var(--depth-rx,0deg))) rotateY(calc(var(--depth-rest-ry) + var(--depth-ry,0deg))) rotateZ(var(--depth-rest-rz));
+}
+.community-room .comments:has(> [data-depth-kind=reply]) { position: relative; }
+.community-room .comments:has(> [data-depth-kind=reply])::before { content: ''; position: absolute; top: 44px; bottom: 26px; left: 32px; width: 1px; background: linear-gradient(180deg,transparent,color-mix(in srgb,var(--line) 70%,transparent) 8%,var(--line) 88%,transparent); pointer-events: none; }
+.community-room [data-depth-kind=reply] > .depth-scroll > .depth-arrival > .depth-surface::before {
+  content: ''; left: 14px; top: 24px; width: 39px; height: 39px; border-radius: 50%;
+  background: linear-gradient(135deg,color-mix(in srgb,var(--depth-speaker) 36%,var(--line)),color-mix(in srgb,var(--line) 62%,var(--bg)));
+  transform: translate3d(2px,3px,12px); box-shadow: 3px 8px 10px -8px var(--depth-contact);
+}
+.community-room [data-depth-kind=reply] > .depth-scroll > .depth-arrival > .depth-surface::after {
+  content: ''; right: 6px; bottom: 2px; width: 66px; height: 24px; border-radius: 0 0 86% 12%;
+  background: linear-gradient(145deg,color-mix(in srgb,var(--depth-speaker) 23%,var(--surface)),color-mix(in srgb,var(--line) 64%,var(--bg)));
+  transform-origin: right bottom; transform: translateZ(-5px) rotateX(-19deg) rotateY(-6deg); box-shadow: 3px 8px 12px -9px var(--depth-contact);
+}
+.community-room [data-depth-kind=reply] .author-avatar { position: relative; transform: translateZ(28px); box-shadow: 2px 7px 12px -10px var(--depth-shadow); }
+.community-room [data-depth-kind=reply] .comment-content { min-width: 0; transform: translateZ(5px); }
+.community-room [data-depth-kind=reply] .comment-author { color: var(--text); }
+.community-room [data-depth-kind=reply] .comment-meta { margin-bottom: 11px; }
+.community-room [data-depth-kind=reply]:target .depth-surface { box-shadow: 0 0 0 1px color-mix(in srgb,var(--depth-speaker) 50%,transparent),7px 18px 24px -24px var(--depth-shadow); }
+
+/* Workspace: the form remains face-on; a hinge and rear proof provide depth. */
+.community-room [data-depth-host][data-depth-kind=workspace] { --depth-camera: 1800px; margin-block: 12px 22px; }
+.community-room [data-depth-kind=workspace] > .depth-scroll { transform: none; }
+.community-room [data-depth-kind=workspace] > .depth-scroll > .depth-arrival > .depth-surface { transform: none; padding: 14px 0 2px; }
+.community-room [data-depth-kind=workspace] > .depth-scroll > .depth-arrival > .depth-surface::before {
+  content: ''; inset: 6px -11px -11px -10px; border-radius: 13px 5px 14px 6px;
+  background: radial-gradient(ellipse at var(--depth-light-x) 0%,color-mix(in srgb,var(--accent) 10%,transparent),transparent 65%),linear-gradient(135deg,var(--surface),color-mix(in srgb,var(--surface) 85%,var(--bg)));
+  border-top: 1px solid color-mix(in srgb,var(--room-warm) 22%,transparent);
+  transform: translateZ(-22px) rotateX(calc(2deg + var(--depth-rx,0deg))) rotateY(calc(-2deg + var(--depth-ry,0deg)));
+  transform-origin: 45% 100%; box-shadow: 9px 22px 31px -23px var(--depth-shadow); z-index: -1;
+}
+.community-room [data-depth-kind=workspace] > .depth-scroll > .depth-arrival > .depth-surface::after {
+  content: ''; left: -10px; right: -7px; bottom: -10px; height: 8px; border-radius: 0 0 10px 5px;
+  background: linear-gradient(90deg,color-mix(in srgb,var(--room-warm) 20%,var(--surface)),var(--surface)); transform-origin: center top;
+  transform: translateZ(-17px) rotateX(62deg); box-shadow: 1px 12px 15px -11px var(--depth-shadow); z-index: -1;
+}
+.community-room [data-depth-kind=workspace][data-depth-focus=true] > .depth-scroll > .depth-arrival > .depth-surface::before { border-top-color: color-mix(in srgb,var(--accent) 48%,transparent); }
+.community-room [data-depth-kind=workspace]:has(.editor-preview-active,.editor-preview-active-side) > .depth-scroll > .depth-arrival > .depth-surface::before { transform: translateZ(-22px) rotateX(3deg) rotateY(-3deg); }
+.community-room [data-depth-kind=workspace] :is(.CodeMirror,.editor-toolbar,textarea,input,select,.form-actions) { scroll-margin-top: 28px; }
+
+/* Identity: a round seal and a small bookend, never a rotating account form. */
+.community-room [data-depth-host][data-depth-kind=identity] { --depth-rest-rx: 1.2deg; --depth-rest-ry: -2.1deg; }
+.community-room [data-depth-kind=identity] > .depth-scroll > .depth-arrival > .depth-surface { padding: 12px 0 3px; }
+.community-room [data-depth-kind=identity] > .depth-scroll > .depth-arrival > .depth-surface::before {
+  content: none; left: 0; top: 15px; width: 74px; height: 74px; border-radius: 50%;
+  background: linear-gradient(140deg,color-mix(in srgb,var(--room-warm) 38%,var(--line)),var(--depth-edge) 44%,color-mix(in srgb,var(--bg) 65%,var(--line)));
+  transform: translate3d(2px,5px,9px); box-shadow: 4px 11px 16px -11px var(--depth-shadow);
+}
+.community-room [data-depth-kind=identity]:has(.profile-top > .avatar) > .depth-scroll > .depth-arrival > .depth-surface::before { content: ''; }
+.community-room [data-depth-kind=identity] > .depth-scroll > .depth-arrival > .depth-surface::after {
+  content: ''; top: 15px; bottom: 21%; right: -2px; width: 64px; max-height: 190px; border-radius: 6% 84% 71% 7%;
+  background: radial-gradient(ellipse at left center,color-mix(in srgb,var(--room-warm) 10%,var(--surface)),transparent 78%); transform-origin: left center;
+  transform: translateZ(-24px) rotateY(-39deg); box-shadow: 6px 14px 24px -23px var(--depth-shadow);
+}
+.community-room [data-depth-kind=identity] .profile-top > .avatar { position: relative; transform: translateZ(28px); box-shadow: 3px 8px 12px -9px var(--depth-contact); }
+.community-room [data-depth-kind=identity] .profile-top { transform-style: preserve-3d; }
+.community-room [data-depth-kind=identity] :is(.profile-identity,.profile-actions,.profile-bio,.profile-facts,.profile-stats,.profile-identity-note) { position: relative; }
+
+/* Ledge: an open side shelf, carrying an aside rather than framing a card. */
+.community-room [data-depth-host][data-depth-kind=ledge] { --depth-rest-rx: 1.8deg; --depth-rest-ry: -2.6deg; --depth-rest-rz: .2deg; }
+.community-room [data-depth-kind=ledge] > .depth-scroll > .depth-arrival > .depth-surface { padding: 9px 0 19px; }
+.community-room [data-depth-kind=ledge] > .depth-scroll > .depth-arrival > .depth-surface::before {
+  content: ''; left: 14%; right: 9%; bottom: 5px; height: 12px; border-radius: 50%;
+  background: radial-gradient(ellipse at center,color-mix(in srgb,var(--room-warm) 19%,var(--surface)),transparent 73%);
+  transform-origin: center bottom; transform: translateZ(-10px) rotateX(57deg); box-shadow: 3px 9px 16px -12px var(--depth-shadow);
+}
+.community-room [data-depth-kind=ledge] > .depth-scroll > .depth-arrival > .depth-surface::after {
+  content: ''; right: -6px; top: 12px; width: 37px; height: 72%; border-radius: 4% 78% 78% 4%;
+  background: radial-gradient(ellipse at left center,color-mix(in srgb,var(--line) 66%,transparent),transparent 75%);
+  transform: translateZ(-17px) rotateY(-43deg); transform-origin: left center;
+}
+
+/* Images: intrinsic aspect ratio and a narrow real edge; no generic screenshot mat. */
+.community-room span.depth-image-host[data-depth-host] {
+  display: inline-block; width: fit-content; max-width: 100%; vertical-align: top; margin-block: 28px 34px;
+  --depth-camera: 1500px; --depth-rest-rx: 2deg; --depth-rest-ry: -3deg; --depth-rest-rz: -.3deg;
+}
+.community-room .post-cover:has(.depth-image-host) { display: block; overflow: visible; aspect-ratio: auto; background: transparent; border: 0; max-height: none; }
+.community-room .post-cover .depth-image-host { display: block; width: 100%; margin: 0; --depth-rest-rx: 3deg; --depth-rest-ry: -5deg; }
+.community-room .post-body p > .depth-image-host:only-child { display: block; margin-inline: auto; }
+.community-room [data-depth-kind=image] > .depth-scroll > .depth-arrival > .depth-surface { width: fit-content; max-width: 100%; padding: 0; box-shadow: 7px 15px 23px -18px var(--depth-shadow); }
+.community-room [data-depth-kind=image] > .depth-scroll > .depth-arrival > .depth-surface::before {
+  content: ''; top: 1px; bottom: 1px; right: 0; width: 4px; background: var(--depth-edge);
+  transform-origin: right center; transform: rotateY(-79deg); border-radius: 0 2px 2px 0;
+}
+.community-room [data-depth-kind=image] > .depth-scroll > .depth-arrival > .depth-surface::after {
+  content: ''; bottom: 0; left: 1px; right: 1px; height: 4px; background: color-mix(in srgb,var(--room-warm) 36%,var(--line));
+  transform-origin: center bottom; transform: rotateX(-80deg);
+}
+.community-room [data-depth-kind=image] :is(img,button) { display: block; width: auto; max-width: 100%; height: auto; margin: 0; }
+.community-room [data-depth-kind=image] img { aspect-ratio: auto; object-fit: contain; border: 0; border-radius: 2px; }
+.community-room [data-depth-kind=image] button { border: 0; padding: 0; background: transparent; border-radius: 2px; cursor: zoom-in; text-align: inherit; }
+.community-room [data-depth-kind=image] button:focus-visible { outline-offset: 7px; }
+.community-room .community-image-trigger { padding: 0; border: 0; border-radius: 0; background: transparent; color: inherit; line-height: 0; cursor: zoom-in; }
+.community-room .comment-form > .depth-workpad { flex: 1; min-width: 0; }
+
+/* The browser owns modal focus/escape. Only its image stage is animated by JS. */
+dialog.community-image-viewer { width: fit-content; max-width: calc(100vw - 40px); max-height: calc(100dvh - 32px); padding: 55px 22px 16px; border: 0; border-radius: 0; margin: auto; background: transparent; color: var(--text); overflow: auto; perspective: 1600px; }
+dialog.community-image-viewer[open] { display: flex; flex-direction: column; align-items: center; gap: 9px; }
+dialog.community-image-viewer::backdrop { background: #030a0aeb; }
+.community-image-stage { display: grid; place-items: center; position: relative; width: fit-content; max-width: 100%; transform-style: preserve-3d; box-shadow: 12px 23px 35px -23px #000c; }
+.community-image-plane { position: relative; width: fit-content; max-width: 100%; transform-style: preserve-3d; }
+.community-image-plane > img { display: block; max-width: min(1180px,calc(100vw - 88px)); max-height: calc(100dvh - 190px); width: auto; height: auto; object-fit: contain; border-radius: 2px; }
+.community-image-plane::after { content: ''; position: absolute; inset: 2px -3px -4px 3px; z-index: -1; background: #52665f; border-radius: 2px; transform: translateZ(-8px); pointer-events: none; }
+.community-image-close { position: absolute; top: 0; right: 18px; display: grid; place-items: center; width: 44px; height: 44px; padding: 10px; border: 0; border-radius: 50%; background: #24312d; color: #edf0e6; cursor: pointer; }
+.community-image-close .icon { width: 21px; height: 21px; }
+.community-image-original { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 5px 10px; color: #b7e5c9; font-size: 14px; text-underline-offset: 5px; }
+.community-image-caption { max-width: 62ch; margin: 0; color: #d1dbd4; font-size: 14px; line-height: 1.8; text-align: center; overflow-wrap: anywhere; }
+.community-image-viewer :is(button,a):focus-visible { outline: 2px solid #b7e5c9; outline-offset: 4px; }
+
+/* Frozen means frozen: never reset a held visual between down and up. */
+.community-room [data-depth-host]:is([data-depth-held=true],[data-depth-selecting=true],[data-depth-hover=true],[data-depth-focus=true],[data-depth-visible=false]) > .depth-scroll > .depth-arrival > .depth-surface,
+html[data-room-motion=paused] .community-room .depth-surface { transition: none; }
+.community-room [data-depth-host]:is([data-depth-held=true],[data-depth-selecting=true]) .depth-surface::after { transition: none; }
+
+/* Fixed editor controls must escape every nested 3D containing block. */
+.community-room [data-depth-host]:is([data-depth-fullscreen=true],:has(.CodeMirror-fullscreen)),
+.community-room [data-depth-host]:is([data-depth-fullscreen=true],:has(.CodeMirror-fullscreen)) > .depth-scroll,
+.community-room [data-depth-host]:is([data-depth-fullscreen=true],:has(.CodeMirror-fullscreen)) > .depth-scroll > .depth-arrival,
+.community-room [data-depth-host]:is([data-depth-fullscreen=true],:has(.CodeMirror-fullscreen)) > .depth-scroll > .depth-arrival > .depth-surface {
+  perspective: none!important; transform: none!important; transform-style: flat!important; filter: none!important; backdrop-filter: none!important;
+  contain: none!important; isolation: auto!important; will-change: auto!important; overflow: visible!important;
+}
+.community-room [data-depth-host]:is([data-depth-fullscreen=true],:has(.CodeMirror-fullscreen)) { z-index: 1100; }
+.community-room:has(.CodeMirror-fullscreen) :is(.identity-editor,.identity-auth,.identity-settings,.composer) { isolation: auto!important; }
+.community-room [data-depth-host]:is([data-depth-fullscreen=true],:has(.CodeMirror-fullscreen)) .depth-surface::before,
+.community-room [data-depth-host]:is([data-depth-fullscreen=true],:has(.CodeMirror-fullscreen)) .depth-surface::after { display: none; }
+
+@media (max-width:800px) {
+  .community-room [data-depth-host][data-depth-kind=edition] { margin: 20px 0 29px; --depth-rest-rx: 1.5deg; --depth-rest-ry: -1.8deg; --depth-rest-rz: 0deg; }
+  .community-room [data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface { padding: 23px 20px 21px; }
+  .community-room [data-depth-kind=reader] > .depth-scroll > .depth-arrival > .depth-surface::before { left: -13px; width: 9px; height: min(500px,32%); }
+  .community-room [data-depth-kind=reader] > .depth-scroll > .depth-arrival > .depth-surface::after { right: -13px; width: 12px; }
+  .community-room [data-depth-host][data-depth-kind=reply] { margin-left: calc(var(--reply-inset) * .4); width: calc(100% - var(--reply-inset) * .4); --reply-lift: 0px; --depth-rest-rx: .7deg; --depth-rest-ry: -.7deg; --depth-rest-rz: 0deg; }
+  .community-room [data-depth-kind=reply] > .depth-scroll > .depth-arrival > .depth-surface { padding: 22px 17px 22px 11px; gap: 14px; }
+  .community-room [data-depth-kind=reply] > .depth-scroll > .depth-arrival > .depth-surface::before { left: 9px; top: 21px; }
+  .community-room .comments:has(> [data-depth-kind=reply])::before { left: 28px; }
+  .community-room [data-depth-host][data-depth-kind=identity] { --depth-rest-rx: .5deg; --depth-rest-ry: -.8deg; }
+  .community-room [data-depth-host][data-depth-kind=ledge] { --depth-rest-rx: .8deg; --depth-rest-ry: -1.1deg; --depth-rest-rz: 0deg; }
+  .community-room [data-depth-kind=workspace] > .depth-scroll > .depth-arrival > .depth-surface::before { inset: 8px -5px -8px; }
+  .community-room [data-depth-kind=workspace] > .depth-scroll > .depth-arrival > .depth-surface::after { left: -5px; right: -4px; bottom: -7px; height: 5px; }
+}
+@media (max-width:480px) {
+  .community-room [data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface { padding: 21px 15px 18px; }
+  .community-room [data-depth-kind=edition] .post-preview { gap: 17px; }
+  .community-room [data-depth-kind=edition] .post-title { font-size: 21px; }
+  .community-room [data-depth-kind=edition] .post-excerpt { font-size: 15px; }
+  .community-room [data-depth-kind=edition] .post-footer { column-gap: 12px; margin-top: 18px; }
+  .community-room [data-depth-kind=reply] > .depth-scroll > .depth-arrival > .depth-surface { grid-template-columns: 30px minmax(0,1fr); gap: 12px; padding: 20px 12px 22px 9px; }
+  .community-room [data-depth-kind=reply] .author-avatar .avatar { width: 30px; height: 30px; }
+  .community-room [data-depth-kind=reply] > .depth-scroll > .depth-arrival > .depth-surface::before { left: 7px; top: 19px; width: 33px; height: 33px; }
+  .community-room [data-depth-kind=reply] > .depth-scroll > .depth-arrival > .depth-surface::after { width: 49px; height: 18px; }
+  .community-room .comments:has(> [data-depth-kind=reply])::before { left: 23px; }
+  .community-room [data-depth-kind=reply] .comment-date { margin-left: 0; }
+  .community-room [data-depth-kind=reply] .comment-body { font-size: 15px; }
+  .community-room [data-depth-kind=identity] > .depth-scroll > .depth-arrival > .depth-surface::after { width: 27px; right: 0; }
+  .community-room span.depth-image-host[data-depth-host] { margin-block: 23px 28px; --depth-rest-rx: 1deg; --depth-rest-ry: -1.5deg; --depth-rest-rz: 0deg; }
+  dialog.community-image-viewer { max-width: calc(100vw - 16px); padding: 53px 8px 15px; }
+  .community-image-plane > img { max-width: calc(100vw - 34px); max-height: calc(100dvh - 190px); }
+  .community-image-close { right: 6px; }
+  .community-image-caption { font-size: 13px; max-width: 34ch; }
+}
+@media (hover:none) and (pointer:coarse) {
+  .community-room [data-depth-host] { --depth-rx: 0deg!important; --depth-ry: 0deg!important; --depth-x: 0px!important; --depth-y: 0px!important; --depth-z: 0px!important; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .community-room [data-depth-host] { --depth-rx: 0deg!important; --depth-ry: 0deg!important; --depth-x: 0px!important; --depth-y: 0px!important; --depth-z: 0px!important; --depth-scroll-rx: 0deg!important; --depth-scroll-y: 0px!important; --depth-scroll-z: 0px!important; }
+  .community-room :is(.depth-scroll,.depth-arrival,.depth-surface,.community-image-stage,.community-image-plane) { transition: none!important; animation: none!important; }
+  ::view-transition-old(root),::view-transition-new(root),::view-transition-group(root) { animation: none!important; }
+}
+@media (forced-colors:active) {
+  .community-room [data-depth-host] { perspective: none; }
+  .community-room :is(.depth-scroll,.depth-arrival,.depth-surface) { transform: none!important; box-shadow: none!important; background: Canvas!important; }
+  .community-room .depth-surface::before,.community-room .depth-surface::after { display: none; }
+  .community-room [data-depth-kind=reply] .author-avatar,.community-room [data-depth-kind=reader] :is(.post-meta,.post-footer),.community-room [data-depth-kind=identity] .profile-top > .avatar { transform: none; }
+  dialog.community-image-viewer { background: Canvas; color: CanvasText; border: 1px solid CanvasText; }
+  dialog.community-image-viewer::backdrop { background: Canvas; opacity: .9; }
+  .community-image-stage,.community-image-plane,.community-image-plane > img { transform: none!important; box-shadow: none; }
+  .community-image-plane::after { display: none; }
+  .community-image-close,.community-image-original,.community-image-caption { color: CanvasText; background: Canvas; }
+}
+
+/* Native navigation remains immediate; the browser snapshots carry the motion. */
+@view-transition { navigation: auto; }
+::view-transition { pointer-events: none; }
+::view-transition-group(root) { animation-duration: 400ms; animation-timing-function: cubic-bezier(.16,1,.3,1); }
+::view-transition-group(community-post-title),::view-transition-group(community-post-image) { animation-duration: 460ms; animation-timing-function: cubic-bezier(.16,1,.3,1); }
+::view-transition-group(community-navigation) { animation-duration: 280ms; }
+html[data-community-transition=reading-open]::view-transition-new(root) { animation-name: community-reading-open; }
+html[data-community-transition=reading-close]::view-transition-new(root) { animation-name: community-reading-return; }
+::view-transition-old(root) { animation: community-depth-depart 360ms cubic-bezier(.4,0,1,1) both; }
+::view-transition-new(root) { animation: community-depth-arrive 400ms var(--depth-ease,cubic-bezier(.16,1,.3,1)) both; }
+@keyframes community-depth-depart { to { opacity: 0; transform: perspective(1700px) translate3d(0,-3px,-24px) rotateY(-1.2deg); } }
+@keyframes community-depth-arrive { from { opacity: .45; transform: perspective(1700px) translate3d(0,7px,22px) rotateY(1.6deg); } to { opacity: 1; transform: none; } }
+@keyframes community-reading-open { from { opacity: .45; transform: perspective(1800px) translate3d(0,9px,-42px) rotateY(-3deg); } to { opacity: 1; transform: none; } }
+@keyframes community-reading-return { from { opacity: .6; transform: perspective(1800px) translate3d(0,-5px,30px) rotateY(2deg); } to { opacity: 1; transform: none; } }
+html[data-room-motion=paused]::view-transition-old(root),html[data-room-motion=paused]::view-transition-new(root),html[data-room-motion=paused]::view-transition-group(root) { animation: none!important; }
