@@ -9,7 +9,7 @@
   var scriptURL = document.currentScript && document.currentScript.src;
   var textureURL = new URL('textures/material-v22/normal-roughness.png', scriptURL || document.baseURI).href;
   var lifetime = new AbortController(), dispose = null;
-  var metrics = { version: 'room-material-v29', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'narrow-rounded-chamfer', transmission: 'native-backdrop', edgeSampling: false, antialias: 'analytic-rounded-coverage', lighting: 'upper-left-area-key+ambient', pigment: 'shared-css-gpu', materialContrast: 'intrinsic-grain-in-reading-budget', materialKinds: 7, atlasSources: 4, contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
+  var metrics = { version: 'room-material-v30', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'material-specific-flat-chamfer-or-soft-shoulder', shapeProfiles: ['crystal-plane','ceramic-rim','paper-sheet','folded-metal','leather-pad','cork-cut','slate-cleft'], transmission: 'native-backdrop', edgeSampling: false, antialias: 'analytic-rounded-coverage', lighting: 'upper-left-area-key+ambient', pigment: 'shared-css-gpu', materialContrast: 'intrinsic-grain-in-reading-budget', materialKinds: 7, atlasSources: 4, contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
   var inspectState = function () { return Object.assign({}, metrics); };
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
   var vertex = [
@@ -65,17 +65,24 @@
     ' if(uKind>3.5){coarse=noise21(physical/12.);fineGrain=noise21(physical/3.6+vec2(19.7,4.9));strata=sin(physical.y*.108+sin(physical.x*.018)*1.35);}',
     ' vec2 detail=data.rg*2.-1.;float strength=uKind<.5?.115:uKind<1.5?.48:uKind<2.5?.78:uKind<3.5?.72:uKind<4.5?.88:uKind<5.5?.54:.66;',
     ' vec2 edgeDistance=min(uv,1.-uv)*uSize;',
-    ' float bevelWidth=uKind<.5?3.5:uKind<1.5?12.:uKind<2.5?1.5:uKind<3.5?6.:uKind<4.5?9.:uKind<5.5?3.:4.;',
-    ' vec2 edgeWeight=1.-smoothstep(vec2(0.),vec2(bevelWidth),edgeDistance);',
+    // Hard materials have a flat chamfer, not the same cylindrical shoulder
+    // on every left/right edge. Only ceramic and leather keep a soft roll.
+    ' float bevelWidth=uKind<.5?2.4:uKind<1.5?15.:uKind<2.5?1.1:uKind<3.5?1.6:uKind<4.5?10.:uKind<5.5?1.3:1.8;',
+    ' vec2 edgeWeight;',
+    ' if((uKind>.5&&uKind<1.5)||(uKind>3.5&&uKind<4.5))edgeWeight=1.-smoothstep(vec2(0.),vec2(bevelWidth),edgeDistance);',
+    ' else edgeWeight=(1.-smoothstep(vec2(bevelWidth-.55),vec2(bevelWidth+.55),edgeDistance))*.78;',
     ' float bevel=max(edgeWeight.x,edgeWeight.y);',
     ' vec2 bevelNormal=vec2((uv.x<.5?-1.:1.)*edgeWeight.x,(uv.y<.5?1.:-1.)*edgeWeight.y);',
     ' float bevelLength=length(bevelNormal);bevelNormal=bevelLength>.0001?bevelNormal/bevelLength:vec2(0.);',
-    ' float normalDepth=uKind<.5?.42:.26;',
-    ' float paperFold=uv.x-.81+uv.y*.06;',
-    ' vec2 formNormal=uKind>1.5&&uKind<2.5?vec2(-.20*exp(-sq(paperFold/.022))*sign(paperFold),.035*sin(uv.x*PI)):uKind>.5&&uKind<1.5?vec2((uv.x-.5)*.16,(.5-uv.y)*.12):vec2(0.);',
-    ' if(uKind>3.5&&uKind<4.5)formNormal=vec2((uv.x-.5)*.11,(.5-uv.y)*.09)+vec2(coarse-.5,fineGrain-.5)*.12;',
-    ' if(uKind>4.5&&uKind<5.5)formNormal=vec2(fineGrain-.5,coarse-.5)*.075;',
-    ' if(uKind>5.5)formNormal=vec2(strata*.025,strata*.11+(coarse-.5)*.07);',
+    ' float normalDepth=uKind<.5?.13:uKind<1.5?.40:uKind<2.5?.035:uKind<3.5?.12:uKind<4.5?.24:uKind<5.5?.075:.14;',
+    // A handled paper sheet is flat except for its small bottom-right curl.
+    // A full-height crease used to make even paper look like a bent panel.
+    ' vec2 paperCorner=(1.-uv)*uSize;',
+    ' float paperCurl=exp(-sq((paperCorner.x+paperCorner.y-26.)/3.2))*(1.-smoothstep(28.,36.,max(paperCorner.x,paperCorner.y)));',
+    ' vec2 formNormal=uKind>1.5&&uKind<2.5?vec2(-.055,.045)*paperCurl:vec2(0.);',
+    ' if(uKind>3.5&&uKind<4.5)formNormal=vec2((uv.x-.5)*.18,(.5-uv.y)*.14)+vec2(coarse-.5,fineGrain-.5)*.10;',
+    ' if(uKind>4.5&&uKind<5.5)formNormal=vec2(fineGrain-.5,coarse-.5)*.03;',
+    ' if(uKind>5.5)formNormal=vec2(strata*.012,strata*.035+(coarse-.5)*.025);',
     ' vec3 N=rotateNormal(normalize(vec3(detail.x*strength+bevelNormal.x*bevel*normalDepth+formNormal.x,detail.y*strength+bevelNormal.y*bevel*normalDepth+formNormal.y,1.)));',
     ' vec2 p=vec2((uv.x-.5)*clamp(uSize.x/uSize.y,.35,2.8),.5-uv.y);',
     // A room-space key stays above/left as the card and its normal rotate.
@@ -121,9 +128,9 @@
     '  float diffuse=nl*(A+B*azimuth*sin(alpha)*tan(beta));',
     '  vec2 fibreScale=min(uSize,uTileSize*1.5);',
     '  float fibres=sin(uv.y*fibreScale.y*.59+sin(uv.x*fibreScale.x*.043)*1.4)*sin(uv.x*fibreScale.x*.17);',
-    // Woven fibres and a quiet diagonal handling crease stay fixed to the
-    // sheet rather than shimmering in screen space during scroll.
-    '  float foldShade=1.-.13*exp(-sq(paperFold/.013))+.075*exp(-sq((paperFold+.017)/.018));',
+    // Fibres and the small corner curl remain attached to the sheet rather
+    // than shimmering in screen space during scroll.
+    '  float foldShade=1.-.045*paperCurl;',
     '  color=base*(.57+diffuse*.54)*(.76+data.a*.34+fibres*.10)*foldShade;opacity=1.;',
     '  intrinsic=clamp((data.a-.81)*2.8+.5+fibres*.18,0.,1.);',
     ' }else if(uKind<3.5){',
@@ -169,7 +176,11 @@
     '  opacity=1.;',
     ' }',
     ' if(uKind>.5){',
-    '  float readPool=smoothstep(0.,.055,uv.x)*(1.-smoothstep(.945,1.,uv.x));',
+    // Exposure used to relax across both outer 5.5% strips. Those two broad
+    // bright columns made every material look rolled backward, irrespective
+    // of its actual normal. Only the physical, key-facing bevel may now use
+    // extra dark-mode headroom; the reading face has one uniform budget.
+    '  float readPool=uMode>.5?1.:1.-clamp(bevel*edgeLight,0.,1.);',
     '  vec3 energy=linearRGB(max(color,vec3(0.)));',
     '  energy/=max(1.,max(max(energy.r,energy.g),energy.b));',
     '  float luminance=dot(energy,vec3(.2126,.7152,.0722));',

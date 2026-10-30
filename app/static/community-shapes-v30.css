@@ -1,0 +1,191 @@
+/* Material is a physical silhouette, not seven paints on one bent board.
+   Only empty shell leaves receive clipping. Content planes, focus rings,
+   images, workspace controls and the quiet glass reader keep their bounds. */
+.community-room [data-material=glass][data-depth-kind=edition] {
+  --material-shape-profile:crystal-cut;--material-thickness:14px;--material-radius:2px;
+  --material-side-span:var(--material-thickness);--material-draft:0px;
+  --material-shape-bevel:1.6px;
+  --material-outline:polygon(0 12px,12px 0,calc(100% - 64px) 0,100% 56px,100% calc(100% - 12px),calc(100% - 12px) 100%,30px 100%,0 calc(100% - 28px));
+}
+.community-room [data-material=ceramic]:is([data-depth-kind=edition],[data-depth-kind=reader]) {
+  --material-shape-profile:shallow-dish;--material-thickness:24px;
+  --material-radius:76px 15px 70px 18px;--material-shape-bevel:13px;
+}
+.community-room [data-material=paper]:is([data-depth-kind=edition],[data-depth-kind=reader]) {
+  --material-shape-profile:torn-sheet;--material-thickness:3px;
+  --material-radius:1px 3px 17px 2px;--material-shape-bevel:.8px;
+  --paper-sheet-outline:polygon(3px 2px,15% 0,28% 3px,46% 1px,63% 4px,calc(100% - 36px) 0,calc(100% - 32px) 7px,calc(100% - 24px) 10px,calc(100% - 22px) 18px,calc(100% - 13px) 20px,calc(100% - 8px) 28px,100% 30px,calc(100% - 4px) 24%,100% 36%,calc(100% - 3px) 52%,100% 69%,calc(100% - 2px) 85%,100% 100%,82% calc(100% - 2px),66% 100%,47% calc(100% - 3px),28% 100%,13% calc(100% - 2px),3px 100%,0 90%,4px 78%,1px 65%,5px 50%,0 37%,3px 22%,0 9%);
+}
+.community-room [data-material=metal]:is([data-depth-kind=edition],[data-depth-kind=reader]) {
+  --material-shape-profile:folded-nameplate;--material-thickness:7px;
+  --material-radius:1px;--material-shape-bevel:2.2px;
+  --material-outline:polygon(0 8px,8px 0,calc(100% - 52px) 0,100% 34px,100% calc(100% - 21px),calc(100% - 7px) calc(100% - 21px),calc(100% - 7px) 100%,21px 100%,0 calc(100% - 15px));
+}
+.community-room [data-material=leather]:is([data-depth-kind=edition],[data-depth-kind=reader]) {
+  --material-shape-profile:stitched-pad;--material-thickness:11px;
+  --material-radius:52px 64px 44px 60px;--material-shape-bevel:9px;
+}
+.community-room [data-material=cork]:is([data-depth-kind=edition],[data-depth-kind=reader]) {
+  --material-shape-profile:rough-cut;--material-thickness:14px;
+  --material-radius:2px;--material-shape-bevel:1.4px;
+  --material-outline:polygon(24px 2px,22% 0,43% 5px,68% 1px,calc(100% - 18px) 3px,100% 28px,calc(100% - 4px) 27%,100% 44%,calc(100% - 7px) 63%,calc(100% - 2px) 82%,calc(100% - 5px) calc(100% - 9px),calc(100% - 32px) 100%,71% calc(100% - 4px),49% 100%,28% calc(100% - 3px),16px calc(100% - 1px),0 calc(100% - 29px),5px 74%,1px 55%,7px 36%,0 25px);
+}
+.community-room [data-material=slate]:is([data-depth-kind=edition],[data-depth-kind=reader]) {
+  --material-shape-profile:split-slate;--material-thickness:9px;
+  --material-radius:1px;--material-shape-bevel:1.8px;
+  --material-outline:polygon(0 19px,24px 0,37% 4px,calc(100% - 64px) 0,calc(100% - 40px) 19px,calc(100% - 27px) 21px,100% 44px,calc(100% - 3px) 43%,100% 63%,calc(100% - 7px) 65%,calc(100% - 1px) 68%,calc(100% - 5px) calc(100% - 18px),calc(100% - 37px) 100%,61% calc(100% - 4px),22px 100%,0 calc(100% - 23px),5px 78%,0 57%,6px 54%,1px 51%);
+}
+
+/* The same profile trims every visible front leaf. The back wrapper itself is
+   transparent and unclipped, so its soft cast shadow is not sliced away. Its
+   own inert paint leaf closes the extrusion with the very same outline. */
+.community-room [data-material=glass][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > :is(.material-base,.material-coating,.material-rim,.material-sheen),
+.community-room :is([data-material=metal],[data-material=cork],[data-material=slate]):is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > :is(.material-base,.material-coating,.material-rim,.material-sheen) {
+  clip-path:var(--material-outline);
+}
+.community-room [data-material=glass][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back,
+.community-room :is([data-material=metal],[data-material=cork],[data-material=slate]):is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back {
+  inset:0;border:0;outline:0;background:transparent;clip-path:none;
+  transform:translate3d(0,0,calc(var(--material-thickness) * -1));
+  box-shadow:4px 7px 10px -5px var(--material-contact),12px 23px 29px -15px var(--material-shadow),22px 38px 40px -27px var(--material-shadow);
+}
+/* The shadow follows the clipped paint child's alpha instead of a rectangular
+   aperture, which made cut corners look like stray pale rear sheets. This one
+   static filter belongs only to an empty rear leaf, never a 3D text ancestor. */
+.community-room :is([data-material=metal],[data-material=cork],[data-material=slate]):is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back {
+  box-shadow:none;
+  filter:drop-shadow(6px 12px 9px var(--material-shadow));
+}
+.community-room [data-material=glass][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back::after,
+.community-room :is([data-material=metal],[data-material=cork],[data-material=slate]):is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back::after {
+  content:"";inset:0;border-radius:inherit;clip-path:var(--material-outline);
+  background:linear-gradient(135deg,var(--material-edge),var(--material-back) 48%);
+}
+.community-room [data-material=glass][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back::after {
+  background:linear-gradient(135deg,#acd9df20,#16374220 56%,#0a232c32);
+}
+
+/* Planar cast glass has straight, narrow cut walls. It does not inherit the
+   outward 80-degree draft or the broad reflected pillars of the older slab. */
+.community-room [data-material=glass][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  box-shadow:inset .7px .7px 0 #e0fff22b,inset -.7px -.7px 0 #071a2247;
+}
+.community-room [data-material=glass][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::after { background:none; }
+.community-room [data-material=glass][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before,
+.community-room [data-material=glass][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after {
+  top:16px;bottom:31px;width:var(--material-thickness);border-radius:0;opacity:.78;
+  box-shadow:none;
+}
+.community-room [data-material=glass][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before {
+  left:calc(var(--material-thickness) * -1);transform:rotateY(-90deg);
+  background:linear-gradient(90deg,var(--glass-edge-core),color-mix(in srgb,var(--material-edge) 65%,var(--glass-edge-light)));
+}
+.community-room [data-material=glass][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after {
+  right:calc(var(--material-thickness) * -1);top:59px;bottom:15px;transform:rotateY(90deg);
+  background:linear-gradient(90deg,var(--glass-edge-core),var(--glass-edge-sink));
+}
+.community-room [data-material=glass][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before,
+.community-room [data-material=glass][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after {
+  left:34px;right:68px;height:var(--material-thickness);border-radius:0;opacity:.72;box-shadow:none;
+}
+.community-room [data-material=glass][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before { top:calc(var(--material-thickness) * -1);transform:rotateX(90deg); }
+.community-room [data-material=glass][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after { bottom:calc(var(--material-thickness) * -1);transform:rotateX(-90deg); }
+.community-room [data-material=glass][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim {
+  padding:.8px;opacity:.62;background:linear-gradient(135deg,#d9fff154,transparent 38% 78%,#8bc1cd18);
+}
+
+/* Ceramic reads as a one-piece rounded tile, leather as a stitched cushion.
+   Only those two objects keep a broad shoulder. The seam follows the new pad. */
+.community-room [data-material=ceramic]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::before {
+  content:"";position:absolute;display:block;inset:13px 14px 14px 13px;
+  border:1px solid color-mix(in srgb,var(--material-edge) 45%,transparent);
+  border-radius:63px 4px 56px 5px;transform:translateZ(.4px);pointer-events:none;
+  box-shadow:inset .7px .7px 0 #d5e6ca24,0 .7px 0 #09221926;
+}
+.community-room [data-material=ceramic]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  box-shadow:inset 2px 4px 7px #e1ecd72a,inset -3px -6px 8px #09221967;
+}
+.community-room [data-material=ceramic]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before,
+.community-room [data-material=ceramic]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after { top:77px;bottom:72px; }
+.community-room [data-material=ceramic]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before,
+.community-room [data-material=ceramic]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after { left:78px;right:78px; }
+.community-room [data-material=leather]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::before { border-radius:41px 53px 33px 49px; }
+.community-room [data-material=leather]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before,
+.community-room [data-material=leather]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after { top:65px;bottom:61px; }
+.community-room [data-material=leather]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before,
+.community-room [data-material=leather]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after { left:65px;right:65px; }
+
+/* Torn fibres, a missing upper-right piece and a tiny surviving lower curl
+   belong to a sheet, unlike the clean facets and returns of the hard slabs. */
+.community-room [data-material=paper]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > :is(.material-base,.material-coating,.material-rim),
+.community-room [data-material=paper]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::before { clip-path:var(--paper-sheet-outline); }
+.community-room [data-material=paper]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side { display:none; }
+.community-room [data-material=paper]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  box-shadow:inset 0 .6px 0 #f6e9c02d,inset -.5px -.5px 0 #1c150b2b;
+}
+.community-room [data-material=paper]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back {
+  background:transparent;outline:0;box-shadow:none;
+  filter:drop-shadow(3px 6px 4px var(--material-shadow));
+}
+.community-room [data-material=paper]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back::after { content:"";inset:0;border-radius:inherit;clip-path:var(--paper-sheet-outline);background:var(--material-back); }
+.community-room [data-material=paper]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after { left:12px;right:24px; }
+
+/* Metal is folded along the horizontal edges, rather than rolled at both
+   sides. Its returns close below the face and leave the text plane untouched. */
+.community-room [data-material=metal]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side { display:none; }
+.community-room [data-material=metal]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  box-shadow:inset 0 2px 0 #dce8ed4d,inset 0 -2px 0 #08121a73;
+}
+/* Four shallow metal fixings follow the usable corners. The top-right fixing
+   moves inward with its long bevel; none is an interactive control. */
+.community-room [data-material=metal]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::before {
+  content:"";position:absolute;display:block;inset:0;clip-path:var(--material-outline);
+  transform:translateZ(.45px);pointer-events:none;backface-visibility:hidden;
+  background:radial-gradient(circle at 15px 15px,#263541 0 1px,#a8b8bf 1.2px 2.3px,#111e2a 2.6px 3.5px,transparent 4px),
+    radial-gradient(circle at calc(100% - 64px) 15px,#263541 0 1px,#a8b8bf 1.2px 2.3px,#111e2a 2.6px 3.5px,transparent 4px),
+    radial-gradient(circle at 14px calc(100% - 24px),#263541 0 1px,#a8b8bf 1.2px 2.3px,#111e2a 2.6px 3.5px,transparent 4px),
+    radial-gradient(circle at calc(100% - 22px) calc(100% - 14px),#263541 0 1px,#a8b8bf 1.2px 2.3px,#111e2a 2.6px 3.5px,transparent 4px);
+}
+.community-room [data-material=metal]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before,
+.community-room [data-material=metal]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after {
+  left:24px;right:58px;height:8px;border-radius:0;
+}
+.community-room [data-material=metal]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before {
+  top:-8px;transform:rotateX(67deg);background:linear-gradient(180deg,var(--material-side-mid),var(--material-edge));
+}
+.community-room [data-material=metal]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after {
+  bottom:-8px;transform:rotateX(-67deg);background:linear-gradient(180deg,var(--material-side-mid),var(--material-side-dark));
+}
+.community-room [data-material=metal]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim { padding:1px;opacity:.54;background:linear-gradient(180deg,#d5e4ec66,transparent 3px calc(100% - 2px),#09121b55); }
+
+/* Cork exposes a rough, mostly matte cut. Slate exposes stacked cleavage
+   along a narrow lower edge; its fractured outline has no straight side rail. */
+.community-room [data-material=cork]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before,
+.community-room [data-material=cork]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after { top:34px;bottom:34px;border-radius:0; }
+.community-room [data-material=cork]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before,
+.community-room [data-material=cork]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after { left:33px;right:38px;border-radius:0; }
+.community-room [data-material=cork]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { box-shadow:inset .7px .7px 0 #e3c68d22,inset -.7px -.7px 0 #20180e52; }
+.community-room [data-material=slate]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side,
+.community-room [data-material=slate]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before { display:none; }
+.community-room [data-material=slate]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after { left:29px;right:43px;border-radius:0; }
+.community-room [data-material=slate]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { box-shadow:inset .7px .7px 0 #c2d0d75c,inset -.7px -.7px 0 #101923a8; }
+
+[data-theme=light] .community-room [data-material=glass][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { box-shadow:inset .7px .7px 0 #ffffff85,inset -.7px -.7px 0 #3e62733a; }
+[data-theme=light] .community-room [data-material=glass][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back::after { background:linear-gradient(135deg,#def8f52b,#90b6bd24 56%,#aacbd633); }
+[data-theme=light] .community-room [data-material=ceramic]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { box-shadow:inset 2px 4px 7px #fff9,inset -3px -6px 8px #6275552b; }
+[data-theme=light] .community-room [data-material=ceramic]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::before { box-shadow:inset .7px .7px 0 #fff9,0 .7px 0 #62755526; }
+[data-theme=light] .community-room [data-material=paper]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { box-shadow:inset 0 .6px 0 #ffffff85,inset -.5px -.5px 0 #68573924; }
+[data-theme=light] .community-room [data-material=metal]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { box-shadow:inset 0 2px 0 #fff9,inset 0 -2px 0 #3c566536; }
+[data-theme=light] .community-room [data-material=cork]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { box-shadow:inset .7px .7px 0 #fff0c84d,inset -.7px -.7px 0 #65503738; }
+[data-theme=light] .community-room [data-material=slate]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { box-shadow:inset .7px .7px 0 #f0f5f77a,inset -.7px -.7px 0 #536b7b66; }
+
+@media(max-width:600px) {
+  .community-room [data-material=glass][data-depth-kind=edition] { --material-thickness:10px; }
+  .community-room [data-material=ceramic]:is([data-depth-kind=edition],[data-depth-kind=reader]) { --material-thickness:17px;--material-radius:54px 12px 52px 14px; }
+  .community-room [data-material=ceramic]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::before { inset:10px;border-radius:44px 2px 42px 4px; }
+  .community-room [data-material=leather]:is([data-depth-kind=edition],[data-depth-kind=reader]) { --material-thickness:8px;--material-radius:38px 48px 36px 44px; }
+  .community-room [data-material=leather]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::before { border-radius:29px 39px 27px 35px; }
+  .community-room [data-material=cork]:is([data-depth-kind=edition],[data-depth-kind=reader]) { --material-thickness:10px; }
+  .community-room [data-material=slate]:is([data-depth-kind=edition],[data-depth-kind=reader]) { --material-thickness:7px; }
+  .community-room [data-material=metal]:is([data-depth-kind=edition],[data-depth-kind=reader]) { --material-thickness:6px; }
+}
