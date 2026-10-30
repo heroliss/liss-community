@@ -1,5 +1,5 @@
 {# Separate owners keep scroll, arrival and pointer transforms from overwriting.
    The caller supplies the stable semantic host. No content is hidden by default. #}
-{% macro layers() -%}
-<div class="depth-scroll"><div class="depth-arrival"><div class="depth-surface">{{ caller() }}</div></div></div>
+{% macro layers(material=false) -%}
+<div class="depth-scroll"><div class="depth-arrival"><div class="depth-surface">{% if material %}<span class="material-shell" aria-hidden="true"><span class="material-back"></span><span class="material-base"></span><span class="material-side"></span><span class="material-bottom"></span><span class="material-rim"></span><span class="material-refraction"></span><span class="material-sheen"></span></span>{% endif %}{{ caller() }}</div></div></div>
 {%- endmacro %}
