@@ -1,0 +1,98 @@
+/* Theme roles carry an author's color through the room; reading ink stays neutral. */
+body.community-room[data-community-theme] {
+  --accent:hsl(var(--community-hue) var(--community-saturation) 72%);
+  --accent-hover:hsl(var(--community-hue) var(--community-saturation) 82%);
+  --accent-ink:hsl(var(--community-hue) min(var(--community-saturation),24%) 10%);
+  --accent-soft:hsl(var(--community-hue) min(var(--community-saturation),35%) 18%);
+  --bg:hsl(var(--community-hue) min(var(--community-saturation),22%) 7%);
+  --surface:hsl(var(--community-hue) min(var(--community-saturation),14%) 11%);
+  --raised:hsl(var(--community-hue) min(var(--community-saturation),14%) 16%);
+  --input:hsl(var(--community-hue) min(var(--community-saturation),12%) 9%);
+  --line:hsl(var(--community-hue) min(var(--community-saturation),10%) 28%);
+  --muted:hsl(var(--community-hue) min(var(--community-saturation),8%) 74%);
+  --subtle:hsl(var(--community-hue) min(var(--community-saturation),8%) 66%);
+  --text:#e9edec;
+  --focus:var(--accent); --reader-accent:var(--accent);
+  --room-warm:hsl(var(--community-hue) min(var(--community-saturation),30%) 71%);
+  --room-paper:hsl(var(--community-hue) min(var(--community-saturation),18%) 14%);
+  --atmosphere-ink:var(--accent); --atmosphere-warm:var(--room-warm);
+}
+:root[data-theme=light] body.community-room[data-community-theme] {
+  --accent:hsl(var(--community-hue) var(--community-saturation) 27%);
+  --accent-hover:hsl(var(--community-hue) var(--community-saturation) 21%);
+  --accent-ink:hsl(var(--community-hue) min(var(--community-saturation),12%) 99%);
+  --accent-soft:hsl(var(--community-hue) min(var(--community-saturation),30%) 90%);
+  --bg:hsl(var(--community-hue) min(var(--community-saturation),16%) 96%);
+  --surface:hsl(var(--community-hue) min(var(--community-saturation),6%) 98%);
+  --raised:hsl(var(--community-hue) min(var(--community-saturation),10%) 92%);
+  --input:hsl(var(--community-hue) min(var(--community-saturation),6%) 99%);
+  --line:hsl(var(--community-hue) min(var(--community-saturation),9%) 74%);
+  --muted:hsl(var(--community-hue) min(var(--community-saturation),8%) 34%);
+  --subtle:hsl(var(--community-hue) min(var(--community-saturation),8%) 39%);
+  --text:#24282a;
+  --room-warm:hsl(var(--community-hue) min(var(--community-saturation),30%) 32%);
+  --room-paper:hsl(var(--community-hue) min(var(--community-saturation),18%) 92%);
+}
+body.community-room[data-community-theme]::before {
+  background:radial-gradient(ellipse at 5% 22%,color-mix(in srgb,var(--accent) 16%,transparent),transparent 58%),
+    radial-gradient(ellipse at 94% 65%,color-mix(in srgb,var(--room-warm) 12%,transparent),transparent 54%),
+    linear-gradient(125deg,color-mix(in srgb,var(--accent) 5%,var(--bg)),var(--bg) 48%,color-mix(in srgb,var(--accent) 7%,var(--bg)));
+}
+body.community-room[data-community-theme] .site-header {
+  background:linear-gradient(110deg,color-mix(in srgb,var(--accent) 9%,var(--bg)),var(--bg) 78%);
+}
+body.community-room[data-community-theme] :is(.nav-feed,.nav-works,.nav-login,.footer-brand,.quiet-link,.reading-prose a,.comment-author) { color:var(--accent); }
+body.community-room[data-community-theme] .site-header::after,
+body.community-room[data-community-theme] .site-footer::before { background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--accent) 38%,transparent),transparent); }
+body.community-room[data-community-theme] .post-appearance { border-color:color-mix(in srgb,var(--accent) 45%,var(--line)); }
+/* Every article owns its identity, including automatic articles in a draft-colored feed. */
+body.community-room :is(article.post,[data-post-theme-card]) {
+  --accent:#a4dfb9; --accent-hover:#ccedd6; --accent-ink:#12251b; --accent-soft:#21392d; --focus:var(--accent);
+  --bg:#0d1415; --surface:#192622; --raised:#23342a; --input:#111d18; --line:#35483c;
+  --text:#e9edec; --muted:#bdc5c0; --subtle:#a6b2aa; --room-warm:#d6c7a6; --room-paper:#192622;
+}
+:root[data-theme=light] body.community-room :is(article.post,[data-post-theme-card]) {
+  --accent:#28613f; --accent-hover:#174a2e; --accent-ink:#fbfff9; --accent-soft:#e1eddc;
+  --bg:#f3f5ee; --surface:#fbfcf6; --raised:#e8eee2; --input:#f9fbf5; --line:#cbd6c8;
+  --text:#24282a; --muted:#4e6557; --subtle:#566e5e; --room-warm:#6c5630; --room-paper:#eaf0e3;
+}
+body.community-room :is(article.post,[data-post-theme-card],[data-appearance-preview])[data-theme-color]:not([data-theme-color='']) {
+  --accent:hsl(var(--appearance-hue) var(--appearance-saturation) 72%);
+  --accent-hover:hsl(var(--appearance-hue) var(--appearance-saturation) 82%);
+  --accent-ink:hsl(var(--appearance-hue) min(var(--appearance-saturation),24%) 10%);
+  --accent-soft:hsl(var(--appearance-hue) min(var(--appearance-saturation),35%) 18%);
+  --bg:hsl(var(--appearance-hue) min(var(--appearance-saturation),22%) 7%);
+  --surface:hsl(var(--appearance-hue) min(var(--appearance-saturation),14%) 11%);
+  --raised:hsl(var(--appearance-hue) min(var(--appearance-saturation),14%) 16%);
+  --input:hsl(var(--appearance-hue) min(var(--appearance-saturation),12%) 9%);
+  --line:hsl(var(--appearance-hue) min(var(--appearance-saturation),10%) 28%);
+  --muted:hsl(var(--appearance-hue) min(var(--appearance-saturation),8%) 74%);
+  --subtle:hsl(var(--appearance-hue) min(var(--appearance-saturation),8%) 66%); --text:#e9edec;
+  --room-warm:hsl(var(--appearance-hue) min(var(--appearance-saturation),30%) 71%);
+  --room-paper:hsl(var(--appearance-hue) min(var(--appearance-saturation),18%) 14%);
+  --reader-accent:var(--accent); --focus:var(--accent);
+}
+:root[data-theme=light] body.community-room :is(article.post,[data-post-theme-card],[data-appearance-preview])[data-theme-color]:not([data-theme-color='']) {
+  --accent:hsl(var(--appearance-hue) var(--appearance-saturation) 27%);
+  --accent-hover:hsl(var(--appearance-hue) var(--appearance-saturation) 21%);
+  --accent-ink:hsl(var(--appearance-hue) min(var(--appearance-saturation),12%) 99%);
+  --accent-soft:hsl(var(--appearance-hue) min(var(--appearance-saturation),30%) 90%);
+  --bg:hsl(var(--appearance-hue) min(var(--appearance-saturation),16%) 96%);
+  --surface:hsl(var(--appearance-hue) min(var(--appearance-saturation),6%) 98%);
+  --raised:hsl(var(--appearance-hue) min(var(--appearance-saturation),10%) 92%);
+  --input:hsl(var(--appearance-hue) min(var(--appearance-saturation),6%) 99%);
+  --line:hsl(var(--appearance-hue) min(var(--appearance-saturation),9%) 74%);
+  --muted:hsl(var(--appearance-hue) min(var(--appearance-saturation),8%) 34%);
+  --subtle:hsl(var(--appearance-hue) min(var(--appearance-saturation),8%) 39%); --text:#24282a;
+  --room-warm:hsl(var(--appearance-hue) min(var(--appearance-saturation),30%) 32%);
+  --room-paper:hsl(var(--appearance-hue) min(var(--appearance-saturation),18%) 92%);
+}
+body.community-room article.post :is(.post-author,.project-topic-tag,.read-post,.edit-post,.post-comment-link),
+:root[data-theme=light] body.community-room article.post :is(.post-author,.project-topic-tag,.read-post,.edit-post,.post-comment-link) { color:var(--accent); }
+body.community-room article.post .post-title a:hover { color:var(--accent); }
+body.community-room [data-appearance-preview] .appearance-sample-label,
+body.community-room [data-appearance-preview] h3 { color:var(--accent); }
+body.community-room [data-appearance-preview] .appearance-sample-foot { color:var(--accent); }
+@media(prefers-reduced-motion:no-preference) {
+  body.community-room :is(.site-header,.button,.post-author,.quiet-link,.appearance-sample h3) { transition:background-color .25s,color .25s,border-color .25s; }
+}

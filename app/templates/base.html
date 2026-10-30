@@ -3,7 +3,7 @@
 {% set registration_open = (site_settings|default({})).get('registration_open', true) %}
 {% set guest_posting_open = (site_settings|default({})).get('guest_posting_open', true) %}
 {% block html_attribs %} lang="zh-CN" data-theme="dark"{% endblock %}
-{% block body_attribs %} class="community-room" data-community-page="{{ request.endpoint|default('error', true)|replace('.', '-') }}"{% endblock %}
+{% block body_attribs %}{% set room_theme = page_theme|default({}) %} class="community-room" data-community-page="{{ request.endpoint|default('error', true)|replace('.', '-') }}" data-post-theme-color="{{ room_theme.get('color','') }}" data-post-theme-id="{{ room_theme.get('post_id') or '' }}"{% if room_theme.get('active') %} data-community-theme="post" style="--community-hue:{{ room_theme.hue }};--community-saturation:{{ room_theme.saturation }}%;"{% endif %}{% endblock %}
 {% block title %}{{ (site_settings|default({})).get('site_name', 'Liss Community') }} · {% endblock %}
 {% block head %}
 {{ super() }}
@@ -18,11 +18,14 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='community-room.css') }}?v=20261030-17">
 <link rel="stylesheet" href="{{ url_for('static', filename='community-identity.css') }}?v=20261030-17">
 <link rel="stylesheet" href="{{ url_for('static', filename='community-spatial.css') }}?v=20261030-19b">
-<link rel="stylesheet" href="{{ url_for('static', filename='community-depth.css') }}?v=20261030-19b">
-<link rel="stylesheet" href="{{ url_for('static', filename='community-atmosphere.css') }}?v=20261030-21b">
-<link rel="stylesheet" href="{{ url_for('static', filename='community-materials.css') }}?v=20261030-21b">
-<link rel="stylesheet" href="{{ url_for('static', filename='community-appearance.css') }}?v=20261030-21b">
-<script src="{{ url_for('static', filename='community-transitions.js') }}?v=20261030-19b" blocking="render"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='community-depth.css') }}?v=20261030-22b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-atmosphere.css') }}?v=20261030-22b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-materials.css') }}?v=20261030-22b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-appearance.css') }}?v=20261030-22b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-theme.css') }}?v=20261030-22b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-studio.css') }}?v=20261030-22b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-portals.css') }}?v=20261030-22b">
+<script src="{{ url_for('static', filename='community-transitions.js') }}?v=20261030-22b" blocking="render"></script>
 {% endblock %}
 {% block navbar %}
 <a class="skip-link" href="#main-content">跳到正文</a>
@@ -67,14 +70,17 @@
 {{ moment.include_moment() }}
 {{ moment.locale("zh-cn") }}
 <script src="{{ url_for('static', filename='liss.js') }}?v=20261025-1" defer></script>
+<script src="{{ url_for('static', filename='community-theme.js') }}?v=20261030-22b" defer></script>
 <script src="{{ url_for('static', filename='community-room.js') }}?v=20261030-19b" defer></script>
-<script src="{{ url_for('static', filename='community-spatial.js') }}?v=20261030-21b" defer></script>
+<script src="{{ url_for('static', filename='community-spatial.js') }}?v=20261030-22b" defer></script>
 <script src="{{ url_for('static', filename='community-gallery.js') }}?v=20261030-19b" defer></script>
-<script src="{{ url_for('static', filename='community-atmosphere.js') }}?v=20261030-21b" defer></script>
+<script src="{{ url_for('static', filename='community-atmosphere.js') }}?v=20261030-22b" defer></script>
+<script src="{{ url_for('static', filename='community-surfaces.js') }}?v=20261030-22b" defer></script>
+<script src="{{ url_for('static', filename='community-portals.js') }}?v=20261030-22b" defer></script>
 {% if request.endpoint in ['main.index', 'main.edit', 'community.project_talk'] and current_user.is_authenticated %}
 <script src="{{ url_for('static', filename='vendor/dompurify-3.4.17/purify.min.js') }}" defer></script>
 <script src="{{ url_for('static', filename='vendor/easymde-2.21.0/easymde.min.js') }}" defer></script>
 <script src="{{ url_for('static', filename='writing.js') }}?v=20261024-2" defer></script>
-<script src="{{ url_for('static', filename='community-appearance.js') }}?v=20261030-21b" defer></script>
+<script src="{{ url_for('static', filename='community-appearance.js') }}?v=20261030-22b" defer></script>
 {% endif %}
 {% endblock %}

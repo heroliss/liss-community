@@ -1,10 +1,14 @@
 {% extends "base.html" %}
 {% import "_forms.html" as forms with context %}
 {% import "_ui.html" as ui with context %}
+{% import "_portal_identity.html" as portal with context %}
+{% set profile_user = user if user is defined else current_user %}
 {% block title %}{{ super() }}编辑资料{% endblock %}
 {% block page_content %}
-<div class="settings-column identity-settings"><a class="back-link" href="{{ url_for('main.user', username=(user.username if user is defined else current_user.username)) }}">{{ ui.icon('back') }}返回个人主页</a><header class="page-heading"><h1>让大家认识你</h1><p>显示名称和简介会出现在你的公开主页。</p></header>
-<div class="settings-workspace">
+<section class="portal-page portal-profile identity-settings" data-portal-page="profile"><a class="portal-back quiet-link" href="{{ url_for('main.user', username=profile_user.username) }}">{{ ui.icon('back') }}返回个人主页</a><div class="portal-layout">
+<div class="portal-story"><header class="portal-intro"><h1>让名字，<br>有你的样子。</h1><p>显示名称和简介会出现在你的公开主页。</p></header>{{ portal.object('profile', profile_user) }}<p class="portal-story-note">这里只是一张草稿。保存后，新的介绍才会出现在主页。</p></div>
+<div class="portal-console"><div class="portal-console-face"><header class="portal-console-heading"><span class="portal-console-pin" aria-hidden="true"></span><h2>编辑个人资料</h2><span class="portal-console-mark" aria-hidden="true">LISS</span></header>
 {{ forms.render_form(form, '保存资料', '', {'name':'显示名称','location':'所在地区（可留空）','about_me':'个人简介'}) }}
-{% if current_user.is_visitor|default(false) %}<p class="settings-note">访客身份由当前浏览器保存。{% if (site_settings|default({})).get('registration_open', true) %}<a href="{{ url_for('auth.register') }}">设置账号与密码</a>后，可以跨设备继续使用，也能保留现有内容。{% else %}新账号注册暂时关闭。{% endif %}</p>{% elif not config.get('PUBLIC_DEMO') %}<p class="settings-note"><a href="{{ url_for('auth.change_avatar') }}">更改头像</a></p>{% endif %}</div></div>
+{% if current_user.is_visitor|default(false) %}<p class="settings-note">访客身份由当前浏览器保存。{% if (site_settings|default({})).get('registration_open', true) %}<a href="{{ url_for('auth.register') }}">设置账号与密码</a>后，可以跨设备继续使用，也能保留现有内容。{% else %}新账号注册暂时关闭。{% endif %}</p>{% elif not config.get('PUBLIC_DEMO') %}<p class="settings-note"><a href="{{ url_for('auth.change_avatar') }}">更改头像 {{ ui.icon('arrow') }}</a></p>{% endif %}
+</div><div class="portal-console-plinth" aria-hidden="true"><span></span><span></span><span></span></div></div></div></section>
 {% endblock %}

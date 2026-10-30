@@ -43,6 +43,11 @@
     var releaseTimer = 0, resizeObserver = null;
     var tones, sizeSignature = '';
     function alpha(color, opacity) { return 'rgba(' + color.join(',') + ',' + opacity + ')'; }
+    function hueColor(hue,saturation,lightness) {
+      var h=((hue%360)+360)%360/360,s=clamp(saturation,0,100)/100,l=lightness/100;
+      function channel(n){var k=(n+h*12)%12,a=s*Math.min(l,1-l);return Math.round(255*(l-a*Math.max(-1,Math.min(k-3,9-k,1))));}
+      return [channel(0),channel(8),channel(4)];
+    }
     function stop() { if (frame) cancelAnimationFrame(frame); frame = 0; lastTime = 0; }
     function paused() { return html.dataset.roomMotion === 'paused'; }
     function held() { return pressed || editing || selection || modal || !activeWindow; }
@@ -257,7 +262,8 @@
         var radius = width * .65, shadow = ctx.createRadialGradient(0, 0, radius * .08, 0, 0, radius);
         shadow.addColorStop(0, light ? 'rgba(35,52,44,.075)' : 'rgba(0,9,13,.25)'); shadow.addColorStop(.55, light ? 'rgba(35,52,44,.04)' : 'rgba(0,9,13,.14)'); shadow.addColorStop(1, 'rgba(0,9,13,0)');
         ctx.fillStyle = shadow; ctx.fillRect(-radius, -radius, radius * 2, radius * 2); ctx.restore();
-        sweptRail(ctx, (light ? .13 : .22) * strength);
+        // The room's broad floor and independent objects supply depth. A long
+        // bright rail across every route read as an unrelated floating line.
         glow(ctx, width * .22, height * 1.01, width * .19, tones.warm, (light ? .035 : .065) * strength, .22);
         glow(ctx, width * .98, height * .91, width * .17, tones.mint, (light ? .045 : .085) * strength, .28);
         centerQuiet(ctx, .40);
@@ -275,11 +281,15 @@
       var pixelArea = width * height + 3 * (width + padding * 2) * (height + padding * 2);
       dpr = Math.min(window.devicePixelRatio || 1, mobile ? 1.25 : 1.5, Math.sqrt(16000000 / pixelArea));
       light = html.dataset.theme === 'light';
-      var signature = [width, height, dpr, light].join(':');
+      var themed=body.hasAttribute('data-community-theme'),computed=getComputedStyle(body);
+      var selectedHue=parseFloat(computed.getPropertyValue('--community-hue')),selectedSat=parseFloat(computed.getPropertyValue('--community-saturation'));
+      if(!Number.isFinite(selectedHue))selectedHue=150;if(!Number.isFinite(selectedSat))selectedSat=45;
+      var signature = [width, height, dpr, light,themed,selectedHue,selectedSat].join(':');
       if (signature === sizeSignature) return;
       sizeSignature = signature;
       tones = light ? { mint: [74, 121, 102], blue: [85, 124, 143], warm: [146, 119, 76] } :
         { mint: [118, 187, 155], blue: [115, 157, 181], warm: [208, 177, 122] };
+      if(themed)tones={mint:hueColor(selectedHue,selectedSat,light?43:64),blue:hueColor(selectedHue+16,selectedSat*.65,light?47:67),warm:hueColor(selectedHue-12,selectedSat*.5,light?49:70)};
       canvas.width = Math.max(1, Math.floor(width * dpr)); canvas.height = Math.max(1, Math.floor(height * dpr));
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
       plates.forEach(function (plate) { if (plate) plate.width = plate.height = 1; });
@@ -366,6 +376,7 @@
     forced.addEventListener('change', gate, { signal: signal });
     fine.addEventListener('change', function () { pointer = [0, 0]; if (!fine.matches) current[0] = current[1] = 0; dirty = true; gate(); }, { signal: signal });
     window.addEventListener('liss:motion-state', gate, { signal: signal });
+    window.addEventListener('liss:theme-change',function(){sizeSignature='';dirtySize=true;dirty=true;schedule();},{signal:signal});
     window.addEventListener('liss:spatial-frame', function (event) {
       var detail = event.detail;
       if (!detail || detail.active === false) { sceneTarget = scene.slice(); return; }

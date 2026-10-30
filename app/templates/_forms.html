@@ -1,7 +1,7 @@
 {% import "_depth.html" as depth with context %}
 {% import "_appearance.html" as appearance with context %}
 {% macro render_form(form, submit_label=none, class_name='', labels={}) %}
-<div class="depth-workpad" data-depth-host data-depth-kind="workspace">{% call depth.layers() %}
+<div class="depth-workpad" data-depth-host data-depth-kind="workspace"><div class="workspace-chassis" aria-hidden="true"><span class="workspace-chassis-back"></span><span class="workspace-chassis-side"></span><span class="workspace-chassis-lip"></span></div>{% call depth.layers() %}
 <form method="post" class="site-form {{ class_name }}" novalidate>
   {{ form.hidden_tag() }}
   {% for field in form if field.type not in ['CSRFTokenField','HiddenField'] and field.name not in ['appearance_color','appearance_material'] %}

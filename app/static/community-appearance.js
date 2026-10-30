@@ -2,50 +2,68 @@
   'use strict';
   var KEY = '__lissAppearance';
   if (window[KEY]) window[KEY]();
+  var theme = window.LissTheme;
+  if (!theme) return; // Native HEX/radios remain usable without enhancement.
   var abort = new AbortController(), signal = abort.signal, cleanups = [];
   document.querySelectorAll('[data-appearance-editor]').forEach(function (root) {
     var form = root.closest('form'), hex = form.elements.appearance_color;
-    var picker = root.querySelector('[data-appearance-picker]');
-    var preview = root.querySelector('[data-appearance-preview]');
-    var status = root.querySelector('[data-appearance-status]');
-    var body = form.querySelector('.writing-field textarea');
-    var swatches = root.querySelectorAll('[data-appearance-swatch]');
-    if (!hex || !preview) return;
-    function appearance() {
-      var color = /^#[\da-f]{6}$/i.test(hex.value) ? hex.value.toLowerCase() : '';
-      var radio = root.querySelector('[name=appearance_material]:checked');
+    var picker = root.querySelector('[data-appearance-picker]'), preview = root.querySelector('[data-appearance-preview]');
+    var status = root.querySelector('[data-appearance-status]'), body = form.querySelector('.writing-field textarea');
+    var swatches = root.querySelectorAll('[data-appearance-swatch]'), composer = root.closest('.composer');
+    if (!hex || !preview || !picker) return;
+    var initialColor = theme.normalize(hex.value), checked = root.querySelector('[name=appearance_material]:checked');
+    var initialMaterial = checked ? checked.value : 'auto';
+    if (initialColor === null) initialColor = theme.normalize(document.body.dataset.postThemeColor || '') || '';
+    function visible() { return root.open && (!composer || composer.open); }
+    function appearance(activate) {
+      var color = theme.normalize(hex.value), radio = root.querySelector('[name=appearance_material]:checked');
       var material = radio ? radio.value : 'auto';
       preview.dataset.material = material === 'auto' ? 'glass' : material;
-      preview.dataset.themeColor = color;
-      if (color) {
-        var rgb = [1,3,5].map(function(i) { return parseInt(color.slice(i,i+2),16)/255; });
-        var max = Math.max.apply(Math,rgb), min = Math.min.apply(Math,rgb), d = max-min;
-        var light = (max+min)/2, sat = d ? d/(1-Math.abs(2*light-1)) : 0, h = 0;
-        if (d) h = max === rgb[0] ? ((rgb[1]-rgb[2])/d+6)%6 : max === rgb[1] ? (rgb[2]-rgb[0])/d+2 : (rgb[0]-rgb[1])/d+4;
-        var hue = Math.round(h*60)%360, saturation = sat < .08 ? 0 : Math.round(Math.max(18,Math.min(55,sat*100)));
-        preview.style.setProperty('--appearance-accent','hsl('+hue+' '+saturation+'% 70%)');
-        picker.value = color;
-      } else preview.style.removeProperty('--appearance-accent');
-      swatches.forEach(function(s) { s.setAttribute('aria-pressed',String(s.dataset.appearanceSwatch===color)); });
-      status.textContent = (color ? '自选配色' : hex.value ? '待校验配色' : '自动配色')+' · '+(radio ? radio.parentElement.lastElementChild.textContent : '自动安排');
+      if (color !== null) {
+        preview.dataset.themeColor = color;
+        theme.tint(preview,color,'draft');
+        if (color) picker.value = color;
+        if (activate && visible()) theme.preview(color,root);
+      } else theme.tint(preview,preview.dataset.themeColor || '','draft');
+      swatches.forEach(function (s) { s.setAttribute('aria-pressed',String(s.dataset.appearanceSwatch === color)); });
+      status.textContent = (color === null ? '色值待校验' : color ? '整页实时配色' : '自动配色')+' · '+(radio ? radio.parentElement.lastElementChild.textContent : '自动安排');
       root.querySelector('.appearance-sample-note').hidden = material !== 'auto';
     }
-    swatches.forEach(function(s) { s.addEventListener('click',function() { hex.value=s.dataset.appearanceSwatch; appearance(); },{signal:signal}); });
-    picker.addEventListener('input',function() { hex.value=picker.value; appearance(); },{signal:signal});
-    root.querySelector('[data-appearance-reset]').addEventListener('click',function() { hex.value=''; appearance(); },{signal:signal});
-    root.addEventListener('input',appearance,{signal:signal});
-    root.addEventListener('change',appearance,{signal:signal});
+    swatches.forEach(function (swatch) {
+      swatch.addEventListener('click',function () { hex.value=swatch.dataset.appearanceSwatch; appearance(true); },{signal:signal});
+    });
+    root.addEventListener('input',function (event) {
+      if (event.target === picker) hex.value=picker.value;
+      appearance(true);
+    },{signal:signal});
+    root.addEventListener('change',function () { appearance(true); },{signal:signal});
+    root.querySelector('[data-appearance-reset]').addEventListener('click',function () {
+      hex.value='';
+      root.querySelector('[name=appearance_material][value=auto]').checked=true;
+      appearance(true);
+    },{signal:signal});
+    root.querySelector('[data-appearance-cancel]').addEventListener('click',function () {
+      hex.value=initialColor;
+      root.querySelector('[name=appearance_material][value='+initialMaterial+']').checked=true;
+      appearance(false); theme.restore(root); root.open=false;
+    },{signal:signal});
+    root.addEventListener('toggle',function () { if (visible()) appearance(true); else theme.restore(root); },{signal:signal});
+    if (composer) composer.addEventListener('toggle',function () { if (visible()) appearance(true); else theme.restore(root); },{signal:signal});
+    root.addEventListener('keydown',function (event) { if (event.key === 'Escape') { root.open=false; theme.restore(root); } },{signal:signal});
+    form.addEventListener('reset',function () { queueMicrotask(function () { appearance(visible()); if (!visible()) theme.restore(root); }); },{signal:signal});
+    document.addEventListener('liss:theme-resume',function () { appearance(visible()); },{signal:signal});
     function copy() {
       var cm = form.querySelector('.CodeMirror'), value = cm && cm.CodeMirror ? cm.CodeMirror.getValue() : body ? body.value : '';
-      var lines = value.replace(/!\[[^\]]*\]\([^\n]*?\)/g,'').split('\n').map(function(s) { return s.replace(/^\s{0,3}#{1,6}\s+|^\s*>\s?|^\s*[-*+]\s+/g,'').replace(/\[([^\]]+)\]\([^\n]*?\)/g,'$1').replace(/[*_`]/g,'').trim(); }).filter(Boolean);
+      var lines = value.replace(/!\[[^\]]*\]\([^\n]*?\)/g,'').split('\n').map(function (s) { return s.replace(/^\s{0,3}#{1,6}\s+|^\s*>\s?|^\s*[-*+]\s+/g,'').replace(/\[([^\]]+)\]\([^\n]*?\)/g,'$1').replace(/[*_`]/g,'').trim(); }).filter(Boolean);
       preview.querySelector('[data-appearance-title]').textContent=(lines[0]||'你的下一篇文章').slice(0,48);
       preview.querySelector('[data-appearance-excerpt]').textContent=(lines.slice(1).join(' ')||'一点发现，一个故事，或还在酝酿的想法。').slice(0,90);
     }
     var cmNode = form.querySelector('.CodeMirror');
-    if (cmNode && cmNode.CodeMirror) { cmNode.CodeMirror.on('change',copy); cleanups.push(function(){cmNode.CodeMirror.off('change',copy);}); }
+    if (cmNode && cmNode.CodeMirror) { cmNode.CodeMirror.on('change',copy); cleanups.push(function () {cmNode.CodeMirror.off('change',copy);}); }
     if (body) body.addEventListener('input',copy,{signal:signal});
-    root.querySelectorAll('[data-appearance-enhanced]').forEach(function(e) {e.hidden=false;});
-    appearance(); copy();
+    root.querySelectorAll('[data-appearance-enhanced]').forEach(function (el) {el.hidden=false;});
+    appearance(false); copy();
+    cleanups.push(function () {theme.restore(root);});
   });
-  window[KEY] = function() { abort.abort(); cleanups.forEach(function(fn){fn();}); };
+  window[KEY] = function () { abort.abort(); cleanups.forEach(function (fn) {fn();}); };
 }());

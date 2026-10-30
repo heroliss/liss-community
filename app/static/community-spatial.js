@@ -12,9 +12,9 @@
     '--depth-scroll-rx','--depth-scroll-y','--depth-scroll-z','--depth-light-x','--depth-light-y','--depth-scroll-progress'];
   var roomNames = ['--room-x','--room-y','--room-rx','--room-ry'];
   var profiles = {
-    edition:[6,9,12,8,10,1], reply:[5,7,9,6,8,.7], image:[8,12,16,10,12,.7],
-    reader:[1.8,2.6,4,3,4,.24], workspace:[3,4,5,3,5,0],
-    identity:[7,10,14,9,12,.85], ledge:[7,10,12,8,10,.8]
+    edition:[8,12,16,10,18,1.2], reply:[6,8,10,7,12,.8], image:[9,14,18,10,16,.8],
+    reader:[0,0,0,0,0,0], workspace:[0,0,0,0,0,0],
+    identity:[7,10,14,9,12,.85], ledge:[8,12,13,9,14,.6]
   };
   function clamp(value,min,max) { return Math.max(min,Math.min(max,value)); }
   function snapshot(node,properties) {
@@ -31,6 +31,7 @@
     var frame=0,lastTime=0,closed=false,dirtyLayout=true,dirtyRegistry=true,dirtyLocks=true;
     var pointerOwner=null,pointer={x:0,y:0,present:false},clientPoint={x:0,y:0,known:false},hoveredControl=null,dirtyHitTest=false;
     var timers=new Set(),windowActive=true,modalOpen=false,pressed=false,selectionPresent=false,lastRelay='',lastFrame=null;
+    var surfaceSerial=0,lastSurfaceSignature='',lastSurfaceFrame=null;
     var previousState=html.getAttribute('data-community-spatial');
     function attr(node,name,value){if(node.getAttribute(name)!==value)node.setAttribute(name,value);}
     function remember(node,name){
@@ -83,12 +84,12 @@
       // a fixed rotateX origin on each IO re-entry caused the visible scroll pop.
       if(entered.has(scene.host))return;
       entered.add(scene.host);
-      if(scene.header||!scene.arrival||!scene.arrival.animate||!active(scene)||held(scene)||scene.focused)return;
+      if(scene.header||scene.kind==='workspace'||scene.kind==='reader'||!scene.arrival||!scene.arrival.animate||!active(scene)||held(scene)||scene.focused)return;
       stopArrival(scene,true);
       var animation=scene.arrival.animate([
-        {opacity:.96},
-        {opacity:1}
-      ],{duration:450,easing:'cubic-bezier(.16,1,.3,1)',fill:'none'});
+        {transform:'translate3d(0,26px,-58px)'},
+        {transform:'translate3d(0,0,0)'}
+      ],{duration:scene.kind==='reply'?540:680,easing:'cubic-bezier(.16,1,.3,1)',fill:'none'});
       scene.animation=animation;
       animation.finished.then(function(){if(scene.animation===animation){animation.cancel();scene.animation=null;}}).catch(function(){});
     }
@@ -101,7 +102,7 @@
       var arrival=scroll&&scroll.querySelector(':scope > .depth-arrival');
       var surface=arrival&&arrival.querySelector(':scope > .depth-surface');
       if(depth&&!surface)return;
-      var scene={host:host,scroll:scroll,arrival:arrival,surface:surface,header:!depth,
+      var scene={surfaceId:++surfaceSerial,host:host,scroll:scroll,arrival:arrival,surface:surface,header:!depth,
         kind:host.dataset.depthKind||'edition',visible:!observer,focused:false,held:false,selecting:false,fullscreen:false,hoverControl:false,
         bounds:null,rest:[0,0],nested:!!host.parentElement.closest('[data-depth-host]'),inside:false,entering:false,
         relayExcluded:!!host.closest('[data-appearance-preview]'),
@@ -198,6 +199,17 @@
       lastFrame=detail;
       if(signature!==lastRelay){lastRelay=signature;window.dispatchEvent(new CustomEvent('liss:spatial-frame',{detail:Object.assign({},detail)}));}
     }
+    function relaySurfaces(){
+      var poses=[],signature=[!blocked()];
+      scenes.forEach(function(scene){
+        if(!scene.visible||scene.header||scene.fullscreen||!['edition','reply','reader'].includes(scene.kind))return;
+        var c=scene.current,pose={host:scene.host,rx:Number((scene.rest[0]+c[0]+c[5]).toFixed(2)),ry:Number((scene.rest[1]+c[1]).toFixed(2)),lightX:Number(c[8].toFixed(2)),lightY:Number(c[9].toFixed(2)),held:blocked()||held(scene)||scene.focused};
+        poses.push(pose);signature.push([scene.surfaceId,pose.rx,pose.ry,pose.lightX,pose.lightY,pose.held]);
+      });
+      lastSurfaceFrame={active:!blocked(),poses:poses};
+      var next=JSON.stringify(signature);
+      if(next!==lastSurfaceSignature){lastSurfaceSignature=next;window.dispatchEvent(new CustomEvent('liss:surface-frame',{detail:lastSurfaceFrame}));}
+    }
     function paint(time){
       frame=0;if(closed)return;
       if(dirtyRegistry)reconcile();if(dirtyLayout)measure();if(dirtyLocks)locks();
@@ -259,6 +271,7 @@
         if(unsettled&&enabled)continueFrame=true;
       });
       relayFrame();
+      relaySurfaces();
       if(continueFrame)schedule();else lastTime=0;
     }
     function sceneFor(node){
@@ -356,6 +369,9 @@
     window.addEventListener('liss:motion-state',gate,{signal:signal});
     window.addEventListener('liss:spatial-request',function(){
       if(lastFrame)window.dispatchEvent(new CustomEvent('liss:spatial-frame',{detail:Object.assign({},lastFrame)}));else schedule();
+    },{signal:signal});
+    window.addEventListener('liss:surface-request',function(){
+      if(lastSurfaceFrame)window.dispatchEvent(new CustomEvent('liss:surface-frame',{detail:lastSurfaceFrame}));else schedule();
     },{signal:signal});
     document.addEventListener('liss:depth-content',function(){dirtyRegistry=true;dirtyLocks=true;invalidate();},{signal:signal});
     document.addEventListener('liss:write',function(){dirtyLocks=true;invalidate();},{signal:signal});

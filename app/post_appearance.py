@@ -1,6 +1,4 @@
 """Validated optional article presentation; content and permissions stay native."""
-import colorsys
-import math
 import re
 
 MATERIAL_CHOICES = (
@@ -9,6 +7,15 @@ MATERIAL_CHOICES = (
 )
 MATERIAL_KEYS = frozenset(value for value, _ in MATERIAL_CHOICES)
 _COLOR = re.compile(r'#[0-9a-fA-F]{6}')
+THEME_ROLE_SPECS = {
+    'dark': {'accent': (72, None), 'hover': (82, None), 'ink': (10, 24),
+             'background': (7, 22), 'surface': (11, 14), 'raised': (16, 14),
+             'input': (9, 12), 'line': (28, 10), 'muted': (74, 8), 'subtle': (66, 8)},
+    'light': {'accent': (27, None), 'hover': (21, None), 'ink': (99, 12),
+              'background': (96, 16), 'surface': (98, 6), 'raised': (92, 10),
+              'input': (99, 6), 'line': (74, 9), 'muted': (34, 8), 'subtle': (39, 8)},
+}
+THEME_READING_INK = {'dark': '#e9edec', 'light': '#24282a'}
 
 
 def normalize_color(value):
@@ -27,6 +34,39 @@ def normalize_material(value):
     return value
 
 
+def _color_hs(color):
+    if not color:
+        return 0, 0
+    red, green, blue = (int(color[index:index + 2], 16) for index in (1, 3, 5))
+    high, low = max(red, green, blue), min(red, green, blue)
+    delta = high - low
+    if not delta:
+        return 0, 0
+    numerator = (60 * (green - blue) if high == red else
+                 120 * delta + 60 * (blue - red) if high == green else
+                 240 * delta + 60 * (red - green)) % (360 * delta)
+    hue = ((2 * numerator + delta) // (2 * delta)) % 360
+    denominator = high + low if high + low <= 255 else 510 - high - low
+    saturation = (0 if 100 * delta < 8 * denominator else
+                  max(18, min(55, (200 * delta + denominator) // (2 * denominator))))
+    return hue, saturation
+
+
+def _hsl_hex(hue, saturation, lightness):
+    # Integer rational arithmetic agrees with JavaScript at half-byte and
+    # half-degree boundaries; no binary-float .499999 rounding drift.
+    chroma = (100 - abs(2 * lightness - 100)) * saturation
+    secondary = chroma * (60 - abs(hue % 120 - 60)) * 2
+    primary, base = chroma * 120, (200 * lightness - chroma) * 60
+    channels = ((primary, secondary, 0) if hue < 60 else
+                (secondary, primary, 0) if hue < 120 else
+                (0, primary, secondary) if hue < 180 else
+                (0, secondary, primary) if hue < 240 else
+                (secondary, 0, primary) if hue < 300 else (primary, 0, secondary))
+    return '#' + ''.join(f'{(2 * (channel + base) * 255 + 1200000) // 2400000:02x}'
+                         for channel in channels)
+
+
 def post_appearance(post):
     """Only return validated tokens/numbers, even if legacy/raw data is invalid."""
     row = getattr(post, 'appearance', None)
@@ -38,16 +78,31 @@ def post_appearance(post):
         material = normalize_material(row.card_material) if row else 'auto'
     except ValueError:
         material = 'auto'
-    hue, saturation = 0, 0
-    if color:
-        red, green, blue = (int(color[index:index + 2], 16) / 255 for index in (1, 3, 5))
-        h, _lightness, s = colorsys.rgb_to_hls(red, green, blue)
-        hue = math.floor(h * 360 + .5) % 360
-        # Neutral selections stay neutral. Colorful selections share a bounded
-        # chroma; raw lightness never controls the reading surface or text.
-        saturation = 0 if s < .08 else math.floor(max(18, min(55, s * 100)) + .5)
+    hue, saturation = _color_hs(color)
     return {'material': material, 'color': color, 'hue': hue,
             'saturation': saturation, 'custom': bool(color or material != 'auto')}
+
+
+def color_theme(value):
+    """A page theme uses the same bounded hue/chroma as its saved article.
+
+    Fixed role lightness deliberately ignores the chosen color's lightness:
+    white, black and saturated yellows cannot make controls unreadable.
+    """
+    color = normalize_color(value)
+    hue, saturation = _color_hs(color)
+
+    result = {'color': color, 'hue': hue, 'saturation': saturation, 'active': bool(color)}
+    for mode, specs in THEME_ROLE_SPECS.items():
+        result[mode] = {role: _hsl_hex(hue, saturation if cap is None else min(saturation, cap), lightness)
+                        for role, (lightness, cap) in specs.items()}
+        result[mode]['text'] = THEME_READING_INK[mode]
+    return result
+
+
+def page_theme(post=None):
+    color = post_appearance(post)['color'] if post is not None else ''
+    return dict(color_theme(color), post_id=post.id if post is not None else None)
 
 
 def apply_post_appearance(post, color, material):

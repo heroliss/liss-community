@@ -1,139 +1,20 @@
-/* An open night studio: atmospheric distance, curved structure, and a quiet
-   central reading lane. Every scene element is inert and outside content flow. */
-body.community-room { --atmosphere-ink: #a9d2d2; --atmosphere-warm: #d7bd94; }
-.community-room::before {
-  background: radial-gradient(ellipse at 7% 28%,#31545c30,transparent 52%),
-    radial-gradient(ellipse at 93% 50%,#576d4d25,transparent 48%),
-    linear-gradient(135deg,#122027 0%,var(--bg) 42%,#172523 100%);
-}
-.community-atmosphere {
-  position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
-  contain: strict; isolation: isolate;
-  background: radial-gradient(ellipse at 73% 18%,#4d7c7d18,transparent 54%),
-    radial-gradient(ellipse at 14% 76%,#b9956610,transparent 52%);
-}
-.community-atmosphere-canvas { display: block; width: 100%; height: 100%; pointer-events: none; }
-.community-atmosphere-near {
-  position: absolute; inset: -9%; pointer-events: none; perspective: 1600px;
-  transform-style: preserve-3d;
-  transform: translate3d(calc(var(--atmosphere-x,0px) * .55 + var(--scene-pan-x,0px)),calc(var(--atmosphere-y,0px) * .45 + var(--scene-pan-y,0px)),0);
-}
-.community-atmosphere-near > span { display: block; position: absolute; pointer-events: none; }
-.atmosphere-near-rail {
-  width: 118%; height: 43%; left: -17%; bottom: 4%; border-radius: 50%;
-  border: 1px solid #a0c7b631; opacity: .42;
-  background: radial-gradient(ellipse,transparent 55%,#508b8733 65%,transparent 71%);
-  transform: rotateX(calc(72deg + var(--atmosphere-tilt-x,0deg) + var(--scene-support-rx,0deg))) rotateY(calc(-11deg + var(--scene-support-ry,0deg))) rotateZ(-17deg);
-  box-shadow: 0 12px 20px -14px #031010b3;
-  mask-image: linear-gradient(90deg,transparent,#000 22%,#000 75%,transparent);
-}
-.atmosphere-near-prism {
-  right: -11%; top: 16%; width: clamp(130px,21vw,330px); height: 60%; opacity: .5;
-  border-radius: 42% 13% 36% 10%;
-  background: linear-gradient(103deg,#70a7a322,transparent 30%,#c8e8db1c 68%,#557d8a33 70%,transparent 74%);
-  border-inline: 2px solid #b6d2c529;
-  transform: translateZ(25px) rotateY(calc(-46deg + var(--atmosphere-tilt-y,0deg) - var(--scene-support-ry,0deg))) rotateX(calc(19deg + var(--scene-support-rx,0deg))) rotateZ(-19deg);
-  box-shadow: 20px 30px 38px -30px #0008;
-  mask-image: linear-gradient(180deg,transparent,#000 18%,#000 74%,transparent);
-}
-.atmosphere-near-prism::after {
-  content: ''; position: absolute; inset: 0 -12px 0 auto; width: 12px;
-  background: linear-gradient(90deg,#67939421,#bde3d92b,#2145461a);
-  border-radius: 0 60% 50% 0; transform: rotateY(62deg); transform-origin: left center;
-}
-.atmosphere-near-caustic {
-  width: 85%; height: 41%; left: -24%; top: 34%; border-radius: 50%;
-  background: radial-gradient(ellipse at 50% 40%,#a7cebc22,transparent 68%);
-  transform: translate3d(var(--scene-pan-x,0px),var(--scene-pan-y,0px),15px) rotateX(57deg) rotateZ(21deg); filter: blur(24px);
-}
-
-/* The stream sits ahead of a recessed curved channel rather than a flat list. */
-.community-room .feed-column { position: relative; min-width: 0; }
-.community-room .posts:not(.posts-detail) { position: relative; isolation: isolate; padding-block: 8px 18px; }
-.community-room .posts:not(.posts-detail)::before {
-  content: ''; position: absolute; left: -15px; top: 24px; bottom: 38px; width: 12px; z-index: -1;
-  border-radius: 50% 2px 2px 50%; background: linear-gradient(90deg,transparent,#07141966 45%,#42635c1c 68%,transparent);
-  transform: perspective(900px) translateZ(-25px) rotateY(calc(39deg + var(--scene-support-ry,0deg))); transform-origin: right center;
-  box-shadow: 6px 18px 24px -15px #0008;
-  mask-image: linear-gradient(180deg,transparent,#000 5%,#000 94%,transparent); pointer-events: none;
-}
-.community-room .feed-toolbar {
-  position: relative; border-bottom: 0; transform-style: preserve-3d;
-  background: linear-gradient(90deg,transparent,#233b341a 50%,transparent);
-}
-.community-room .feed-toolbar::before {
-  content: ''; position: absolute; left: 8%; right: 11%; bottom: -10px; height: 14px; z-index: -1;
-  border-radius: 0 0 44% 18%; pointer-events: none;
-  background: linear-gradient(115deg,#08171d03,#233e3a50 30%,#4f70652b 68%,transparent);
-  box-shadow: 8px 14px 16px -15px #000a;
-  transform: perspective(1100px) translateZ(-18px) rotateX(calc(58deg + var(--scene-support-rx,0deg))) rotateY(var(--scene-support-ry,0deg));
-  transform-origin: top center;
-}
-.community-room .feed-toolbar::after {
-  content: ''; position: absolute; bottom: 0; left: 0; right: 2%; height: 3px;
-  background: linear-gradient(90deg,var(--line),#7d9e8e48 34%,transparent);
-  transform: perspective(1200px) rotateX(calc(67deg + var(--scene-support-rx,0deg))) rotateY(var(--scene-support-ry,0deg)); transform-origin: top center; pointer-events: none;
-}
-.community-room .community-aside { position: relative; }
-.community-room .community-aside::before {
-  content: ''; position: absolute; top: 12px; bottom: 50px; right: -16px; width: 44px; z-index: -1;
-  border-radius: 50%; background: linear-gradient(105deg,transparent,#152e2d45 38%,#7e9c7d2b 50%,#233d382a 65%,transparent);
-  transform: perspective(1100px) translateZ(-32px) rotateY(calc(-47deg - var(--scene-support-ry,0deg))) rotateX(var(--scene-support-rx,0deg)); pointer-events: none;
-  mask-image: linear-gradient(180deg,transparent,#000 15%,#000 78%,transparent);
-}
-.community-room .site-header {
-  background: linear-gradient(105deg,color-mix(in srgb,var(--bg) 93%,#5b7c81),var(--bg) 65%);
-  box-shadow: 0 16px 30px -26px #02090bcc;
-}
-.community-room .site-header::after {
-  content: ''; position: absolute; left: 4%; right: 4%; bottom: -5px; height: 5px; pointer-events: none;
-  background: linear-gradient(90deg,transparent,#4b6b663b 28%,#1c333d75 72%,transparent);
-  transform: perspective(1500px) rotateX(calc(64deg + var(--scene-support-rx,0deg))); transform-origin: top center;
-}
-.community-room .site-footer { position: relative; border-top: 0; }
-.community-room .site-footer::before {
-  content: ''; position: absolute; left: -3%; right: -3%; top: 0; height: 12px;
-  background: linear-gradient(90deg,transparent,#7692823b 30%,#455d6138 66%,transparent);
-  transform: perspective(1000px) rotateX(calc(66deg + var(--scene-support-rx,0deg))) rotateY(var(--scene-support-ry,0deg)); transform-origin: top center; pointer-events: none;
-}
-.community-room .discussion { position: relative; }
-.community-room .discussion::before {
-  content: ''; position: absolute; left: -40px; right: -35px; top: 50px; bottom: 15%; z-index: -1;
-  border-radius: 42% 8% 45% 12%;
-  background: radial-gradient(ellipse at 15% 30%,#41615b2b,transparent 60%),linear-gradient(125deg,#7187770d,transparent 65%);
-  transform: perspective(1800px) translateZ(-35px) rotateY(calc(7deg + var(--scene-support-ry,0deg))) rotateX(var(--scene-support-rx,0deg)); pointer-events: none;
-  mask-image: linear-gradient(180deg,transparent,#000 12%,#000 85%,transparent);
-}
-
-[data-theme=light] body.community-room { --atmosphere-ink: #536f67; --atmosphere-warm: #9b7955; }
-[data-theme=light] .community-room::before {
-  background: radial-gradient(ellipse at 5% 25%,#7ea09824,transparent 50%),linear-gradient(130deg,#e5eeeb,var(--bg) 45%,#e9eddf);
-}
-[data-theme=light] .community-atmosphere { opacity: .68; }
-[data-theme=light] .atmosphere-near-prism { background: linear-gradient(103deg,#55786c21,transparent 32%,#fcfffbb3 68%,#6b8b8c25 70%,transparent 74%); border-inline-color: #55745f2e; }
-[data-theme=light] .atmosphere-near-rail { border-color: #5c7c682f; }
-[data-theme=light] .community-room .site-header { background: linear-gradient(105deg,#e8eee5,var(--bg) 65%); box-shadow: 0 16px 30px -26px #364f3c42; }
-
-@media (max-width:1050px) {
-  .community-room .posts:not(.posts-detail)::before { left: -12px; width: 9px; }
-  .community-room .community-aside::before { right: -8px; width: 24px; }
-}
-@media (max-width:800px) {
-  .atmosphere-near-prism { width: 170px; right: -7%; opacity: .55; }
-  .atmosphere-near-rail { bottom: 6%; opacity: .7; }
-  .community-room .discussion::before { left: -12px; right: -12px; }
-}
-@media (max-width:480px) {
-  .community-room .posts:not(.posts-detail)::before { left: -7px; width: 6px; }
-  .community-room .community-aside::before { display: none; }
-  .community-atmosphere-near { opacity: .48; }
-  .atmosphere-near-caustic { filter: none; }
-}
-@media (prefers-reduced-motion:reduce) { .community-atmosphere-near { transform: none!important; } }
-@media (forced-colors:active) {
-  .community-atmosphere,.community-room::before,.community-room .posts::before,
-  .community-room .community-aside::before,.community-room .feed-toolbar::before,.community-room .feed-toolbar::after,
-  .community-room .site-footer::before,.community-room .site-header::after,.community-room .discussion::before { display: none; }
-  .community-room .site-header { background: Canvas; box-shadow: none; }
-}
-@media print { .community-atmosphere { display: none!important; } }
+/* Fixed scenic layers stay behind the room's DOM, without rails through text. */
+body.community-room { position:relative; isolation:isolate; --atmosphere-ink:#6d9a9a;--atmosphere-warm:#ae9470; }
+.community-room::before { content:'';position:fixed;inset:0;z-index:-2;pointer-events:none;background:radial-gradient(ellipse at 12% 26%,#32566835,transparent 56%),radial-gradient(ellipse at 88% 61%,#69837524,transparent 58%),var(--bg); }
+.community-room::after { content:none; }
+.community-atmosphere { position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden; }
+.community-atmosphere-canvas { display:block;width:100%;height:100%; }
+.community-atmosphere-near { position:absolute;inset:-6%;perspective:1500px;transform-style:preserve-3d;pointer-events:none;transform:translate3d(calc(var(--atmosphere-x,0px)*.45 + var(--scene-pan-x,0px)),calc(var(--atmosphere-y,0px)*.35 + var(--scene-pan-y,0px)),0); }
+.community-atmosphere-near > span { display:block;position:absolute;pointer-events:none;backface-visibility:hidden; }
+.atmosphere-near-rail { left:-7%;right:-7%;bottom:-69%;height:112%;border-radius:50%;background:radial-gradient(ellipse at 50% 30%,color-mix(in srgb,var(--accent) 7%,transparent),transparent 65%);border:clamp(18px,3vw,54px) solid color-mix(in srgb,var(--line) 24%,transparent);box-shadow:inset 8px 18px 26px #020a0e38,0 20px 30px #01070b24;transform:translateZ(20px) rotateX(calc(64deg + var(--scene-support-rx,0deg))) rotateY(calc(-6deg + var(--scene-support-ry,0deg))) rotateZ(-9deg); }
+.atmosphere-near-prism { right:-15%;top:-18%;height:140%;width:28%;border-radius:48% 6% 13% 50%;background:linear-gradient(105deg,transparent,color-mix(in srgb,var(--accent) 5%,transparent) 40%,color-mix(in srgb,var(--accent) 8%,transparent) 53%,transparent 65%);transform:translateZ(-140px) rotateY(calc(-32deg + var(--atmosphere-tilt-y,0deg))) rotateZ(8deg); }
+.atmosphere-near-caustic { width:100%;height:60%;left:-15%;top:10%;border-radius:50%;background:radial-gradient(ellipse at 50% 40%,color-mix(in srgb,var(--accent) 7%,transparent),transparent 65%);transform:translate3d(var(--scene-pan-x,0px),var(--scene-pan-y,0px),40px) rotateX(52deg) rotateZ(-21deg);filter:blur(22px); }
+.community-room .site-header { background:color-mix(in srgb,var(--bg) 92%,var(--surface));box-shadow:0 12px 25px -24px #000b; }
+.community-room .site-header::after,.community-room .community-aside::before,.community-room .feed-toolbar::before,.community-room .feed-toolbar::after,.community-room .site-footer::before,.community-room .discussion::before { content:none; }
+[data-theme=light] .community-room::before { background:radial-gradient(ellipse at 12% 26%,#72a2ab22,transparent 58%),radial-gradient(ellipse at 88% 61%,#c5ae8126,transparent 62%),var(--bg); }
+[data-theme=light] .community-atmosphere { opacity:.8; }
+[data-theme=light] .atmosphere-near-rail { box-shadow:inset 7px 16px 25px #4d796c12,0 12px 18px #49665312; }
+@media(max-width:700px) { .atmosphere-near-rail { border-width:20px;bottom:-65%; }.atmosphere-near-prism { right:-35%;width:45%;opacity:.6; }.atmosphere-near-caustic { filter:none; } }
+@media(prefers-reduced-motion:reduce) { .community-atmosphere-near { transform:none; } }
+@media(forced-colors:active) { .community-atmosphere,.community-room::before { display:none!important; }body.community-room { background:Canvas;color:CanvasText; }.community-room .site-header { background:Canvas;box-shadow:none; } }
+@media print { .community-atmosphere,.community-room::before { display:none!important; } }

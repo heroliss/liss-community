@@ -1,0 +1,13 @@
+{% import "_ui.html" as ui with context %}
+{% macro object(mode='login', person=none) %}
+<div class="portal-object portal-object--{{ mode }}" data-portal-tilt data-portal-default-name="{{ person.username if mode == 'profile' and person else '你的名字' }}" aria-label="{{ '个人资料铭牌预览' if mode == 'profile' else '立体交流工作室' }}"><div class="portal-camera" data-portal-camera>
+  <div class="portal-desk" aria-hidden="true"></div><div class="portal-dock" aria-hidden="true"></div>
+  <div class="portal-archive-sheet portal-archive-sheet--back" aria-hidden="true"></div><div class="portal-archive-sheet portal-archive-sheet--middle" aria-hidden="true"></div>
+  <div class="portal-nameplate"><div class="portal-nameplate-face"><span class="portal-plate-brand">LISS <span>·</span> Community</span>
+    {% if mode == 'profile' and person %}<span class="portal-avatar">{{ ui.avatar(person) }}</span>{% else %}<span class="portal-monogram" aria-hidden="true">L<span>↗</span></span>{% endif %}
+    <strong class="portal-live-name" data-portal-name>{{ ui.author_name(person) if mode == 'profile' and person else '你的名字' }}</strong><span class="portal-plate-caption">{{ '公开主页 · 资料预览' if mode == 'profile' else '一个名字，接住每一次对话。' }}</span>
+  </div><span class="portal-nameplate-edge" aria-hidden="true"></span></div>
+  <div class="portal-conversation-token" aria-hidden="true"><span></span><span></span><span></span></div>
+  <div class="portal-small-note"><span>{{ '个人简介' if mode == 'profile' else '写下想法' }}</span><p data-portal-bio>{{ (person.about_me or '关于你的几句话，会出现在这里。') if mode == 'profile' and person else '让发现有回声。' }}</p></div>
+</div></div>
+{% endmacro %}

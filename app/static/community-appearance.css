@@ -16,6 +16,9 @@
 .appearance-color-row label { margin:0; font-size:.9rem; }
 .community-room .appearance-hex { width:120px; padding:9px 11px; font-size:.86rem; min-height:40px; }
 .appearance-color-row button { font-size:.8rem; padding:6px 0; border:0; background:transparent; text-decoration:underline; text-underline-offset:4px; }
+.appearance-cancel { border:0; padding:4px 0; background:none; color:var(--muted); font-size:.8rem; }
+.appearance-cancel:hover { color:var(--accent); }
+.appearance-current { color:var(--accent); }
 .appearance-materials { padding:0; margin:22px 0 0; border:0; min-width:0; }
 .appearance-materials legend { color:var(--text); border:0; font-size:.9rem; font-weight:600; margin:0 0 12px; width:auto; }
 .appearance-material-options { display:flex; flex-wrap:wrap; gap:10px 16px; }

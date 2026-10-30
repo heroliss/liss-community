@@ -2,7 +2,7 @@
    v19 controller still owns pointer/scroll transforms. Filtered or masked
    leaves never become a preserve-3d ancestor of the actual article content. */
 .community-room .material-shell { display: none; }
-.community-room [data-material]:is([data-depth-kind=edition],[data-depth-kind=reply]) {
+.community-room [data-material]:is([data-depth-kind=edition],[data-depth-kind=reply],[data-depth-kind=reader]) {
   --material-thickness: 10px;
   --material-radius: 14px 23px 18px 9px;
   --material-edge: #457575;
@@ -11,46 +11,32 @@
   --material-shadow: #01090cb3;
   --material-contact: #01070780;
   --material-light: #d6ede2;
-  --material-inset: 0px;
 }
 .community-room [data-material][data-theme-color]:not([data-theme-color='']) {
-  --material-edge-tint: color-mix(in srgb,var(--material-edge) 50%,var(--appearance-accent,var(--material-edge)));
+  --material-edge-tint: color-mix(in srgb,var(--material-edge) 15%,var(--appearance-accent,var(--material-edge)));
   --material-specular: color-mix(in srgb,var(--appearance-accent) 70%,#e2f7f0);
 }
 .community-room [data-material][data-theme-color]:not([data-theme-color='']) .material-base::before {
   content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   background: radial-gradient(ellipse at var(--depth-light-x,30%) 12%,color-mix(in srgb,var(--appearance-accent) 8%,transparent),transparent 76%);
 }
-.community-room [data-material][data-depth-kind=edition] {
-  --depth-camera: 1350px;
-  width: calc(100% - var(--material-inset)); margin: 27px 0 47px var(--material-inset);
-}
-.community-room [data-material][data-depth-kind=edition][data-pose="0"] { --depth-rest-rx: 3.6deg; --depth-rest-ry: -4.7deg; --depth-rest-rz: -.8deg; --material-inset: 3px; }
-.community-room [data-material][data-depth-kind=edition][data-pose="1"] { --depth-rest-rx: -1.6deg; --depth-rest-ry: 4.1deg; --depth-rest-rz: .65deg; --material-inset: 15px; }
-.community-room [data-material][data-depth-kind=edition][data-pose="2"] { --depth-rest-rx: 4.2deg; --depth-rest-ry: 2.3deg; --depth-rest-rz: -1.1deg; --material-inset: 0px; }
-.community-room [data-material][data-depth-kind=edition][data-pose="3"] { --depth-rest-rx: -2.6deg; --depth-rest-ry: -3.2deg; --depth-rest-rz: .8deg; --material-inset: 10px; }
-.community-room [data-material][data-depth-kind=edition][data-pose="4"] { --depth-rest-rx: 2.6deg; --depth-rest-ry: 5.3deg; --depth-rest-rz: .25deg; --material-inset: 6px; }
-.community-room [data-material][data-depth-kind=reply][data-pose="0"] { --depth-rest-rx: 1.8deg; --depth-rest-ry: -2.6deg; --depth-rest-rz: -.35deg; }
-.community-room [data-material][data-depth-kind=reply][data-pose="1"] { --depth-rest-rx: -.8deg; --depth-rest-ry: 2.1deg; --depth-rest-rz: .28deg; }
-.community-room [data-material][data-depth-kind=reply][data-pose="2"] { --depth-rest-rx: 2.4deg; --depth-rest-ry: 1.2deg; --depth-rest-rz: -.5deg; }
-.community-room [data-material][data-depth-kind=reply][data-pose="3"] { --depth-rest-rx: -1.2deg; --depth-rest-ry: -1.8deg; --depth-rest-rz: .4deg; }
-.community-room [data-material][data-depth-kind=reply][data-pose="4"] { --depth-rest-rx: 1.1deg; --depth-rest-ry: 2.7deg; --depth-rest-rz: .15deg; }
-
-.community-room [data-material]:is([data-depth-kind=edition],[data-depth-kind=reply]) > .depth-scroll > .depth-arrival > .depth-surface {
+.community-room [data-material]:is([data-depth-kind=edition],[data-depth-kind=reply],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface {
   background: transparent; border-radius: var(--material-radius); box-shadow: none;
 }
-.community-room [data-material][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface::before,
-.community-room [data-material][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface::after { content: none; }
-.community-room [data-material]:is([data-depth-kind=edition],[data-depth-kind=reply]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell {
+.community-room [data-material]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface::before,
+.community-room [data-material]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface::after { content: none; }
+.community-room [data-material]:is([data-depth-kind=edition],[data-depth-kind=reply],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell {
   display: block; position: absolute; inset: 0; border-radius: inherit;
-  transform: translateZ(-2px); transform-style: preserve-3d; pointer-events: none;
+  transform: translateZ(-3px); transform-style: preserve-3d; pointer-events: none;
 }
 .community-room .material-shell > span,
 .community-room .material-shell > span::before,
 .community-room .material-shell > span::after {
   display: block; position: absolute; pointer-events: none; backface-visibility: hidden;
 }
-.community-room .material-shell > :is(.material-back,.material-base,.material-rim,.material-refraction,.material-sheen) { inset: 0; border-radius: inherit; }
+.community-room .material-shell > :is(.material-back,.material-base,.material-rim,.material-refraction,.material-sheen,.material-coating) { inset: 0; border-radius: inherit; }
+.community-room .material-coating { display: block; position: absolute; width: 100%; height: 100%; pointer-events: none; backface-visibility: hidden; transform: translateZ(.18px); }
+.community-room [data-surface-renderer=webgl] .material-sheen { opacity: 0; }
 .community-room .material-back {
   background: var(--material-back);
   transform: translateZ(calc(var(--material-thickness) * -1));
@@ -65,11 +51,11 @@
 .community-room .material-side::after { content: ''; top: 12px; bottom: 12px; width: var(--material-thickness); background: var(--material-edge); }
 .community-room .material-side::before {
   left: calc(var(--material-thickness) * -1); border-radius: 6px 0 0 6px; transform-origin: right center; transform: rotateY(-90deg);
-  background: linear-gradient(90deg,color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 35%,#020b10),color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 68%,#07151a));
+  background: radial-gradient(ellipse at 50% var(--depth-light-y,35%),color-mix(in srgb,var(--material-specular,var(--material-light)) 27%,transparent),transparent 67%),linear-gradient(90deg,color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 35%,#020b10),color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 68%,#07151a));
 }
 .community-room .material-side::after {
   right: calc(var(--material-thickness) * -1); border-radius: 0 6px 6px 0; transform-origin: left center; transform: rotateY(90deg);
-  background: linear-gradient(90deg,var(--material-edge-tint,var(--material-edge)),color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 52%,#020b10));
+  background: radial-gradient(ellipse at 50% var(--depth-light-y,35%),color-mix(in srgb,var(--material-specular,var(--material-light)) 38%,transparent),transparent 62%),linear-gradient(90deg,var(--material-edge-tint,var(--material-edge)),color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 52%,#020b10));
 }
 .community-room .material-bottom::before,
 .community-room .material-bottom::after { content: ''; left: 6px; right: 6px; height: var(--material-thickness); background: var(--material-edge); }
@@ -91,11 +77,11 @@
    transmits the studio. A sampled scene strip bends through its thicker edge.
    This is an optical approximation, not a physical ray-traced material. */
 .community-room [data-material=glass] {
-  --material-thickness: 14px; --material-radius: 16px 28px 19px 12px;
-  --material-edge: #3f6568; --material-back: #10282c20; --material-base: #14292ff0;
+  --material-thickness: 18px; --material-radius: 16px 28px 19px 12px;
+  --material-edge: #4c6e80; --material-back: #12232d12; --material-base: #172a38f0;
 }
 .community-room [data-material=glass] .material-base {
-  background: linear-gradient(135deg,#25494be6,#10272bf2 58%,#1b3237e8);
+  background: url('textures/material-v22/glass-albedo.png'),linear-gradient(135deg,#293c4be6,#15252df2 58%,#26343de8);
   box-shadow: inset 2px 3px 9px #c8ede50d,inset -3px -3px 9px #020b113d;
 }
 .community-room [data-material=glass] .material-base::after {
@@ -116,11 +102,13 @@
 }
 .community-room .material-optic-sample { position: absolute; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; opacity: .85; filter: saturate(1.25) contrast(1.12); }
 .community-room [data-material=glass] .material-sheen { background: linear-gradient(115deg,transparent 5%,#acdbd908 24%,#e0ffed1a 33%,transparent 47% 100%); }
+.community-room [data-material=glass] .material-side::before,
+.community-room [data-material=glass] .material-side::after { opacity: .72; }
 .community-room [data-material=glass] .comment-date { color: var(--muted); }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .community-room [data-material=glass] .material-back { background: #102c340a; }
   .community-room [data-material=glass] .material-base {
-    background: linear-gradient(135deg,#48777940,#10272b4d 58%,#37646a33);
+    background: linear-gradient(135deg,#496d8030,#13222b38 58%,#4d617c24);
     -webkit-backdrop-filter: blur(11px) saturate(1.18) brightness(1.05);
     backdrop-filter: blur(11px) saturate(1.18) brightness(1.05);
   }
@@ -132,11 +120,11 @@
 
 /* Glazed ceramic catches a broad soft light; its rounded lip stays opaque. */
 .community-room [data-material=ceramic] {
-  --material-thickness: 12px; --material-radius: 22px 13px 27px 12px;
-  --material-edge: #344b46; --material-back: #10201f; --material-base: #1d302d;
+  --material-thickness: 16px; --material-radius: 26px 18px 30px 16px;
+  --material-edge: #4f7567; --material-back: #122921; --material-base: #193c30;
 }
 .community-room [data-material=ceramic] .material-base {
-  background: radial-gradient(ellipse at 18% -18%,#79998636,transparent 62%),linear-gradient(145deg,#263e36,#172b2a 64%,#203a35);
+  background: url('textures/material-v22/ceramic-albedo.png'),radial-gradient(ellipse at var(--depth-light-x,18%) -18%,#c1dfab61,transparent 62%),linear-gradient(145deg,#2b5b46,#15372c 64%,#234b3b);
   box-shadow: inset 3px 5px 12px #bed2b31a,inset -3px -5px 11px #06130f8c;
 }
 .community-room [data-material=ceramic] .material-rim { padding: 1px; background: linear-gradient(132deg,color-mix(in srgb,var(--material-specular,#c6d7b7) 27%,transparent),transparent 35% 74%,color-mix(in srgb,var(--material-edge-tint,#527a65) 37%,transparent)); }
@@ -144,11 +132,11 @@
 
 /* An opaque warm charcoal folio; the thin lower edge reads as a page block. */
 .community-room [data-material=paper] {
-  --material-thickness: 6px; --material-radius: 5px 11px 13px 4px;
-  --material-edge: #5c6051; --material-back: #20251f; --material-base: #282d27;
+  --material-thickness: 5px; --material-radius: 4px 9px 14px 3px;
+  --material-edge: #8a7855; --material-back: #2c261c; --material-base: #393125;
 }
 .community-room [data-material=paper] .material-base {
-  background: linear-gradient(120deg,#30352b,#242e29 50%,#272e26);
+  background: url('textures/material-v22/paper-albedo.png'),linear-gradient(120deg,#443b2a,#342f25 50%,#3a3226);
   box-shadow: inset 0 1px 0 #d7dfb61c,inset 0 -1px 0 #11170f8c;
 }
 .community-room [data-material=paper] .material-rim { padding: 1px; background: linear-gradient(110deg,color-mix(in srgb,var(--material-specular,#ced6b5) 18%,transparent),transparent 21% 90%,#a5b29320); }
@@ -157,11 +145,11 @@
 
 /* Graphite aluminium: a chamfer and one broad directional reflection, no grid. */
 .community-room [data-material=metal] {
-  --material-thickness: 9px; --material-radius: 10px 19px 12px 8px;
-  --material-edge: #5d7780; --material-back: #101d24; --material-base: #1e3038;
+  --material-thickness: 11px; --material-radius: 9px 14px 11px 8px;
+  --material-edge: #7b8b9b; --material-back: #17212e; --material-base: #273443;
 }
 .community-room [data-material=metal] .material-base {
-  background: linear-gradient(112deg,#1c2a31,#33474d 15%,#20343d 32%,#1a2b33 64%,#30444a);
+  background: url('textures/material-v22/metal-albedo.png'),linear-gradient(108deg,#202b39,#526371 15%,#27394c 32%,#1b293b 64%,#425366);
   box-shadow: inset 0 2px 0 #d4e3e92e,inset 0 -2px 0 #071319a3;
 }
 .community-room [data-material=metal] .material-rim { padding: 1px; background: linear-gradient(112deg,color-mix(in srgb,var(--material-specular,#d7e9ef) 46%,transparent),#a2c5d127 23%,transparent 46% 68%,color-mix(in srgb,var(--material-edge-tint,#89b1c0) 25%,transparent) 91%); }
@@ -173,9 +161,9 @@
 .community-room [data-material][data-depth-kind=reply] { --material-thickness: 6px; }
 .community-room [data-material][data-depth-kind=reply] .material-back { box-shadow: 10px 18px 28px -18px var(--material-shadow),3px 6px 12px -8px var(--material-contact); }
 .community-room [data-material=paper][data-depth-kind=reply] { --material-radius: 4px 12px 22px 4px; --material-base: #242e28; }
-.community-room [data-material=paper][data-depth-kind=reply] .material-base { background: linear-gradient(120deg,#2a322a,#202b28 70%,#26312a); }
+.community-room [data-material=paper][data-depth-kind=reply] .material-base { background: url('textures/material-v22/paper-albedo.png'),linear-gradient(120deg,#403827,#2d2921 70%,#383025); }
 .community-room [data-material=ceramic][data-depth-kind=reply] { --material-radius: 18px 10px 22px 10px; }
-.community-room [data-material=ceramic][data-depth-kind=reply] .material-base { background: radial-gradient(ellipse at 8% -20%,#76947e26,transparent 68%),linear-gradient(145deg,#22372f,#162a28 73%,#20372f); }
+.community-room [data-material=ceramic][data-depth-kind=reply] .material-base { background: url('textures/material-v22/ceramic-albedo.png'),radial-gradient(ellipse at 8% -20%,#a1c99a40,transparent 68%),linear-gradient(145deg,#254e3a,#14372c 73%,#214735); }
 .community-room [data-material][data-depth-kind=reply] .material-sheen { opacity: .65; }
 .community-room [data-depth-kind=reply]:is([data-material=glass],[data-material=ceramic]) > .depth-scroll > .depth-arrival > .depth-surface::after { content: none; }
 
@@ -192,17 +180,6 @@
 .community-room .room-fold.has-spatial-model .spatial-leaf--main::before { height: 5px; bottom: -5px; background: linear-gradient(90deg,#4b7477,#a4c5bd66,#385b63); }
 .community-room .room-fold.has-spatial-model .spatial-leaf--fold { background: linear-gradient(128deg,#3a5146,#263c33); }
 .community-room .room-fold.has-spatial-model .spatial-paper-score { opacity: .78; border-color: #adc7ba40; }
-.community-room .community-aside [data-depth-kind=ledge]:nth-of-type(even) { --depth-rest-rx: -.7deg; --depth-rest-ry: 2.7deg; --depth-rest-rz: -.2deg; }
-.community-room .community-aside [data-depth-kind=ledge] > .depth-scroll > .depth-arrival > .depth-surface::before {
-  height: 23px; bottom: -11px; left: -5px; right: -8px; border-radius: 42% 12% 30% 11%;
-  background: linear-gradient(155deg,#57796d2e,#203d3933 45%,#091a200d 82%);
-  box-shadow: 8px 13px 20px -13px #01090da8;
-  transform: translateZ(-14px) rotateX(calc(59deg + var(--scene-support-rx,0deg))) rotateY(var(--scene-support-ry,0deg));
-}
-.community-room .community-aside [data-depth-kind=ledge] > .depth-scroll > .depth-arrival > .depth-surface::after {
-  background: radial-gradient(ellipse at var(--scene-light-x,35%) center,#8aafa444,transparent 72%);
-  opacity: .65;
-}
 
 [data-theme=light] .community-room [data-material] { --material-shadow: #19372c3d; --material-contact: #19372c29; --material-light: #fcfff3; }
 [data-theme=light] .community-room [data-material=glass] { --material-edge: #91b0a8; --material-back: #c4d8ce1a; }
@@ -210,30 +187,21 @@
 [data-theme=light] .community-room [data-material=glass] .material-base::after { background: radial-gradient(ellipse at 43% 48%,#f0f5e6b3 0%,#f0f5e680 40%,#f0f5e60a 79%,transparent); }
 [data-theme=light] .community-room [data-material=glass] .material-rim { background: linear-gradient(128deg,#ffffffd9,#749d9b55 24%,transparent 43% 67%,#658c8b55 90%); }
 [data-theme=light] .community-room [data-material=ceramic] { --material-edge: #9daf97; --material-back: #d0dec8; }
-[data-theme=light] .community-room [data-material=ceramic] .material-base { background: radial-gradient(ellipse at 18% -18%,#fffff9c2,transparent 65%),linear-gradient(145deg,#e3edd4,#edf4e3 64%,#d9e8d0); box-shadow: inset 3px 5px 12px #fff9,inset -3px -5px 11px #57745022; }
+[data-theme=light] .community-room [data-material=ceramic] .material-base { background: url('textures/material-v22/ceramic-albedo.png'),radial-gradient(ellipse at 18% -18%,#fffff9c2,transparent 65%),linear-gradient(145deg,#d8e8ce,#edf4e3 64%,#c9ddc0); box-shadow: inset 3px 5px 12px #fff9,inset -3px -5px 11px #57745022; }
 [data-theme=light] .community-room [data-material=paper] { --material-edge: #aeb89a; --material-back: #d1d9bd; }
-[data-theme=light] .community-room [data-material=paper] .material-base { background: linear-gradient(120deg,#f4f2dc,#eaeed9 50%,#f2f1de); box-shadow: inset 0 1px 0 #fff9,inset 0 -1px 0 #5c6f4729; }
+[data-theme=light] .community-room [data-material=paper] .material-base { background: url('textures/material-v22/paper-albedo.png'),linear-gradient(120deg,#f3e5c3,#e8d9b9 50%,#f2e4c6); box-shadow: inset 0 1px 0 #fff9,inset 0 -1px 0 #5c6f4729; }
 [data-theme=light] .community-room [data-material=paper] .material-bottom::after { background: linear-gradient(180deg,#dce2c5,#b8c39d 24%,#d5debb 45%,#b0bd99 64%,#d2dabc); }
 [data-theme=light] .community-room [data-material=metal] { --material-edge: #829e9f; --material-back: #becfd0; }
-[data-theme=light] .community-room [data-material=metal] .material-base { background: linear-gradient(112deg,#dce7e0,#f0f7ed 15%,#d5e2dc 32%,#e2eae4 64%,#cbdcd8); box-shadow: inset 0 2px 0 #fff9,inset 0 -2px 0 #4b69633b; }
+[data-theme=light] .community-room [data-material=metal] .material-base { background: url('textures/material-v22/metal-albedo.png'),linear-gradient(112deg,#c0cdd5,#e8eef1 15%,#b8c8d5 32%,#d7e0e6 64%,#acbdca); box-shadow: inset 0 2px 0 #fff9,inset 0 -2px 0 #4b69633b; }
 [data-theme=light] .community-room [data-material=metal] .material-rim { background: linear-gradient(112deg,#fff9,#6d91904d 23%,transparent 46% 68%,#769d9859 91%); }
 [data-theme=light] .community-room [data-material][data-depth-kind=reply] .material-sheen { opacity: .35; }
 
 /* Fixed editor controls must escape all depth ancestors, including any future
    material-enabled form. No shell survives as a fixed overlay during fullscreen. */
 .community-room [data-depth-host]:is([data-depth-fullscreen=true],:has(.CodeMirror-fullscreen)) .material-shell { display: none!important; }
-@media (max-width:1050px) {
-  .community-room [data-material][data-depth-kind=edition] { width: calc(100% - min(var(--material-inset),7px)); margin-left: min(var(--material-inset),7px); }
-}
 @media (max-width:600px) {
-  .community-room [data-material][data-depth-kind=edition] { width: 100%; margin: 22px 0 33px; --material-thickness: 7px; }
-  .community-room [data-material][data-depth-kind=edition][data-pose="0"] { --depth-rest-rx: 1.3deg; --depth-rest-ry: -1.5deg; --depth-rest-rz: -.35deg; }
-  .community-room [data-material][data-depth-kind=edition][data-pose="1"] { --depth-rest-rx: -.7deg; --depth-rest-ry: 1.2deg; --depth-rest-rz: .25deg; }
-  .community-room [data-material][data-depth-kind=edition][data-pose="2"] { --depth-rest-rx: 1.6deg; --depth-rest-ry: .8deg; --depth-rest-rz: -.4deg; }
-  .community-room [data-material][data-depth-kind=edition][data-pose="3"] { --depth-rest-rx: -.9deg; --depth-rest-ry: -1.2deg; --depth-rest-rz: .3deg; }
-  .community-room [data-material][data-depth-kind=edition][data-pose="4"] { --depth-rest-rx: 1deg; --depth-rest-ry: 1.7deg; --depth-rest-rz: .1deg; }
-  .community-room [data-material][data-depth-kind=reply][data-pose] { --depth-rest-rx: .6deg; --depth-rest-ry: -.6deg; --depth-rest-rz: 0deg; --material-thickness: 4px; }
-  .community-room [data-material][data-depth-kind=reply]:nth-child(even) { --depth-rest-rx: -.4deg; --depth-rest-ry: .7deg; }
+  .community-room [data-material][data-depth-kind=edition] { --material-thickness: 9px; }
+  .community-room [data-material][data-depth-kind=reply] { --material-thickness: 4px; }
   .community-room [data-material=glass] .material-base { -webkit-backdrop-filter: blur(8px) saturate(1.15) brightness(1.02); backdrop-filter: blur(8px) saturate(1.15) brightness(1.02); }
   .community-room [data-material] .material-refraction { padding: 3.5px; }
   .community-room [data-material=glass] .material-rim { padding: 1px; }
@@ -244,6 +212,6 @@
 }
 @media (forced-colors:active) {
   .community-room .material-shell { display: none!important; }
-  .community-room [data-material]:is([data-depth-kind=edition],[data-depth-kind=reply]) > .depth-scroll > .depth-arrival > .depth-surface { background: Canvas!important; color: CanvasText; outline: 1px solid CanvasText; }
+  .community-room [data-material]:is([data-depth-kind=edition],[data-depth-kind=reply],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface { background: Canvas!important; color: CanvasText; outline: 1px solid CanvasText; }
   .community-room .room-fold.has-spatial-model .spatial-leaf--main::after { display: none; }
 }

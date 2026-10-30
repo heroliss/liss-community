@@ -20,6 +20,7 @@ from alembic.script import ScriptDirectory
 from alembic.config import Config as AlembicConfig
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
+from flask import template_rendered
 
 from app import create_app, db
 from app.community import ProjectEntry
@@ -27,7 +28,8 @@ from app.main.forms import PostForm
 from app.models import Post, PostAppearance, Role, User
 from app.post_appearance import (MATERIAL_KEYS, apply_post_appearance,
                                  normalize_color, normalize_material,
-                                 post_appearance)
+                                 post_appearance, color_theme, page_theme,
+                                 THEME_ROLE_SPECS, THEME_READING_INK)
 
 
 class AppearanceTokenTests(unittest.TestCase):
@@ -71,6 +73,68 @@ class AppearanceTokenTests(unittest.TestCase):
         self.assertEqual(post_appearance(SimpleNamespace(appearance=None)), expected)
         malformed = SimpleNamespace(theme_color='#abcde;', card_material=['glass'])
         self.assertEqual(post_appearance(SimpleNamespace(appearance=malformed)), expected)
+
+    def test_page_role_colors_keep_text_and_controls_readable_for_all_hues(self):
+        import colorsys
+
+        def luminance(color):
+            rgb = [int(color[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+            linear = [c / 12.92 if c <= .04045 else ((c + .055) / 1.055) ** 2.4 for c in rgb]
+            return sum(c * weight for c, weight in zip(linear, (.2126, .7152, .0722)))
+
+        def contrast(a, b):
+            first, second = sorted((luminance(a), luminance(b)))
+            return (second + .05) / (first + .05)
+
+        for hue in range(0, 360, 3):
+            for saturation in (0, .18, .35, 1):
+                channels = colorsys.hls_to_rgb(hue / 360, .5, saturation)
+                color = '#' + ''.join(f'{int(c * 255 + .5):02x}' for c in channels)
+                theme = color_theme(color)
+                for mode, surface in (('dark', '#192622'), ('light', '#fbfcf6')):
+                    with self.subTest(color=color, mode=mode):
+                        roles = theme[mode]
+                        self.assertGreaterEqual(contrast(roles['accent'], roles['background']), 4.5)
+                        self.assertGreaterEqual(contrast(roles['accent'], surface), 4.5)
+                        self.assertGreaterEqual(contrast(roles['ink'], roles['accent']), 4.5)
+                        for background in ('background', 'surface', 'raised', 'input'):
+                            for ink in ('accent', 'text', 'muted', 'subtle'):
+                                self.assertGreaterEqual(contrast(roles[ink], roles[background]), 4.5,
+                                    f'{mode}: {ink} over {background}')
+
+    def test_actual_css_page_and_article_roles_match_the_contrast_checked_palette(self):
+        css = (Path(__file__).resolve().parents[1] / 'app/static/community-theme.css').read_text(encoding='utf-8')
+        page_selector = 'body.community-room[data-community-theme]'
+        post_selector = "body.community-room :is(article.post,[data-post-theme-card],[data-appearance-preview])[data-theme-color]:not([data-theme-color=''])"
+        role_names = {'background': 'bg', 'hover': 'accent-hover', 'ink': 'accent-ink'}
+        for mode, specs in THEME_ROLE_SPECS.items():
+            prefix = ':root[data-theme=light] ' if mode == 'light' else ''
+            for selector, source in ((page_selector, 'community'), (post_selector, 'appearance')):
+                block = re.search(re.escape(prefix + selector) + r'\s*\{([^}]+)\}', css).group(1)
+                declarations = dict(re.findall(r'--([\w-]+)\s*:\s*([^;]+);', block))
+                for role, (lightness, cap) in specs.items():
+                    saturation = (f'var(--{source}-saturation)' if cap is None else
+                                  f'min(var(--{source}-saturation),{cap}%)')
+                    self.assertEqual(declarations[role_names.get(role, role)],
+                                     f'hsl(var(--{source}-hue) {saturation} {lightness}%)')
+                self.assertEqual(declarations['text'], THEME_READING_INK[mode])
+            default_block = re.search(re.escape(prefix + 'body.community-room :is(article.post,[data-post-theme-card])') + r'\s*\{([^}]+)\}', css).group(1)
+            isolated = set(re.findall(r'--([\w-]+)\s*:', default_block))
+            self.assertTrue({'bg', 'surface', 'raised', 'input', 'line', 'text', 'muted', 'subtle'}.issubset(isolated))
+
+    def test_page_theme_uses_only_validated_saved_color_and_scoped_post_id(self):
+        automatic = page_theme()
+        self.assertFalse(automatic['active'])
+        self.assertIsNone(automatic['post_id'])
+        post = SimpleNamespace(id=19, appearance=SimpleNamespace(theme_color='#A0B1C2', card_material='metal'))
+        saved = page_theme(post)
+        self.assertEqual((saved['color'], saved['hue'], saved['saturation'], saved['post_id']),
+                         ('#a0b1c2', 210, 22, 19))
+        self.assertEqual(color_theme('#acf858')['hue'], 89)
+        self.assertEqual(color_theme('#8751bc')['dark']['ink'], '#1a1320')
+        post.appearance.theme_color = 'url(x)'
+        self.assertFalse(page_theme(post)['active'])
+        self.assertEqual(page_theme(post)['color'], '')
 
 
 class AppearanceHttpTests(unittest.TestCase):
@@ -125,6 +189,58 @@ class AppearanceHttpTests(unittest.TestCase):
         target = f'/edit/{post_id}'
         return self.client.post(target, data={
             'csrf_token': self.token(target), 'body': body, **appearance})
+
+    def page_context(self, path):
+        recorded = []
+
+        def record(sender, template, context, **extra):
+            recorded.append(context)
+
+        with template_rendered.connected_to(record, self.app):
+            response = self.client.get(path)
+        self.assertEqual(response.status_code, 200)
+        return response, recorded[-1]['page_theme']
+
+    def test_saved_theme_context_follows_detail_and_editor_without_leaking_to_other_pages(self):
+        post_id = self.create_post(appearance_color='#A59BD8', appearance_material='glass')
+        for path in (f'/post/{post_id}', f'/edit/{post_id}'):
+            _, context = self.page_context(path)
+            self.assertEqual(context['color'], '#a59bd8')
+            self.assertEqual(context['post_id'], post_id)
+            self.assertTrue(context['active'])
+        for path in ('/', '/projects/outpost/talk/', '/auth/login'):
+            _, context = self.page_context(path)
+            self.assertEqual(context['color'], '')
+            self.assertIsNone(context['post_id'])
+
+    def test_each_article_keeps_its_color_in_a_shared_author_feed(self):
+        first = self.create_post(body='# Red article', appearance_color='#ff0000', appearance_material='glass')
+        second = self.create_post(body='# Blue article', appearance_color='#0000ff', appearance_material='metal')
+        with self.app.app_context():
+            username = db.session.get(Post, first).author.username
+        response, context = self.page_context('/user/' + username)
+        self.assertFalse(context['active'])
+        source = response.get_data(as_text=True)
+        self.assertIn('data-theme-color="#ff0000"', source)
+        self.assertIn('data-theme-color="#0000ff"', source)
+        self.assertEqual(self.page_context(f'/post/{first}')[1]['hue'], 0)
+        self.assertEqual(self.page_context(f'/post/{second}')[1]['hue'], 240)
+
+    def test_invalid_draft_theme_preserves_saved_page_context_and_published_body(self):
+        post_id = self.create_post(appearance_color='#ff0000', appearance_material='glass')
+        original = self.saved(post_id)
+        recorded = []
+
+        def record(sender, template, context, **extra):
+            recorded.append(context)
+
+        with template_rendered.connected_to(record, self.app):
+            response = self.edit_post(post_id, '# New draft retained',
+                appearance_color='#bad', appearance_material='metal')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(recorded[-1]['page_theme']['color'], '#ff0000')
+        self.assertIn('New draft retained', response.get_data(as_text=True))
+        self.assertEqual(self.saved(post_id), original)
 
     def test_native_create_persists_optional_appearance_and_keeps_markdown(self):
         post_id = self.create_post(appearance_color='#AbC123', appearance_material='glass')

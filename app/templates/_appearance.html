@@ -6,7 +6,7 @@
   <summary><span>文章外观</span><span class="appearance-current" data-appearance-status>配色与材质</span></summary>
   <div class="appearance-layout">
     <div class="appearance-controls">
-      <p class="appearance-intro">给文章一点自己的气质。色彩留在边缘与光影，文字仍然清晰。</p>
+      <p class="appearance-intro">让文章拥有自己的气质。配色会实时点亮这页的光影、按钮与讨论，发布后跟随文章。</p>
       <div class="appearance-palette" data-appearance-enhanced hidden aria-label="推荐主题色">
       {% for hex, name in [('#80bfa1','苔绿'),('#76b8cf','冰蓝'),('#a59bd8','鸢紫'),('#d6a37e','琥珀'),('#cf91a8','蔷薇'),('#bdc8b8','雾灰')] %}
         <button type="button" class="appearance-swatch" style="--swatch:{{ hex }}" data-appearance-swatch="{{ hex }}" aria-label="{{ name }}" aria-pressed="false"><span></span></button>
@@ -15,6 +15,7 @@
       </div>
       <div class="appearance-color-row"><label for="appearance_color">主题色</label>{{ form.appearance_color(class_='form-control appearance-hex', placeholder='自动配色', spellcheck='false', autocomplete='off', maxlength=7, **{'aria-describedby':'appearance-color-help','aria-invalid':'true' if form.appearance_color.errors else 'false'}) }}<button type="button" class="quiet-link" data-appearance-reset data-appearance-enhanced hidden>恢复自动</button></div>
       <p class="field-help" id="appearance-color-help">可填 #80bfa1 这样的色值；留空由网站安排。</p>
+      <button type="button" class="quiet-link appearance-cancel" data-appearance-cancel data-appearance-enhanced hidden>撤销本次配色预览</button>
       {% for error in form.appearance_color.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
       <fieldset class="appearance-materials"><legend>卡片材质</legend><div class="appearance-material-options">
       {% for value, label in form.appearance_material.choices %}<label><input type="radio" name="appearance_material" value="{{ value }}"{% if material == value %} checked{% endif %}><span class="material-chip material-chip-{{ value }}" aria-hidden="true"></span><span>{{ label }}</span></label>{% endfor %}

@@ -1,5 +1,5 @@
 from flask import render_template, redirect, url_for, abort, flash, request, \
-    current_app, make_response
+    current_app, make_response, g
 from flask_login import login_required, current_user
 from flask_sqlalchemy.record_queries import get_recorded_queries
 from flask_wtf.csrf import validate_csrf
@@ -144,6 +144,7 @@ def edit_profile_admin(id):
 @main.route('/post/<int:id>', methods=['GET', 'POST'])
 def post(id):
     post = Post.query.filter_by(id=id, hidden=False).first_or_404()
+    g.page_theme_post = post
     form = CommentForm()
     if form.validate_on_submit():
         if not current_user.is_authenticated or not current_user.can(Permission.COMMENT):
@@ -174,6 +175,7 @@ def edit(id):
     if current_user != post.author and \
             not current_user.can(Permission.ADMINISTER):
         abort(403)
+    g.page_theme_post = post
     form = PostForm()
     if form.validate_on_submit():
         post.body = form.body.data
