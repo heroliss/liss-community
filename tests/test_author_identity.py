@@ -60,7 +60,8 @@ class AuthorIdentityTests(unittest.TestCase):
         page = response.get_data(as_text=True)
         self.assertNotIn(self.notice, page)
         self.assertNotIn('identity-author', page)
-        self.assertIn('系统身份', page)
+        # Internal account kinds stay in administration, not the public badge.
+        self.assertNotIn('系统身份', page)
         self.assertNotIn('管理站点文章', page)
 
     def test_admin_can_still_edit_historical_content_without_separate_author_workflow(self):

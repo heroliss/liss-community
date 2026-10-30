@@ -2,7 +2,7 @@
    v19 controller still owns pointer/scroll transforms. Filtered or masked
    leaves never become a preserve-3d ancestor of the actual article content. */
 .community-room .material-shell { display: none; }
-.community-room [data-material]:is([data-depth-kind=edition],[data-depth-kind=reply],[data-depth-kind=reader],[data-depth-kind=ledge],[data-depth-kind=workspace],[data-depth-kind=identity],[data-depth-kind=crystal]) {
+.community-room :where([data-material]):is([data-depth-kind=edition],[data-depth-kind=reply],[data-depth-kind=reader],[data-depth-kind=ledge],[data-depth-kind=workspace],[data-depth-kind=identity],[data-depth-kind=crystal]) {
   --material-thickness: 10px;
   --material-radius: 14px 23px 18px 9px;
   --material-edge: #457575;
@@ -253,6 +253,80 @@
 [data-theme=light] .community-room [data-material=ceramic] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-sheen { background:radial-gradient(ellipse at 15% 4%,#fff9,transparent 58%); }
 [data-theme=light] .community-room [data-material=metal] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-sheen { background:linear-gradient(112deg,transparent 8%,#fff1 25%,#fff7 34%,#7c9ca01c 45%,transparent 68%); }
 [data-theme=light] .community-room [data-material][data-depth-kind=reply] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-sheen { opacity: .35; }
+
+/* The loading face and the shader use one pigment. The original opaque
+   green/brown PNG backgrounds no longer jump to a separately desaturated GPU
+   palette. Small, lighter reading accents allow the material to retain colour. */
+:root:not([data-theme=light]) .community-room :is([data-material=ceramic],[data-material=paper],[data-material=metal]) {
+  --muted:#c6d5d0;--subtle:#b4c7c1;
+  --accent:color-mix(in srgb,var(--appearance-accent,#a9d7c5) 80%,#f4faf6);
+}
+.community-room [data-material=ceramic] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  background:radial-gradient(ellipse at 24% 7%,#d9e7d009,transparent 64%),var(--surface-pigment,var(--material-base));
+  box-shadow:inset 1px 1px 2px #dce9d520,inset -1px -2px 3px #071a1826;
+}
+.community-room [data-material=paper] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  background:repeating-linear-gradient(8deg,#f5e9c604 0 1px,transparent 1px 5px),radial-gradient(ellipse at 22% 6%,#f5e7bf08,transparent 62%),var(--surface-pigment,var(--material-base));
+  box-shadow:inset 0 1px 0 #f6e9c01c,inset -1px -1px 1px #1c150b38;
+}
+.community-room [data-material=metal] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  background:repeating-linear-gradient(90deg,#d5e1e704 0 1px,transparent 1px 4px),linear-gradient(118deg,#d5e4e908,transparent 43%),var(--surface-pigment,var(--material-base));
+  box-shadow:inset 0 1px 0 #d4e3e92e,inset 0 -1px 0 #07131978;
+}
+.community-room :is([data-material=ceramic],[data-material=paper],[data-material=metal])[data-theme-color] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::before { background:none; }
+/* A single upper-left key: left/top walls receive its light and the opposite
+   walls retain their material colour in shadow, rather than two white rails. */
+.community-room .material-side::before {
+  background:linear-gradient(90deg,var(--material-side-mid),color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 80%,var(--material-light)));
+}
+.community-room .material-side::after {
+  background:linear-gradient(90deg,color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 60%,var(--material-side-dark)),var(--material-side-dark));
+}
+.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim {
+  background:radial-gradient(ellipse at 22% 0%,color-mix(in srgb,var(--material-specular,#e1f9f4) 50%,transparent),transparent 43%);
+}
+.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before {
+  background:linear-gradient(90deg,var(--glass-edge-sink),color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 75%,var(--glass-edge-core)) 35%,var(--glass-edge-face));
+  box-shadow:inset -1px 0 0 color-mix(in srgb,var(--glass-edge-light) 65%,transparent),inset 2px 0 1px var(--glass-side-shadow);
+}
+.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after {
+  background:linear-gradient(90deg,var(--glass-edge-core),var(--glass-edge-sink));
+  box-shadow:inset 1px 0 0 color-mix(in srgb,var(--glass-edge-light) 14%,transparent),inset -2px 0 1px var(--glass-side-shadow);
+}
+.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before {
+  background:linear-gradient(180deg,var(--glass-bottom-light),var(--glass-bottom-core) 60%,var(--glass-bottom-return));
+}
+.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after {
+  background:linear-gradient(180deg,var(--glass-bottom-core),var(--glass-bottom-deep));
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--glass-edge-light) 12%,transparent);
+}
+.community-room :is([data-material=ceramic],[data-material=metal]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim {
+  background:linear-gradient(132deg,color-mix(in srgb,var(--material-specular,#dce8de) 26%,transparent),transparent 36% 100%);
+}
+.community-room [data-material=paper] { --material-radius:5px 11px 19px 4px;--paper-fold-light:#928066;--paper-fold-shadow:#2b2218; }
+.community-room [data-material=paper] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::before {
+  content:'';display:block;position:absolute;inset:0;border-radius:inherit;pointer-events:none;backface-visibility:hidden;transform:translateZ(.7px);
+  background:repeating-linear-gradient(8deg,#f5e9c610 0 .5px,transparent .5px 4px),repeating-linear-gradient(100deg,#100c080a 0 .5px,transparent .5px 7px);
+}
+.community-room [data-material=paper] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::after {
+  content:'';position:absolute;right:1px;bottom:1px;width:31px;height:29px;border-radius:0 0 15px 0;
+  background:linear-gradient(138deg,transparent 47%,var(--paper-fold-shadow) 48% 51%,var(--paper-fold-light) 52% 72%,var(--surface-pigment,var(--material-base)) 100%);
+  clip-path:polygon(0 100%,100% 0,100% 100%);transform-origin:100% 100%;transform:translateZ(1.6px) rotateX(-8deg);pointer-events:none;
+}
+.community-room [data-material=paper] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back {
+  transform:translateZ(calc(var(--material-thickness) * -1)) rotateZ(.16deg);
+}
+[data-theme=light] .community-room [data-material=ceramic] { --material-base:#dcead5; }
+[data-theme=light] .community-room [data-material=paper] { --material-base:#f1e3c0;--paper-fold-light:#fff4d6;--paper-fold-shadow:#a99a76; }
+[data-theme=light] .community-room [data-material=paper] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::before {
+  background:repeating-linear-gradient(8deg,#654e2c0d 0 .5px,transparent .5px 4px),repeating-linear-gradient(100deg,#fff8df32 0 .5px,transparent .5px 7px);
+}
+[data-theme=light] .community-room [data-material=metal] { --material-base:#c8d5dc; }
+[data-theme=light] .community-room :is([data-material=ceramic],[data-material=paper],[data-material=metal]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  background:linear-gradient(135deg,#ffffff0a,transparent 55%),var(--surface-pigment,var(--material-base));
+  box-shadow:inset 0 1px 0 #ffffffb3,inset -1px -1px 1px #52746b1c;
+}
+[data-theme=light] .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim { background:radial-gradient(ellipse at 22% 0%,#ffffff94,transparent 43%); }
 
 /* Fixed editor controls must escape all depth ancestors, including any future
    material-enabled form. No shell survives as a fixed overlay during fullscreen. */

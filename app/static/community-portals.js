@@ -24,7 +24,7 @@
         if(e.pointerType==='touch'||!fine.matches||blocked(scene))return;
         if(!scene.bounds)scene.bounds=art.getBoundingClientRect();
         var b=scene.bounds,x=Math.max(-1,Math.min(1,(e.clientX-b.left)/Math.max(1,b.width)*2-1)),y=Math.max(-1,Math.min(1,(e.clientY-b.top)/Math.max(1,b.height)*2-1));
-        scene.inside=true;scene.target=[-y*9.6,x*14.4,-y*4];schedule();
+        scene.inside=true;scene.target=[-y*11,x*16.5,-y*4];schedule();
       },{passive:true,signal:signal});
       art.addEventListener('pointerleave',function(){scene.inside=false;scene.bounds=null;if(!blocked(scene)){scene.target=[0,0,0];schedule();}},{passive:true,signal:signal});
       var console=root.querySelector('.portal-console');

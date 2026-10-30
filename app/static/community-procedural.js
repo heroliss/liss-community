@@ -1,4 +1,5 @@
-/* Ten quiet worlds, drawn locally. No pictures, clocks, or private content. */
+/* Ten local worlds. Raster art is drawn once; slow decorative motion is native
+   compositor animation, paused by the room controller without a JavaScript clock. */
 (function () {
   'use strict';
   var SVG='http://www.w3.org/2000/svg',serial=0;
@@ -20,7 +21,7 @@
       for(var i=0;i<16;i++){var y=130+i*39;art+='<path d="M-120 '+y+'C180 '+(y-210)+' 220 '+(y+230)+' 550 '+(y+110)+'S1040 '+(y-300)+' 1360 '+(y-60)+'S1650 '+(y+80)+' 1790 '+(y-140)+'"/>';}
       art='<g fill="none" stroke="var(--scene-a)" stroke-opacity=".22" stroke-width="1.1">'+art+'</g><ellipse cx="1290" cy="210" rx="260" ry="180" fill="url(#'+id+'-b)"/>';
     }else if(style==='orbital'){
-      art='<g fill="none" stroke="var(--scene-a)" stroke-opacity=".23"><ellipse cx="1250" cy="470" rx="470" ry="310" transform="rotate(-28 1250 470)"/><ellipse cx="1250" cy="470" rx="405" ry="260" transform="rotate(-28 1250 470)"/><path d="M782 575L1602 172M897 761L1472 190" stroke-opacity=".15"/><circle cx="1250" cy="470" r="98"/><path d="M1100 470h300M1250 320v300" stroke-opacity=".12"/></g><circle cx="894" cy="680" r="9" fill="var(--scene-c)" fill-opacity=".58"/><circle cx="1492" cy="231" r="5" fill="var(--scene-a)" fill-opacity=".7"/><path d="M-150 920Q170 650 500 858" fill="none" stroke="var(--scene-b)" stroke-opacity=".18"/>';
+      art='<g fill="none" stroke="var(--scene-a)" stroke-opacity=".23"><ellipse cx="1250" cy="470" rx="470" ry="310" transform="rotate(-28 1250 470)"/><ellipse cx="1250" cy="470" rx="405" ry="260" transform="rotate(-28 1250 470)"/><path d="M782 575L1602 172M897 761L1472 190" stroke-opacity=".15"/><circle cx="1250" cy="470" r="98"/><path d="M1100 470h300M1250 320v300" stroke-opacity=".12"/></g><g class="procedural-orbit-satellites"><circle cx="894" cy="680" r="9" fill="var(--scene-c)" fill-opacity=".58"/><circle cx="1492" cy="231" r="5" fill="var(--scene-a)" fill-opacity=".7"/></g><path d="M-150 920Q170 650 500 858" fill="none" stroke="var(--scene-b)" stroke-opacity=".18"/>';
     }else if(style==='constellation'){
       var rand=seed(241019),points=[];
       for(var j=0;j<88;j++){var x=rand()*1700-50,y2=rand()*1100-50,r=rand()*1.8+.65;points.push([x,y2]);art+='<circle cx="'+x.toFixed(1)+'" cy="'+y2.toFixed(1)+'" r="'+r.toFixed(1)+'" fill="var(--scene-a)" fill-opacity="'+(.20+rand()*.33).toFixed(2)+'"/>';}
@@ -33,9 +34,9 @@
   }
   function create(entry){
     var style=entry&&Object.prototype.hasOwnProperty.call(palettes,entry.style)?entry.style:'mist',root=element('div','community-vector-scene community-procedural-scene');
-    root.dataset.vectorStyle=style;root.setAttribute('aria-hidden','true');
+    root.dataset.vectorStyle=style;root.dataset.sceneMotion='paused';root.setAttribute('aria-hidden','true');
     var colors=palettes[style];colors.forEach(function(color,i){root.style.setProperty('--scene-'+String.fromCharCode(97+i),color);});
-    var node=null,ctx=null,last='',draws=0,closed=false,pixels=0,id='scene-v25-'+(++serial);
+    var node=null,ctx=null,last='',draws=0,closed=false,pixels=0,motionRunning=false,id='scene-v26-'+(++serial);
     if(['line','contour','orbital','constellation','dunes'].indexOf(style)>=0){
       node=document.createElementNS(SVG,'svg');node.setAttribute('viewBox','0 0 1600 1000');node.setAttribute('preserveAspectRatio','xMidYMid slice');node.setAttribute('class','procedural-vector-art');node.innerHTML=svgMarkup(style,id);root.appendChild(node);
     }else if(style==='ribbons'){
@@ -68,7 +69,8 @@
       ctx.lineWidth=1.1;ctx.strokeStyle=colors[0]+(light?'42':'5c');ctx.beginPath();ctx.moveTo(w*.55,h*-.05);ctx.bezierCurveTo(w*.43,h*.19,w*1.02,h*.11,w*1.01,h*.40);ctx.stroke();
       ctx.strokeStyle=colors[2]+(light?'45':'5c');ctx.beginPath();ctx.moveTo(-w*.03,h*.75);ctx.bezierCurveTo(w*.12,h*.58,w*.12,h*.86,w*.39,h*.91);ctx.stroke();draws++;
     }
-    return{element:root,resize:resize,inspect:function(){return{style:style,technique:ctx?'canvas2d':node?'svg':'css',canvasPixels:pixels,canvasPixelBudget:2400000,draws:draws,ownRAF:false,imageRequests:0,glContexts:0};},destroy:function(){if(closed)return;closed=true;if(node&&ctx)node.width=node.height=1;root.remove();ctx=null;}};
+    function setMotion(running){if(closed)return;motionRunning=!!running;var state=motionRunning?'running':'paused';if(root.dataset.sceneMotion!==state)root.dataset.sceneMotion=state;}
+    return{element:root,resize:resize,setMotion:setMotion,inspect:function(){return{style:style,technique:ctx?'canvas2d':node?'svg':'css',canvasPixels:pixels,canvasPixelBudget:2400000,draws:draws,ownRAF:false,imageRequests:0,glContexts:0,decorativeMotion:{engine:'native-css-compositor',running:motionRunning,continuousJS:false,fullSceneRotation:false}};},destroy:function(){if(closed)return;closed=true;motionRunning=false;root.dataset.sceneMotion='paused';if(node&&ctx)node.width=node.height=1;root.remove();ctx=null;}};
   }
   window.LissProceduralScenes={create:create,styles:Object.freeze(Object.keys(palettes))};
 })();

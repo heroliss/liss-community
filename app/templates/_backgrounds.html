@@ -13,7 +13,7 @@
     <label class="background-choice"><input type="radio" name="liss_background_v24" value="{{ id }}"{% if id == 'coast' %} checked{% endif %}><span class="background-thumb background-thumb-{{ id }}" aria-hidden="true"></span><span class="background-choice-copy"><strong>{{ title }}</strong><small>{{ description }}</small></span></label>
     {% endfor %}
   </fieldset></div>
-  <div class="background-options"><label data-background-quality-row>图片细节<select data-background-quality aria-label="图片细节"><option value="auto">按屏幕省流</option><option value="high">高清优先</option></select></label><label class="background-motion"><input type="checkbox" data-background-scroll checked><span>画卷跟随滚动</span></label></div>
+  <div class="background-options"><label data-background-quality-row>图片细节<select data-background-quality aria-label="图片细节"><option value="auto">按屏幕省流</option><option value="high">高清优先</option></select></label><label class="background-motion"><input type="checkbox" data-background-scroll checked><span>背景跟随滚动</span></label></div>
   <p class="background-motion-note" data-background-motion-note>长卷仅以页面约 5.5% 的速度移动，关闭后保持原位。</p><p class="background-note" data-background-note>仅载入当前选中的图片。</p><a class="background-credit" data-background-credit hidden target="_blank" rel="noopener noreferrer"></a>
   <div class="background-dialog-actions"><button type="button" class="quiet-link" data-background-close>暂时保持</button><button type="button" class="button" data-background-apply>使用这个背景</button></div>
 </dialog>

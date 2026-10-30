@@ -1,7 +1,7 @@
 /* One small exhibit, with three physical forms instead of another card stack. */
 .community-room .studio-works-door.works-gallery {
   margin:58px 2px 0 -5px;max-width:none;width:auto;border-radius:38px 14px 28px 16px;
-  --material-radius:38px 14px 28px 16px;--depth-rest-rx:-1.2deg;--depth-rest-ry:5.8deg;--depth-rest-rz:-1.4deg;
+  --material-radius:38px 14px 28px 16px;--depth-rest-rx:-0.66deg;--depth-rest-ry:4.64deg;--depth-rest-rz:-1.232deg;
 }
 .community-room .works-gallery>.depth-scroll>.depth-arrival>.depth-surface { padding:0 25px 26px;min-height:0;border-radius:inherit; }
 .works-gallery-window { position:relative;display:block;height:195px;transform-style:preserve-3d;pointer-events:none; }

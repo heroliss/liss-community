@@ -4,7 +4,7 @@ body.community-room { position:relative; isolation:isolate; --atmosphere-ink:#6d
 .community-room::after { content:none; }
 .community-atmosphere { position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden; }
 .community-landscape-window { position:absolute;inset:0;overflow:hidden;pointer-events:none; }
-.community-landscape-image { position:absolute;display:block;max-width:none!important;object-fit:fill;pointer-events:none;will-change:transform; }
+.community-landscape-image { position:absolute;display:block;max-width:none!important;object-fit:fill;pointer-events:none;will-change:transform;opacity:1;filter:none;mix-blend-mode:normal; }
 .community-vector-scene { position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;will-change:transform; }
 .community-vector-scene[data-vector-style=mist] .community-vector-lines { display:none; }
 .community-procedural-scene { inset:-80px;width:calc(100% + 160px);height:calc(100% + 160px);--scene-opacity:1; }
@@ -29,13 +29,120 @@ body.community-room { position:relative; isolation:isolate; --atmosphere-ink:#6d
 .community-procedural-scene[data-vector-style=spectrum] .procedural-shape-2 { left:-42%;top:7%;width:86%;height:106%;background:radial-gradient(ellipse,color-mix(in srgb,var(--scene-c) 40%,transparent),color-mix(in srgb,var(--scene-c) 15%,transparent) 33%,transparent 69%); }
 .community-procedural-scene[data-scene-theme=light][data-vector-style=spectrum] { opacity:.76; }
 .community-procedural-scene[data-vector-style=contour] { opacity:.88; }.community-procedural-scene[data-vector-style=orbital] { opacity:.92; }
-.community-landscape-scrim { position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,#040d1629,#040d1612 48%,#040d162e);display:none; }
-.community-atmosphere[data-scene-art=image] .community-landscape-scrim { display:block; }
-.community-room-geometry-canvas { position:absolute;inset:0;width:100%;height:100%;opacity:.30;pointer-events:none; }
-[data-theme=light] .community-landscape-scrim { background:linear-gradient(180deg,#deeaea2e,#deeaea0f 48%,#deeaea1c); }
+/* Photos retain their own colour and opacity in both modes. Readability comes
+   from foreground material faces, not a white wash or a second geometry layer. */
+.community-atmosphere[data-scene-art=image] { opacity:1; }
 .community-room .site-header { background:color-mix(in srgb,var(--bg) 92%,var(--surface));box-shadow:0 12px 25px -24px #000b; }
 .community-room .site-header::after,.community-room .community-aside::before,.community-room .feed-toolbar::before,.community-room .feed-toolbar::after,.community-room .site-footer::before,.community-room .discussion::before { content:none; }
 [data-theme=light] .community-room::before { background:radial-gradient(ellipse at 12% 26%,#72a2ab22,transparent 58%),radial-gradient(ellipse at 88% 61%,#c5ae8126,transparent 62%),var(--bg); }
-[data-theme=light] .community-atmosphere { opacity:.8; }
+[data-theme=light] .community-atmosphere { opacity:1; }
+/* Uncovered copy can cross a dark photograph even in the light UI. These
+   small reading islands change ink locally; cards and navigation keep their
+   light faces, and the photo itself is never washed with white. */
+:root[data-theme=light] body.community-room:has(>.community-atmosphere[data-scene-art=image]) :is(.studio-introduction,.portal-intro,.portal-story-note,.reader-navigation,.feed-toolbar,.discussion-heading,.crystal-writing>.page-heading) {
+  --text:#f2f5ef;--muted:#d1ded8;--accent:#b4dec3;--accent-hover:#d0ebd7;--accent-ink:#163527;--focus:#e7f8ec;color:var(--text);
+}
+:root[data-theme=light] body.community-room:has(>.community-atmosphere[data-scene-art=image]) :is(.studio-introduction h1,.studio-introduction>p,.studio-introduction .quiet-link,.portal-intro h1,.portal-intro>p,.portal-story-note,.discussion-heading h2,.discussion-heading>span,.crystal-writing>.page-heading h1,.feed-toolbar a,.feed-toolbar>span) {
+  text-shadow:0 1px 2px #06131ee6,0 3px 9px #06131e85;
+}
+:root[data-theme=light] body.community-room:has(>.community-atmosphere[data-scene-art=image]) :is(.discussion-empty,.comment-form .form-group>label) { color:#edf5f0;text-shadow:0 1px 2px #06131ee6,0 3px 9px #06131e85; }
+:root[data-theme=light] body.community-room:has(>.community-atmosphere[data-scene-art=image]) :is(.reader-navigation a,.portal-back,.profile-gallery>.back-link) {
+  color:#edf5f0;background:#11242b9c;border:1px solid #d7ece425;border-radius:9px;padding-inline:10px;box-shadow:0 3px 8px -5px #07131c77;
+}
+:root[data-theme=light] body.community-room:has(>.community-atmosphere[data-scene-art=image]) :is(.composer,.join-discussion) {
+  --text:#203c34;--muted:#486259;color:var(--text);
+  background:color-mix(in srgb,var(--surface) 91%,transparent);
+  border:1px solid #eff8f26e;box-shadow:0 8px 18px -16px #102d3b77,inset 0 1px 0 #ffffff8c;
+}
+:root[data-theme=light] body.community-room:has(>.community-atmosphere[data-scene-art=image]) .studio-introduction {
+  position:relative;isolation:isolate;
+}
+:root[data-theme=light] body.community-room:has(>.community-atmosphere[data-scene-art=image]) .studio-introduction::before {
+  content:'';position:absolute;inset:-60px -80px;z-index:-1;pointer-events:none;border-radius:40px;
+  background:radial-gradient(ellipse closest-side at 50% 50%,#0715238c,#07152345 52%,transparent 100%);
+}
+@media(max-width:600px) {
+  :root[data-theme=light] body.community-room:has(>.community-atmosphere[data-scene-art=image]) .studio-introduction::before {
+    inset-inline:-18px;
+  }
+}
+
+/* Native decorative motion: no changing gradient stops, paths or canvas pixels
+   every frame. Each style moves only a few cached decorative leaves. Static
+   transforms (paper angles, prism folds) remain intact via individual translate. */
+@keyframes scene-v26-air {
+  from { translate:-.8% -.3%;scale:1; }
+  to { translate:1.1% .6%;scale:1.025; }
+}
+@keyframes scene-v26-line {
+  from { translate:0 -.25%; }
+  to { translate:.5% .45%; }
+}
+@keyframes scene-v26-facets {
+  from { translate:-.35% -.5%;rotate:-.3deg; }
+  to { translate:.7% .45%;rotate:.5deg; }
+}
+@keyframes scene-v26-paper {
+  from { translate:0 -.3%; }
+  to { translate:.45% .55%; }
+}
+@keyframes scene-v26-ribbon {
+  from { translate:-.4% -.15%;scale:1; }
+  to { translate:.65% .4%;scale:1.015; }
+}
+@keyframes scene-v26-stars {
+  from { opacity:.56; }
+  to { opacity:1; }
+}
+@keyframes scene-v26-orbit {
+  from { rotate:0deg; }
+  to { rotate:360deg; }
+}
+@keyframes scene-v26-colour {
+  from { translate:-.5% -.35%;scale:1;opacity:.82; }
+  to { translate:.8% .65%;scale:1.04;opacity:1; }
+}
+.community-procedural-scene[data-vector-style=mist] .procedural-shape {
+  animation:scene-v26-air 74s ease-in-out infinite alternate paused;
+}
+.community-procedural-scene[data-vector-style=mist] .procedural-shape-1 { animation-duration:103s;animation-delay:-29s;animation-direction:alternate-reverse; }
+.community-procedural-scene:is([data-vector-style=line],[data-vector-style=contour],[data-vector-style=dunes]) .procedural-vector-art {
+  animation:scene-v26-line 87s ease-in-out infinite alternate paused;
+}
+.community-procedural-scene[data-vector-style=contour] .procedural-vector-art { animation-duration:112s;animation-delay:-33s; }
+.community-procedural-scene[data-vector-style=dunes] .procedural-vector-art { animation-duration:96s;animation-direction:alternate-reverse; }
+.community-procedural-scene[data-vector-style=prism] .procedural-shape {
+  animation:scene-v26-facets 93s ease-in-out infinite alternate paused;
+}
+.community-procedural-scene[data-vector-style=prism] .procedural-shape-1 { animation-duration:113s;animation-delay:-23s; }
+.community-procedural-scene[data-vector-style=prism] .procedural-shape-2 { animation-duration:126s;animation-delay:-41s;animation-direction:alternate-reverse; }
+.community-procedural-scene[data-vector-style=prism] .procedural-shape-3 { animation:none; }
+.community-procedural-scene[data-vector-style=paper] .procedural-shape {
+  animation:scene-v26-paper 104s ease-in-out infinite alternate paused;
+}
+.community-procedural-scene[data-vector-style=paper] .procedural-shape-1 { animation-duration:121s;animation-delay:-31s; }
+.community-procedural-scene[data-vector-style=paper] .procedural-shape-2 { animation-duration:137s;animation-delay:-58s; }
+.community-procedural-scene[data-vector-style=paper] .procedural-shape-3 { animation-direction:alternate-reverse;animation-delay:-26s; }
+.community-procedural-scene[data-vector-style=paper] .procedural-shape-4 { animation-duration:153s;animation-delay:-71s; }
+.community-procedural-scene[data-vector-style=ribbons] .procedural-ribbons {
+  animation:scene-v26-ribbon 89s ease-in-out infinite alternate paused;
+}
+.community-procedural-scene[data-vector-style=constellation] .procedural-vector-art {
+  animation:scene-v26-stars 17s ease-in-out infinite alternate paused;
+}
+.procedural-orbit-satellites {
+  transform-box:view-box;transform-origin:78.125% 47%;
+  animation:scene-v26-orbit 240s linear infinite paused;
+}
+.community-procedural-scene[data-vector-style=spectrum] .procedural-shape {
+  animation:scene-v26-colour 81s ease-in-out infinite alternate paused;
+}
+.community-procedural-scene[data-vector-style=spectrum] .procedural-shape-1 { animation-duration:107s;animation-delay:-32s;animation-direction:alternate-reverse; }
+.community-procedural-scene[data-vector-style=spectrum] .procedural-shape-2 { animation-duration:129s;animation-delay:-61s; }
+.community-procedural-scene[data-scene-motion=running] :is(.procedural-shape,.procedural-ribbons,.procedural-vector-art,.procedural-orbit-satellites) { animation-play-state:running; }
+.community-procedural-scene[data-scene-motion=paused] :is(.procedural-shape,.procedural-ribbons,.procedural-vector-art,.procedural-orbit-satellites) { animation-play-state:paused; }
+@media(prefers-reduced-motion:reduce),(prefers-reduced-data:reduce) {
+  .community-procedural-scene :is(.procedural-shape,.procedural-ribbons,.procedural-vector-art,.procedural-orbit-satellites) { animation-play-state:paused!important; }
+}
 @media(forced-colors:active) { .community-atmosphere,.community-room::before { display:none!important; }body.community-room { background:Canvas;color:CanvasText; }.community-room .site-header { background:Canvas;box-shadow:none; } }
 @media print { .community-atmosphere,.community-room::before { display:none!important; } }

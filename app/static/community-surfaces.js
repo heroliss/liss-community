@@ -9,7 +9,7 @@
   var scriptURL = document.currentScript && document.currentScript.src;
   var textureURL = new URL('textures/material-v22/normal-roughness.png', scriptURL || document.baseURI).href;
   var lifetime = new AbortController(), dispose = null;
-  var metrics = { version: 'native-optical-v25', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'narrow-rounded-chamfer', transmission: 'native-backdrop', edgeSampling: false, antialias: 'analytic-rounded-coverage', contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
+  var metrics = { version: 'room-material-v26', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'narrow-rounded-chamfer', transmission: 'native-backdrop', edgeSampling: false, antialias: 'analytic-rounded-coverage', lighting: 'upper-left-area-key+ambient', pigment: 'shared-css-gpu', contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
   var inspectState = function () { return Object.assign({}, metrics); };
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
   var vertex = [
@@ -22,6 +22,7 @@
     'varying vec2 vUv;',
     'uniform sampler2D uMap;',
     'uniform vec2 uSize,uAngles,uLight,uTileSize;',
+    'uniform mat3 uWorld;',
     'uniform vec4 uCorners;',
     'uniform vec3 uBase,uAccent;',
     'uniform float uKind,uMode,uAccentMix,uReadingLimit;',
@@ -32,7 +33,7 @@
     'vec3 rotateNormal(vec3 n){',
     ' float cx=cos(uAngles.x),sx=sin(uAngles.x),cy=cos(uAngles.y),sy=sin(uAngles.y);',
     ' vec3 y=vec3(cy*n.x+sy*n.z,n.y,-sy*n.x+cy*n.z);',
-    ' return normalize(vec3(y.x,cx*y.y-sx*y.z,sx*y.y+cx*y.z));',
+    ' return normalize(uWorld*vec3(y.x,cx*y.y-sx*y.z,sx*y.y+cx*y.z));',
     '}',
     'vec3 fresnel(float cosine,vec3 f0){return f0+(1.-f0)*pow(1.-cosine,5.);}',
     // Object-space, not time-based grain: it breaks 8-bit contouring without
@@ -53,56 +54,62 @@
     ' vec2 uv=vUv;vec2 tile=vec2(mod(uKind,2.),step(1.5,uKind));',
     ' vec2 micro=fract(uv*uSize/(uKind>1.5&&uKind<2.5?155.:190.));',
     ' vec4 data=texture2D(uMap,tile*.5+vec2(.0059)+micro*.4882);',
-    ' vec2 detail=data.rg*2.-1.;float strength=uKind<.5?.115:uKind<1.5?.48:uKind<2.5?.85:.70;',
+    ' vec2 detail=data.rg*2.-1.;float strength=uKind<.5?.115:uKind<1.5?.32:uKind<2.5?.65:.55;',
     ' vec2 edgeDistance=min(uv,1.-uv)*uSize;',
-    ' float bevelWidth=uKind<.5?3.5:uKind<1.5?15.:uKind<2.5?3.:7.;',
+    ' float bevelWidth=uKind<.5?3.5:uKind<1.5?6.:uKind<2.5?2.5:4.;',
     ' vec2 edgeWeight=1.-smoothstep(vec2(0.),vec2(bevelWidth),edgeDistance);',
     ' float bevel=max(edgeWeight.x,edgeWeight.y);',
     ' vec2 bevelNormal=vec2((uv.x<.5?-1.:1.)*edgeWeight.x,(uv.y<.5?1.:-1.)*edgeWeight.y);',
     ' float bevelLength=length(bevelNormal);bevelNormal=bevelLength>.0001?bevelNormal/bevelLength:vec2(0.);',
     ' float normalDepth=uKind<.5?.42:.26;',
-    ' vec3 N=rotateNormal(normalize(vec3(detail.x*strength+bevelNormal.x*bevel*normalDepth,detail.y*strength+bevelNormal.y*bevel*normalDepth,1.)));',
+    ' float paperFold=uv.x-.81+uv.y*.06;',
+    ' vec2 formNormal=uKind>1.5&&uKind<2.5?vec2(-.14*exp(-sq(paperFold/.018))*sign(paperFold),.02*sin(uv.x*PI)):uKind>.5&&uKind<1.5?(uv-.5)*.045:vec2(0.);',
+    ' vec3 N=rotateNormal(normalize(vec3(detail.x*strength+bevelNormal.x*bevel*normalDepth+formNormal.x,detail.y*strength+bevelNormal.y*bevel*normalDepth+formNormal.y,1.)));',
     ' vec2 p=vec2((uv.x-.5)*clamp(uSize.x/uSize.y,.35,2.8),.5-uv.y);',
-    ' vec3 V=normalize(vec3(-p,2.8));vec3 L=normalize(vec3(uLight.x*1.9-p.x,uLight.y*1.35+.8-p.y,1.9));',
+    // A room-space key stays above/left as the card and its normal rotate.
+    // The pointer only modulates its position slightly; it does not carry a
+    // second light from one card edge to the other.
+    ' vec3 V=normalize(vec3(-p,2.8));vec3 L=normalize(vec3(-1.15-p.x*.12,1.25-p.y*.12,2.4));',
     ' float nl=max(dot(N,L),0.),nv=max(dot(N,V),.01);',
-    ' vec3 substrate=uBase;',
-    ' if(uAccentMix>.1)substrate=mix(substrate,vec3(dot(substrate,vec3(.2126,.7152,.0722))),.85);',
-    ' vec3 base=mix(substrate,uAccent,uAccentMix);float rough=data.b;',
+    ' vec3 base=uBase;float rough=data.b;',
     ' vec3 reflectionTint=mix(vec3(1.,.98,.92),uAccent,uAccentMix>.1?.32:.18);',
     ' vec3 R=reflect(-V,N);',
-    ' float softbox=exp(-sq((R.x-uLight.x*.32)/.66)-sq((R.y-uLight.y*.18-.32)/.22));',
+    ' float softbox=exp(-sq((R.x+.38)/.34)-sq((R.y-.42)/.50));',
+    ' vec3 edgeDirection=bevelLength>.0001?vec3(bevelNormal,0.):vec3(0.,0.,1.);',
+    ' float edgeLight=bevelLength>.0001?max(dot(rotateNormal(edgeDirection),L),0.):0.;',
     ' vec3 color;float opacity;',
     ' if(uKind<.5){',
     '  vec3 S=specular(N,V,L,max(.075,rough*.82),vec3(.04),false);',
     '  float energy=dot(S,vec3(.2126,.7152,.0722));',
     '  float grazing=.04+.96*pow(1.-nv,5.);',
-    // Two large studio windows reflect across a low-absorption optical face.
-    // Their reflection moves with the actual 3D normal rather than a mouse
-    // gradient painted directly over the article. Bevels catch a stronger rim.
-    '  float windowA=exp(-sq((R.x+R.y*.24-uLight.x*.28+.26)/.12)-sq((R.y-.06)/.82));',
-    '  float windowB=exp(-sq((R.x-R.y*.17-uLight.x*.18-.43)/.065)-sq((R.y+.14)/.98));',
-    '  float reflected=softbox*.045+windowA*.10+windowB*.07;',
+    // One broad key reflection and weak ambient fill. Only key-facing bevels
+    // catch the strong polished edge; the opposite side absorbs light.
+    '  float keyWindow=exp(-sq((R.x+R.y*.20+.36)/.13)-sq((R.y-.24)/.72));',
+    '  float reflected=softbox*.045+keyWindow*.11;',
     '  float innerInterface=exp(-sq((min(edgeDistance.x,edgeDistance.y)-bevelWidth*.72)/.6));',
-    '  float rim=bevel*(.018+grazing*.58+windowA*.27+windowB*.21)+innerInterface*(.008+windowA*.05+windowB*.04);',
+    '  float rim=bevel*(.006+edgeLight*(.10+grazing*.32+keyWindow*.30))+innerInterface*(.003+edgeLight*keyWindow*.05);',
     '  vec3 cool=mix(vec3(.82,.94,1.),uAccent,uAccentMix>.1?.16:.035);',
     '  vec3 warm=vec3(1.,.965,.875);',
-    '  color=mix(cool,warm,clamp(windowB*.40+bevel*.09,0.,.40))+reflectionTint*softbox*.09;',
+    '  color=mix(cool,warm,clamp(keyWindow*.16,0.,.16))+reflectionTint*softbox*.07;',
     '  float faceReflection=clamp(.009+grazing*.19+min(energy,.5)*.06+reflected,0.,.135);',
     '  opacity=clamp(faceReflection+rim,0.,.44);',
     ' }else if(uKind<1.5){',
     '  vec3 S=specular(N,V,L,max(.25,rough),vec3(.045),false);',
-    '  color=base*(.58+nl*.45)*(data.a*.32+.72)+S*reflectionTint*.42+reflectionTint*softbox*.20;',
+    '  color=base*(.48+nl*.64)*(.94+data.a*.12)+S*reflectionTint*.26+reflectionTint*softbox*.055;',
     '  opacity=1.;',
     ' }else if(uKind<2.5){',
     '  float sigma=rough*rough,A=1.-.5*sigma/(sigma+.33),B=.45*sigma/(sigma+.09);',
     '  vec3 vp=V-N*nv,lp=L-N*nl;float azimuth=max(dot(normalize(vp+vec3(.0001)),normalize(lp+vec3(.0001))),0.);',
     '  float alpha=max(acos(clamp(nv,0.,1.)),acos(clamp(nl,0.,1.))),beta=min(acos(clamp(nv,0.,1.)),acos(clamp(nl,0.,1.)));',
     '  float diffuse=nl*(A+B*azimuth*sin(alpha)*tan(beta));',
-    '  color=base*(.70+diffuse*.34)*(.72+data.a*.38);opacity=1.;',
+    '  vec2 fibreScale=min(uSize,uTileSize*1.5);',
+    '  float fibres=sin(uv.y*fibreScale.y*.59+sin(uv.x*fibreScale.x*.043)*1.4)*sin(uv.x*fibreScale.x*.17);',
+    '  float foldShade=1.-.045*exp(-sq(paperFold/.012))+.035*exp(-sq((paperFold+.013)/.014));',
+    '  color=base*(.60+diffuse*.51)*(.86+data.a*.25+fibres*.05)*foldShade;opacity=1.;',
     ' }else{',
     '  vec3 S=specular(N,V,L,rough,mix(vec3(.48,.57,.64),uAccent,.20),true);',
-    '  float ribbon=exp(-sq((R.x-uLight.x*.30)/.18)-sq((R.y-.20)/.95));',
-    '  color=base*(.60+nl*.23)*(data.a*.20+.84)+S*.32+reflectionTint*ribbon*.23;',
+    '  float ribbon=exp(-sq((R.x+.39)/.24)-sq((R.y-.36)/.80));',
+    '  color=base*(.52+nl*.53)*(.93+data.a*.14)+S*.22+reflectionTint*ribbon*.09;',
     '  opacity=1.;',
     ' }',
     ' if(uKind>.5){',
@@ -166,6 +173,7 @@
       readLocks();
       if (document.hidden || forced.matches || locked() || html.dataset.roomMotion === 'paused') { stop(); return; }
       if (reduce.matches) {
+        metadataDirty=true;
         scenes.forEach(function (scene) { scene.rx = scene.ry = 0; scene.lx = 50; scene.ly = 35; scene.dirty = true; });
         schedule(true); return;
       }
@@ -180,10 +188,36 @@
       return color.map(function(value){return value<=.04045?value/12.92:Math.pow((value+.055)/1.055,2.4);})
         .reduce(function(sum,value,index){return sum+value*[.2126,.7152,.0722][index];},0);
     }
+    function linear(value){return value<=.04045?value/12.92:Math.pow((value+.055)/1.055,2.4);}
+    function display(value){return value<=.0031308?value*12.92:1.055*Math.pow(value,1/2.4)-.055;}
+    function pigment(base,accent,amount,limit) {
+      var color=base.map(function(value,index){return linear(value*(1-amount)+accent[index]*amount);});
+      var lightness=color.reduce(function(sum,value,index){return sum+value*[.2126,.7152,.0722][index];},0);
+      if(lightMode&&lightness<limit)color=color.map(function(value){return value+(1-value)*(limit-lightness)/Math.max(.0001,1-lightness);});
+      if(!lightMode&&lightness>limit*.88)color=color.map(function(value){return value*limit*.88/Math.max(.0001,lightness);});
+      return color.map(function(value){return clamp(display(value),0,1);});
+    }
+    function worldNormal(host) {
+      var Matrix=window.DOMMatrixReadOnly||window.DOMMatrix,identity=[1,0,0,0,1,0,0,0,1];
+      if(!Matrix)return identity;
+      try{
+        var combined=new Matrix();
+        for(var node=host;node&&node!==body;node=node.parentElement){
+          var value=getComputedStyle(node).transform;
+          if(value&&value!=='none')combined=new Matrix(value).multiply(combined);
+        }
+        // Inverse-transpose transforms normals correctly even if a responsive
+        // host has a static scale. Translation and perspective are excluded.
+        var inverse=combined.inverse();
+        var normal=[inverse.m11,inverse.m21,inverse.m31,inverse.m12,inverse.m22,inverse.m32,inverse.m13,inverse.m23,inverse.m33];
+        return normal.every(Number.isFinite)?normal:identity;
+      }catch(error){return identity;}
+    }
     function releaseScene(scene) {
       if (io) io.unobserve(scene.host); if (ro) ro.unobserve(scene.surface);
       scene.canvas.width = scene.canvas.height = 1; scene.canvas.remove(); byHost.delete(scene.host);
       if (scene.previous === null) scene.host.removeAttribute('data-surface-renderer'); else scene.host.setAttribute('data-surface-renderer',scene.previous);
+      if(scene.previousPigment)scene.host.style.setProperty('--surface-pigment',scene.previousPigment,scene.previousPigmentPriority);else scene.host.style.removeProperty('--surface-pigment');
     }
     function scan() {
       registryDirty = false;
@@ -200,7 +234,8 @@
         canvas.width = canvas.height = 1; var context = canvas.getContext('2d', { alpha: true }); if (!context) return;
         shell.appendChild(canvas);
         var scene = { host: host, surface: surface, shell: shell, canvas: canvas, context: context, previous: host.getAttribute('data-surface-renderer'),
-          kind: 0, visible: !io, ratio: 0, held: false, dirty: true, metadata: true, rx: 0, ry: 0, lx: 50, ly: 35,
+          previousPigment:host.style.getPropertyValue('--surface-pigment'),previousPigmentPriority:host.style.getPropertyPriority('--surface-pigment'),
+          kind: 0, visible: !io, ratio: 0, held: false, dirty: true, metadata: true, painted:false,rx: 0, ry: 0, lx: 50, ly: 35,
           width: 500, height: 300, radii: [18,31,22,14], base: [.1,.2,.2], accent: ambient.slice(), accentMix: 0, readingLimit: .045 };
         scenes.push(scene); byHost.set(host,scene); if (io) io.observe(host); if (ro) ro.observe(surface);
       });
@@ -209,17 +244,18 @@
     function readMetadata() {
       lightMode = html.dataset.theme === 'light';
       if (metadataDirty) ambient = parseColor(getComputedStyle(body).getPropertyValue('--accent'),[.62,.76,.72]);
+      var pigments=[];
       scenes.forEach(function (scene) {
         if (!scene.visible || (!metadataDirty && !scene.metadata)) return;
         var style = getComputedStyle(scene.host), faceStyle=getComputedStyle(scene.surface), kind = Math.max(0,kinds.indexOf(scene.host.dataset.material));
         scene.radii=['border-top-left-radius','border-top-right-radius','border-bottom-right-radius','border-bottom-left-radius'].map(function(name){var value=parseFloat(faceStyle.getPropertyValue(name));return Number.isFinite(value)?Math.max(0,value):14;});
         var palette = lightMode ? [[.78,.86,.91],[.72,.84,.66],[.87,.79,.61],[.63,.72,.81]] : [[.12,.20,.28],[.10,.25,.17],[.25,.21,.13],[.16,.22,.30]];
-        scene.kind = kind; scene.base = palette[kind];
+        scene.kind = kind; scene.base = parseColor(style.getPropertyValue('--material-base'),palette[kind]);scene.world=worldNormal(scene.host);
         var custom = !!scene.host.dataset.themeColor;
         // A draft/page hue must not recolor another author's unthemed post.
         var ownAccent=parseColor(style.getPropertyValue('--accent'),[.64,.87,.72]);
         scene.accent = custom ? parseColor(style.getPropertyValue('--appearance-accent'),ownAccent) : ownAccent;
-        scene.accentMix = custom ? (kind === 2 ? .30 : kind === 3 ? .34 : .44) : .035;
+        scene.accentMix = custom ? (kind === 0 ? .24 : kind === 1 ? .09 : kind === 2 ? .06 : .12) : .018;
         var foreground=['--text','--muted','--subtle','--accent'].map(function(name){
           return luminance(parseColor(style.getPropertyValue(name),lightMode?[.30,.35,.32]:[.67,.70,.68]));
         });
@@ -227,9 +263,13 @@
         // scale, not independent channel clipping, keeps its chromaticity.
         scene.readingLimit=lightMode?clamp((4.5*(Math.max.apply(Math,foreground)+.05)-.05)+.025,.62,.96):
           clamp(((Math.min.apply(Math,foreground)+.05)/4.5-.05)*.92,.018,.085);
+        if(kind>0){scene.base=pigment(scene.base,scene.accent,scene.accentMix,scene.readingLimit);pigments.push(scene);}
         if (!scene.hasPose) { scene.rx = parseFloat(style.getPropertyValue('--depth-rest-rx')) || 0; scene.ry = parseFloat(style.getPropertyValue('--depth-rest-ry')) || 0; }
         scene.metadata = false; scene.dirty = true;
       });
+      // The CSS loading/context-loss face and the GPU share this pigment.
+      // Writes follow the complete metadata read batch, never a pointer frame.
+      pigments.forEach(function(scene){scene.host.style.setProperty('--surface-pigment','rgb('+scene.base.map(function(c){return Math.round(c*255);}).join(',')+')');});
       metadataDirty = false;
     }
     function readLayout() {
@@ -252,7 +292,7 @@
       var texture = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,texture);
       gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-      var uniforms = {}; ['uMap','uSize','uAngles','uLight','uTileSize','uCorners','uBase','uAccent','uKind','uMode','uAccentMix','uReadingLimit'].forEach(function (name) { uniforms[name] = gl.getUniformLocation(program,name); });
+      var uniforms = {}; ['uMap','uSize','uAngles','uWorld','uLight','uTileSize','uCorners','uBase','uAccent','uKind','uMode','uAccentMix','uReadingLimit'].forEach(function (name) { uniforms[name] = gl.getUniformLocation(program,name); });
       return { program: program, buffer: buffer, texture: texture, position: gl.getAttribLocation(program,'aPosition'), uniforms: uniforms, ready: false };
     }
     function uploadMap() {
@@ -279,6 +319,7 @@
         gl.viewport(x,y,tileWidth,tileHeight); gl.scissor(x,y,tileWidth,tileHeight); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
         // CSS has a downward Y axis; the shader's tangent space is Y-up.
         gl.uniform2f(u.uSize,scene.width,scene.height); gl.uniform2f(u.uAngles,-scene.rx*Math.PI/180,scene.ry*Math.PI/180);
+        gl.uniformMatrix3fv(u.uWorld,false,scene.world||[1,0,0,0,1,0,0,0,1]);
         gl.uniform2f(u.uTileSize,tileWidth,tileHeight);gl.uniform4fv(u.uCorners,scene.radii);
         gl.uniform2f(u.uLight,(scene.lx-50)/50,(50-scene.ly)/50); gl.uniform3fv(u.uBase,scene.base); gl.uniform3fv(u.uAccent,scene.accent);
         gl.uniform1f(u.uKind,scene.kind); gl.uniform1f(u.uMode,lightMode?1:0); gl.uniform1f(u.uAccentMix,scene.accentMix);gl.uniform1f(u.uReadingLimit,scene.readingLimit);
@@ -290,7 +331,7 @@
         scene.context.clearRect(0,0,tileWidth,tileHeight);
         scene.context.drawImage(atlas,index%2*tileWidth,Math.floor(index/2)*tileHeight,tileWidth,tileHeight,0,0,tileWidth,tileHeight);
         if (scene.host.dataset.surfaceRenderer !== 'webgl') scene.host.dataset.surfaceRenderer = 'webgl';
-        scene.dirty = false; metrics.copies++;
+        scene.painted=true;scene.dirty = false; metrics.copies++;
       }); metrics.frames++;
     }
     function paint(now) {
@@ -308,7 +349,9 @@
       var interval = 1000/(fine.matches ? 24 : 18);
       if (!statically && lastDraw && now-lastDraw < interval) { schedule(false); return; }
       render(items); lastDraw = now;
-      if (!blocked() && visible.some(function (scene) { return scene.dirty && !scene.held; })) schedule(false);
+      // Drain finite first/metadata frames, including >6 visible leaves while
+      // paused. A pose becoming idle must never strand a CSS loading face.
+      if (visible.some(function (scene) { return scene.dirty && (statically||!scene.held); })) schedule(statically);
     }
     function metadata(target) {
       if (target && byHost.has(target)) { var scene = byHost.get(target); scene.metadata = scene.dirty = true; }
@@ -317,7 +360,7 @@
     }
     function onPose(event) {
       var detail = event.detail;
-      if (!detail || !detail.active) { stop(); return; }
+      if (!detail || !detail.active) return;
       if (blocked() || document.hidden) return;
       (detail.poses || []).forEach(function (pose) {
         var scene = byHost.get(pose.host); if (!scene) return;
@@ -331,7 +374,7 @@
       }); schedule(false);
     }
     function restoreFallback() {
-      scenes.forEach(function (scene) { scene.canvas.width=scene.canvas.height=1; if(scene.previous===null)scene.host.removeAttribute('data-surface-renderer');else scene.host.setAttribute('data-surface-renderer',scene.previous); });
+      scenes.forEach(function (scene) { scene.canvas.width=scene.canvas.height=1;scene.painted=false; if(scene.previous===null)scene.host.removeAttribute('data-surface-renderer');else scene.host.setAttribute('data-surface-renderer',scene.previous); });
     }
     try {
       gl = atlas.getContext('webgl',{alpha:true,antialias:false,depth:false,stencil:false,premultipliedAlpha:false,preserveDrawingBuffer:false,powerPreference:'low-power'});
@@ -347,8 +390,8 @@
       io = new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
           var scene=byHost.get(entry.target);if(!scene)return;scene.visible=entry.isIntersecting;scene.ratio=entry.intersectionRatio||0;
-          if(scene.visible){scene.dirty=scene.metadata=true;layoutDirty=true;}else scene.canvas.width=scene.canvas.height=1;
-        });schedule(false);
+          if(scene.visible){scene.dirty=scene.metadata=true;layoutDirty=true;}else{scene.canvas.width=scene.canvas.height=1;scene.painted=false;if(scene.previous===null)scene.host.removeAttribute('data-surface-renderer');else scene.host.setAttribute('data-surface-renderer',scene.previous);}
+        });schedule(true);
       },{rootMargin:'100px',threshold:[0,.1,.5,1]});observers.push(io);
     }
     if (window.ResizeObserver) {
@@ -382,13 +425,13 @@
     function release(){if(releaseTimer)clearTimeout(releaseTimer);releaseTimer=setTimeout(function(){releaseTimer=0;pressed=false;gate();},0);}
     window.addEventListener('pointerup',release,{passive:true,signal:signal});window.addEventListener('pointercancel',release,{passive:true,signal:signal});
     window.addEventListener('blur',function(){windowActive=false;pressed=false;gate();},{signal:signal});window.addEventListener('focus',function(){windowActive=true;gate();},{signal:signal});
-    window.addEventListener('resize',function(){configureAtlas();layoutDirty=true;scenes.forEach(function(scene){scene.dirty=true;});schedule(true);},{passive:true,signal:signal});
+    window.addEventListener('resize',function(){configureAtlas();layoutDirty=metadataDirty=true;scenes.forEach(function(scene){scene.dirty=true;});schedule(true);},{passive:true,signal:signal});
     reduce.addEventListener('change',gate,{signal:signal});forced.addEventListener('change',gate,{signal:signal});
     fine.addEventListener('change',function(){configureAtlas();scenes.forEach(function(scene){scene.dirty=true;});schedule(true);},{signal:signal});
     mapImage = new Image(); mapImage.onload = uploadMap; mapImage.onerror = function(){metrics.failures++;metrics.lastError='Material normal map could not be loaded';};mapImage.src=textureURL;
     scan();readLocks();schedule(true);window.dispatchEvent(new Event('liss:surface-request'));
     inspectState = function () { return Object.assign({},metrics,{registered:scenes.length,framePending:!!frame,atlasWidth:atlas.width,atlasHeight:atlas.height,visible:scenes.filter(function(scene){return scene.visible;}).length,
-      materials:scenes.filter(function(scene){return scene.visible;}).slice(0,8).map(function(scene){return {kind:kinds[scene.kind],accent:scene.accent,accentMix:scene.accentMix,readingLimit:scene.readingLimit};})}); };
+      materials:scenes.filter(function(scene){return scene.visible;}).slice(0,8).map(function(scene){return {kind:kinds[scene.kind],accent:scene.accent,accentMix:scene.accentMix,pigment:scene.base,readingLimit:scene.readingLimit,painted:scene.painted,dirty:scene.dirty,world:scene.world};})}); };
     dispose = function () {
       if(closed)return;closed=true;stop();abort.abort();if(releaseTimer)clearTimeout(releaseTimer);observers.forEach(function(observer){observer.disconnect();});
       if(mapImage){mapImage.onload=mapImage.onerror=null;mapImage.removeAttribute('src');}

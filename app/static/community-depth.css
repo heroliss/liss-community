@@ -19,7 +19,7 @@ html { scrollbar-gutter: stable; }
 .community-room [data-depth-host] {
   position: relative; min-width: 0; max-width: 100%; perspective: var(--depth-camera,1500px);
   perspective-origin: 50% 45%; overflow: visible; z-index: 0;
-  --depth-rest-rx: 0deg; --depth-rest-ry: 0deg; --depth-rest-rz: 0deg;
+  --depth-rest-rx:0deg; --depth-rest-ry:0deg; --depth-rest-rz:0deg;
   --depth-rx: 0deg; --depth-ry: 0deg; --depth-x: 0px; --depth-y: 0px; --depth-z: 0px;
   --depth-scroll-rx: 0deg; --depth-scroll-y: 0px; --depth-scroll-z: 0px; --depth-scroll-progress: 0;
   --depth-light-x: 50%; --depth-light-y: 20%;
@@ -58,7 +58,7 @@ html { scrollbar-gutter: stable; }
 /* Edition: an open journal sheet with one physical spine, not a boxed tile. */
 .community-room [data-depth-host][data-depth-kind=edition] {
   padding: 0; border: 0; background: transparent; box-shadow: none; border-radius: 0;
-  margin: 23px 0 37px; --depth-rest-rx: 2.4deg; --depth-rest-ry: -3.6deg; --depth-rest-rz: -.35deg;
+  margin: 23px 0 37px; --depth-rest-rx:1.32deg; --depth-rest-ry:-2.88deg; --depth-rest-rz:-0.308deg;
 }
 .community-room [data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface {
   padding: 28px clamp(20px,2.5vw,34px) 25px; border-radius: 5px 21px 11px 3px;
@@ -87,7 +87,7 @@ html { scrollbar-gutter: stable; }
 /* Reader: quiet type in an architectural recess. The curved margins carry depth. */
 .community-room [data-depth-host][data-depth-kind=reader] {
   padding: 0; border: 0; background: transparent; box-shadow: none; border-radius: 0;
-  --depth-camera: 2200px; --depth-rest-rx: 0deg; --depth-rest-ry: 0deg;
+  --depth-camera: 2200px; --depth-rest-rx:0deg; --depth-rest-ry:0deg;
 }
 .community-room [data-depth-kind=reader] > .depth-scroll > .depth-arrival > .depth-surface { padding: 0 0 30px; }
 .community-room [data-depth-kind=reader] > .depth-scroll > .depth-arrival > .depth-surface::before {
@@ -111,12 +111,12 @@ html { scrollbar-gutter: stable; }
 .community-room [data-depth-host][data-depth-kind=reply] {
   display: block; padding: 0; border: 0; margin: 0 0 29px var(--reply-inset); width: calc(100% - var(--reply-inset)); background: transparent;
   --depth-speaker: var(--accent); --reply-inset: 0px; --reply-lift: 3px;
-  --depth-rest-rx: 1.8deg; --depth-rest-ry: -2.2deg; --depth-rest-rz: -.25deg;
+  --depth-rest-rx:0.99deg; --depth-rest-ry:-1.76deg; --depth-rest-rz:-0.22deg;
 }
-.community-room [data-depth-kind=reply][data-speaker="1"] { --depth-speaker: #bfc8e8; --reply-inset: 12px; --reply-lift: 12px; --depth-rest-rx: 1deg; --depth-rest-ry: 1.8deg; --depth-rest-rz: .2deg; }
-.community-room [data-depth-kind=reply][data-speaker="2"] { --depth-speaker: #e0c498; --reply-inset: 4px; --reply-lift: 5px; --depth-rest-rx: 2.3deg; --depth-rest-ry: -1.2deg; --depth-rest-rz: -.15deg; }
-.community-room [data-depth-kind=reply][data-speaker="3"] { --depth-speaker: #afd6d4; --reply-inset: 18px; --reply-lift: 9px; --depth-rest-rx: 1.4deg; --depth-rest-ry: 2.4deg; --depth-rest-rz: .12deg; }
-.community-room [data-depth-kind=reply][data-speaker="4"] { --depth-speaker: #d6bbcc; --reply-inset: 9px; --reply-lift: 16px; --depth-rest-rx: .7deg; --depth-rest-ry: -2.7deg; --depth-rest-rz: -.25deg; }
+.community-room [data-depth-kind=reply][data-speaker="1"] { --depth-speaker: #bfc8e8; --reply-inset: 12px; --reply-lift: 12px; --depth-rest-rx:0.55deg; --depth-rest-ry:1.44deg; --depth-rest-rz:0.176deg; }
+.community-room [data-depth-kind=reply][data-speaker="2"] { --depth-speaker: #e0c498; --reply-inset: 4px; --reply-lift: 5px; --depth-rest-rx:1.265deg; --depth-rest-ry:-0.96deg; --depth-rest-rz:-0.132deg; }
+.community-room [data-depth-kind=reply][data-speaker="3"] { --depth-speaker: #afd6d4; --reply-inset: 18px; --reply-lift: 9px; --depth-rest-rx:0.77deg; --depth-rest-ry:1.92deg; --depth-rest-rz:0.1056deg; }
+.community-room [data-depth-kind=reply][data-speaker="4"] { --depth-speaker: #d6bbcc; --reply-inset: 9px; --reply-lift: 16px; --depth-rest-rx:0.385deg; --depth-rest-ry:-2.16deg; --depth-rest-rz:-0.22deg; }
 [data-theme=light] .community-room [data-depth-kind=reply][data-speaker="1"] { --depth-speaker: #59688c; }
 [data-theme=light] .community-room [data-depth-kind=reply][data-speaker="2"] { --depth-speaker: #886b39; }
 [data-theme=light] .community-room [data-depth-kind=reply][data-speaker="3"] { --depth-speaker: #416e70; }
@@ -167,7 +167,7 @@ html { scrollbar-gutter: stable; }
 .community-room [data-depth-kind=workspace] :is(.CodeMirror,.editor-toolbar,textarea,input,select,.form-actions) { scroll-margin-top: 28px; }
 
 /* Identity: a round seal and a small bookend, never a rotating account form. */
-.community-room [data-depth-host][data-depth-kind=identity] { --depth-rest-rx: 1.2deg; --depth-rest-ry: -2.1deg; }
+.community-room [data-depth-host][data-depth-kind=identity] { --depth-rest-rx:0.66deg; --depth-rest-ry:-1.68deg; }
 .community-room [data-depth-kind=identity] > .depth-scroll > .depth-arrival > .depth-surface { padding: 12px 0 3px; }
 .community-room [data-depth-kind=identity] > .depth-scroll > .depth-arrival > .depth-surface::before {
   content: none; left: 0; top: 15px; width: 74px; height: 74px; border-radius: 50%;
@@ -185,7 +185,7 @@ html { scrollbar-gutter: stable; }
 .community-room [data-depth-kind=identity] :is(.profile-identity,.profile-actions,.profile-bio,.profile-facts,.profile-stats,.profile-identity-note) { position: relative; }
 
 /* Ledge: an open side shelf, carrying an aside rather than framing a card. */
-.community-room [data-depth-host][data-depth-kind=ledge] { --depth-rest-rx: 1.8deg; --depth-rest-ry: -2.6deg; --depth-rest-rz: .2deg; }
+.community-room [data-depth-host][data-depth-kind=ledge] { --depth-rest-rx:0.99deg; --depth-rest-ry:-2.08deg; --depth-rest-rz:0.176deg; }
 .community-room [data-depth-kind=ledge] > .depth-scroll > .depth-arrival > .depth-surface { padding: 9px 0 19px; }
 .community-room [data-depth-kind=ledge] > .depth-scroll > .depth-arrival > .depth-surface::before {
   content: ''; left: 14%; right: 9%; bottom: 5px; height: 12px; border-radius: 50%;
@@ -201,10 +201,10 @@ html { scrollbar-gutter: stable; }
 /* Images: intrinsic aspect ratio and a narrow real edge; no generic screenshot mat. */
 .community-room span.depth-image-host[data-depth-host] {
   display: inline-block; width: fit-content; max-width: 100%; vertical-align: top; margin-block: 28px 34px;
-  --depth-camera: 1500px; --depth-rest-rx: 2deg; --depth-rest-ry: -3deg; --depth-rest-rz: -.3deg;
+  --depth-camera: 1500px; --depth-rest-rx:1.1deg; --depth-rest-ry:-2.4deg; --depth-rest-rz:-0.264deg;
 }
 .community-room .post-cover:has(.depth-image-host) { display: block; overflow: visible; aspect-ratio: auto; background: transparent; border: 0; max-height: none; }
-.community-room .post-cover .depth-image-host { display: block; width: 100%; margin: 0; --depth-rest-rx: 3deg; --depth-rest-ry: -5deg; }
+.community-room .post-cover .depth-image-host { display: block; width: 100%; margin: 0; --depth-rest-rx:1.65deg; --depth-rest-ry:-4deg; }
 .community-room .post-body p > .depth-image-host:only-child { display: block; margin-inline: auto; }
 .community-room [data-depth-kind=image] > .depth-scroll > .depth-arrival > .depth-surface { width: fit-content; max-width: 100%; padding: 0; box-shadow: 7px 15px 23px -18px var(--depth-shadow); }
 .community-room [data-depth-kind=image] > .depth-scroll > .depth-arrival > .depth-surface::before {
@@ -255,16 +255,16 @@ html[data-room-motion=paused] .community-room .depth-surface { transition: none;
 .community-room [data-depth-host]:is([data-depth-fullscreen=true],:has(.CodeMirror-fullscreen)) .depth-surface::after { display: none; }
 
 @media (max-width:800px) {
-  .community-room [data-depth-host][data-depth-kind=edition] { margin: 20px 0 29px; --depth-rest-rx: 1.5deg; --depth-rest-ry: -1.8deg; --depth-rest-rz: 0deg; }
+  .community-room [data-depth-host][data-depth-kind=edition] { margin: 20px 0 29px; --depth-rest-rx:0.825deg; --depth-rest-ry:-1.44deg; --depth-rest-rz:0deg; }
   .community-room [data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface { padding: 23px 20px 21px; }
   .community-room [data-depth-kind=reader] > .depth-scroll > .depth-arrival > .depth-surface::before { left: -13px; width: 9px; height: min(500px,32%); }
   .community-room [data-depth-kind=reader] > .depth-scroll > .depth-arrival > .depth-surface::after { right: -13px; width: 12px; }
-  .community-room [data-depth-host][data-depth-kind=reply] { margin-left: calc(var(--reply-inset) * .4); width: calc(100% - var(--reply-inset) * .4); --reply-lift: 0px; --depth-rest-rx: .7deg; --depth-rest-ry: -.7deg; --depth-rest-rz: 0deg; }
+  .community-room [data-depth-host][data-depth-kind=reply] { margin-left: calc(var(--reply-inset) * .4); width: calc(100% - var(--reply-inset) * .4); --reply-lift: 0px; --depth-rest-rx:0.385deg; --depth-rest-ry:-0.56deg; --depth-rest-rz:0deg; }
   .community-room [data-depth-kind=reply] > .depth-scroll > .depth-arrival > .depth-surface { padding: 22px 17px 22px 11px; gap: 14px; }
   .community-room [data-depth-kind=reply] > .depth-scroll > .depth-arrival > .depth-surface::before { left: 9px; top: 21px; }
   .community-room .comments:has(> [data-depth-kind=reply])::before { left: 28px; }
-  .community-room [data-depth-host][data-depth-kind=identity] { --depth-rest-rx: .5deg; --depth-rest-ry: -.8deg; }
-  .community-room [data-depth-host][data-depth-kind=ledge] { --depth-rest-rx: .8deg; --depth-rest-ry: -1.1deg; --depth-rest-rz: 0deg; }
+  .community-room [data-depth-host][data-depth-kind=identity] { --depth-rest-rx:0.275deg; --depth-rest-ry:-0.64deg; }
+  .community-room [data-depth-host][data-depth-kind=ledge] { --depth-rest-rx:0.44deg; --depth-rest-ry:-0.88deg; --depth-rest-rz:0deg; }
   .community-room [data-depth-kind=workspace] > .depth-scroll > .depth-arrival > .depth-surface::before { inset: 8px -5px -8px; }
   .community-room [data-depth-kind=workspace] > .depth-scroll > .depth-arrival > .depth-surface::after { left: -5px; right: -4px; bottom: -7px; height: 5px; }
 }
@@ -282,7 +282,7 @@ html[data-room-motion=paused] .community-room .depth-surface { transition: none;
   .community-room [data-depth-kind=reply] .comment-date { margin-left: 0; }
   .community-room [data-depth-kind=reply] .comment-body { font-size: 15px; }
   .community-room [data-depth-kind=identity] > .depth-scroll > .depth-arrival > .depth-surface::after { width: 27px; right: 0; }
-  .community-room span.depth-image-host[data-depth-host] { margin-block: 23px 28px; --depth-rest-rx: 1deg; --depth-rest-ry: -1.5deg; --depth-rest-rz: 0deg; }
+  .community-room span.depth-image-host[data-depth-host] { margin-block: 23px 28px; --depth-rest-rx:0.55deg; --depth-rest-ry:-1.2deg; --depth-rest-rz:0deg; }
   dialog.community-image-viewer { max-width: calc(100vw - 16px); padding: 53px 8px 15px; }
   .community-image-plane > img { max-width: calc(100vw - 34px); max-height: calc(100dvh - 190px); }
   .community-image-close { right: 6px; }

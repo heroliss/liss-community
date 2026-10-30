@@ -12,9 +12,9 @@
     '--depth-scroll-rx','--depth-scroll-y','--depth-scroll-z','--depth-light-x','--depth-light-y','--depth-scroll-progress'];
   var roomNames = ['--room-x','--room-y','--room-rx','--room-ry'];
   var profiles = {
-    edition:[4.8,9.6,16,10,18,.96], reply:[3.6,6.4,10,7,12,.64], image:[5.4,11.2,18,10,16,.64],
+    edition:[5.76,11.04,16,10,18,.96], reply:[4.32,7.36,10,7,12,.64], image:[6.48,12.88,18,10,16,.64],
     reader:[0,0,0,0,0,0], workspace:[0,0,0,0,0,0],
-    identity:[4.2,8,14,9,12,.68], ledge:[4.8,9.6,13,9,14,.48], crystal:[5.4,11.2,17,12,22,.72]
+    identity:[5.04,9.2,14,9,12,.68], ledge:[5.76,11.04,13,9,14,.48], crystal:[6.48,12.88,17,12,22,.72]
   };
   function clamp(value,min,max) { return Math.max(min,Math.min(max,value)); }
   function snapshot(node,properties) {
@@ -250,7 +250,7 @@
         var progress=clamp(((scrollY+innerHeight*.5)-(b.top+b.height*.5))/(innerHeight*.5+b.height*.5),-1,1);
         var scrollGain=enabled&&!focused&&!scene.header?profile[5]*attenuation*(fine.matches?1:.42)*(scene.nested?.35:1):0;
         var values=[-y*profile[0]*attenuation,x*profile[1]*attenuation,x*profile[2]*attenuation,y*profile[3]*attenuation,
-          pointerEnabled?profile[4]*attenuation:0,progress*2.2*scrollGain,-progress*14*scrollGain,(1-progress*progress)*20*scrollGain,
+          pointerEnabled?profile[4]*attenuation:0,progress*1.25*scrollGain,-progress*14*scrollGain,(1-progress*progress)*20*scrollGain,
           50+x*22,50+y*18,(progress+1)*.5];
         if(scene.header)values=[-y*8,x*12,x*16,y*10,0,0,0,0,50,50,.5];
         if(reduce.matches||scene.fullscreen)values=[0,0,0,0,0,0,0,0,50,50,.5];

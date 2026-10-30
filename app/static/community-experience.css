@@ -59,11 +59,11 @@ body.community-room .site-header { position:sticky;top:0;z-index:80;backdrop-fil
 .community-room .portal-profile .portal-console-face { border-radius:29px 12px 20px 14px; }
 .portal-profile .site-form { display:grid;grid-template-columns:1fr 1fr;gap:0 22px; }
 .portal-profile .site-form>.form-group:has(#about_me),.portal-profile .site-form>.form-actions,.portal-profile .site-form>.form-notice { grid-column:1/-1; }
-.community-room .portal-camera { transform:rotateX(calc(-3.2deg + var(--portal-rx,0deg))) rotateY(calc(-8.8deg + var(--portal-ry,0deg))); }
+.community-room .portal-camera { transform:rotateX(calc(-1.76deg + var(--portal-rx,0deg))) rotateY(calc(-7.04deg + var(--portal-ry,0deg))); }
 .community-room .portal-console-face { backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px); }
 /* The author's page collects a body of work around a personal glass nameplate. */
 .community-room .profile-gallery { width:min(1140px,100%);max-width:none;margin:32px auto 80px; }
-.community-room .profile-gallery .profile-header { padding:0;margin:26px 0 65px;--depth-rest-rx:1.5deg;--depth-rest-ry:-3deg; }
+.community-room .profile-gallery .profile-header { padding:0;margin:26px 0 65px;--depth-rest-rx:0.825deg;--depth-rest-ry:-2.4deg; }
 .community-room .profile-gallery .profile-header>.depth-scroll>.depth-arrival>.depth-surface { padding:35px 42px 28px;border-radius:45px 17px 32px 15px;background:transparent; }
 .community-room .profile-gallery .profile-header .depth-surface::before,.community-room .profile-gallery .profile-header .depth-surface::after { content:none; }
 .profile-page-label { color:var(--muted);font-size:12px;margin:0 0 27px; }
