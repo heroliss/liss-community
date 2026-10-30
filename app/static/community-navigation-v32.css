@@ -1,0 +1,53 @@
+/* Selected catalogue photo before the live view is decoded and positioned.
+   This uses the existing background leaf, never a second composited canvas. */
+:root[data-background-bootstrap=image] body.community-room::before {
+  background-image:var(--background-bootstrap-image);
+  background-size:var(--background-bootstrap-size);
+  background-position:var(--background-bootstrap-position);
+  background-repeat:no-repeat;
+}
+:root[data-theme=light][data-background-bootstrap=image] body.community-room :is(.studio-introduction,.portal-intro,.portal-story-note,.reader-navigation,.feed-toolbar,.discussion-heading,.crystal-writing>.page-heading) {
+  --text:#f2f5ef;--muted:#d1ded8;--accent:#b4dec3;--accent-hover:#d0ebd7;--accent-ink:#163527;--focus:#e7f8ec;color:var(--text);
+}
+/* Native navigation owns history and input. Only the article travels; scenery
+   has its own viewport-sized handoff, held behind the slower card movement. */
+html[data-community-transition^=reading-]::view-transition-old(root),
+html[data-community-transition^=reading-]::view-transition-new(root) {
+  animation-duration:420ms;animation-timing-function:cubic-bezier(.25,.1,.25,1);
+}
+html[data-community-transition^=reading-]::view-transition-old(root) { animation-name:room-v32-depart; }
+html[data-community-transition^=reading-]::view-transition-new(root) { animation-name:room-v32-arrive; }
+@keyframes room-v32-depart { from{opacity:1}to{opacity:0} }
+@keyframes room-v32-arrive { from{opacity:0}to{opacity:1} }
+html[data-community-transition^=reading-]::view-transition-group(liss-post-stage),
+html[data-community-transition^=reading-]::view-transition-group(liss-post-title),
+html[data-community-transition^=reading-]::view-transition-group(liss-post-cover),
+html[data-community-transition^=reading-]::view-transition-old(liss-post-stage),
+html[data-community-transition^=reading-]::view-transition-new(liss-post-stage) {
+  animation-duration:840ms;animation-timing-function:cubic-bezier(.25,.72,.22,1);
+}
+html[data-community-transition=reading-open]::view-transition-old(liss-post-stage) { animation-name:card-v32-release; }
+html[data-community-transition=reading-open]::view-transition-new(liss-post-stage) { animation-name:reader-v32-unfold; }
+html[data-community-transition=reading-close]::view-transition-old(liss-post-stage) { animation-name:reader-v32-fold; }
+html[data-community-transition=reading-close]::view-transition-new(liss-post-stage) { animation-name:card-v32-receive; }
+@keyframes card-v32-release { 0%{opacity:1;transform:none}38%,100%{opacity:0;transform:perspective(1800px) translate3d(0,-8px,52px) rotateY(3deg)} }
+@keyframes reader-v32-unfold { 0%,30%{opacity:0;transform:perspective(1800px) translate3d(0,12px,-65px) rotateX(4deg) rotateY(-3deg)}78%,100%{opacity:1;transform:none} }
+@keyframes reader-v32-fold { 0%{opacity:1;transform:none}40%,100%{opacity:0;transform:perspective(1800px) translate3d(0,8px,-65px) rotateY(4deg)} }
+@keyframes card-v32-receive { 0%,32%{opacity:0;transform:perspective(1800px) translate3d(0,-8px,48px) rotateX(-3deg) rotateY(-3deg)}82%,100%{opacity:1;transform:none} }
+html[data-community-transition^=reading-]::view-transition-group(community-landscape) { animation:none;z-index:-1; }
+html[data-community-transition^=reading-]::view-transition-image-pair(community-landscape) { isolation:isolate; }
+html[data-community-transition^=reading-]::view-transition-old(community-landscape),
+html[data-community-transition^=reading-]::view-transition-new(community-landscape) {
+  mix-blend-mode:normal;object-fit:cover;
+  animation-duration:940ms;animation-timing-function:linear;animation-fill-mode:both;
+}
+html[data-community-transition^=reading-]::view-transition-old(community-landscape) { animation-name:landscape-v32-hold; }
+html[data-community-transition^=reading-]::view-transition-new(community-landscape) { animation-name:landscape-v32-receive; }
+@keyframes landscape-v32-hold { 0%,92%{opacity:1}100%{opacity:0} }
+@keyframes landscape-v32-receive { 0%,55%{opacity:0}92%,100%{opacity:1} }
+html[data-room-motion=paused]::view-transition-group(*),
+html[data-room-motion=paused]::view-transition-old(*),
+html[data-room-motion=paused]::view-transition-new(*) { animation:none!important; }
+@media(prefers-reduced-motion:reduce) {
+  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*) { animation:none!important; }
+}

@@ -1,0 +1,162 @@
+/* One closed object, not a bright rear sheet behind an unrelated front.
+   The shell remains preserve-3d. Only its empty rear paint/shadow leaf is
+   filtered; no content, camera, pointer or scroll plane is clipped/filtered. */
+:root[data-theme] body.community-room [data-material] {
+  --edge-body:var(--surface-pigment,var(--material-base));
+  --edge-return:color-mix(in srgb,var(--edge-body) 87%,var(--material-side-dark));
+  --edge-key:color-mix(in srgb,var(--edge-body) 72%,var(--material-light));
+  --edge-shade:color-mix(in srgb,var(--edge-body) 82%,var(--material-side-dark));
+  --edge-profile:var(--material-outline,inset(0 round var(--material-radius)));
+}
+:root[data-theme] body.community-room [data-material=paper] {
+  --edge-profile:var(--paper-sheet-outline,inset(0 round var(--material-radius)));
+}
+/* Explicit mode tokens prevent a dark default return or ceramic glaze seam
+   surviving the light face. Colour is derived from the same current pigment. */
+:root[data-theme=light] body.community-room [data-material] {
+  --edge-return:color-mix(in srgb,var(--edge-body) 88%,#829899);
+  --edge-key:color-mix(in srgb,var(--edge-body) 78%,#fafff7);
+  --edge-shade:color-mix(in srgb,var(--edge-body) 83%,#8ba09d);
+}
+:root[data-theme] body.community-room [data-material] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back {
+  inset:0;border:0;outline:0;background:transparent;clip-path:none;
+  transform:translate3d(0,0,calc(var(--material-thickness) * -1));
+  box-shadow:none;filter:drop-shadow(5px 11px 9px var(--material-shadow));
+}
+:root[data-theme] body.community-room [data-material] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back::after {
+  content:"";display:block;position:absolute;inset:0;border:0;outline:0;border-radius:inherit;
+  clip-path:var(--edge-profile);background:var(--edge-return);
+}
+/* A one-pixel coverage ramp replaces the former 36% ramps on either side.
+   Those ramps erased 72% of each wall and read as a line at normal yaw.
+   Longitudinal ends keep a small feather so the ends never sprout a rail. */
+:root[data-theme] body.community-room [data-material] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before,
+:root[data-theme] body.community-room [data-material] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after {
+  filter:none;box-shadow:none;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 .7px,#000 calc(100% - .7px),transparent),linear-gradient(180deg,transparent,#000 1px,#000 calc(100% - 1px),transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 .7px,#000 calc(100% - .7px),transparent),linear-gradient(180deg,transparent,#000 1px,#000 calc(100% - 1px),transparent);
+  -webkit-mask-composite:source-in;mask-composite:intersect;
+}
+:root[data-theme] body.community-room [data-material] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before,
+:root[data-theme] body.community-room [data-material] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after {
+  filter:none;box-shadow:none;
+  -webkit-mask-image:linear-gradient(180deg,transparent,#000 .7px,#000 calc(100% - .7px),transparent),linear-gradient(90deg,transparent,#000 1px,#000 calc(100% - 1px),transparent);
+  mask-image:linear-gradient(180deg,transparent,#000 .7px,#000 calc(100% - .7px),transparent),linear-gradient(90deg,transparent,#000 1px,#000 calc(100% - 1px),transparent);
+  -webkit-mask-composite:source-in;mask-composite:intersect;
+}
+:root[data-theme] body.community-room [data-material]:not([data-material=glass]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before { background:linear-gradient(90deg,var(--edge-return),var(--edge-key)); }
+:root[data-theme] body.community-room [data-material]:not([data-material=glass]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after { background:linear-gradient(90deg,var(--edge-shade),var(--edge-return)); }
+:root[data-theme] body.community-room [data-material]:not([data-material=glass]):not([data-material=paper]):not([data-material=cork]):not([data-material=slate]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before { background:linear-gradient(180deg,var(--edge-return),var(--edge-key)); }
+:root[data-theme] body.community-room [data-material]:not([data-material=glass]):not([data-material=paper]):not([data-material=cork]):not([data-material=slate]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after { background:linear-gradient(180deg,var(--edge-shade),var(--edge-return)); }
+:root[data-theme] body.community-room [data-material=paper] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after { background:repeating-linear-gradient(180deg,var(--edge-shade) 0 .7px,var(--edge-return) .7px 1.5px); }
+:root[data-theme] body.community-room [data-material=cork] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after {
+  background:radial-gradient(ellipse at 16% 34%,var(--edge-key) 0 16%,transparent 23%) 0 0/13px 7px,
+    radial-gradient(ellipse at 68% 61%,var(--edge-shade) 0 14%,transparent 22%) 4px 2px/19px 9px,
+    linear-gradient(180deg,var(--edge-shade),var(--edge-return));
+}
+:root[data-theme] body.community-room [data-material=slate] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after { background:repeating-linear-gradient(180deg,var(--edge-key) 0 1px,var(--edge-shade) 1px 2px,var(--edge-return) 2px 3.5px); }
+/* The former metal returns were 8px at 67 degrees against a 7px rear,
+   projecting 3.13px outside its contour. Close them at the actual depth and
+   stop at the real top cuts / lower step instead of a separate folded mat. */
+:root[data-theme] body.community-room [data-material=metal]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before {
+  left:8px;right:52px;top:calc(var(--material-thickness) * -1);height:var(--material-thickness);transform:rotateX(90deg);
+}
+:root[data-theme] body.community-room [data-material=metal]:is([data-depth-kind=edition],[data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after {
+  left:21px;right:7px;bottom:calc(var(--material-thickness) * -1);height:var(--material-thickness);transform:rotateX(-90deg);
+}
+
+/* All glass roles use a closed extrusion, no outward-drafted enlarged back.
+   The clear edition gains volume; the calm 8px reader remains untouched. */
+:root[data-theme] body.community-room [data-material=glass] {
+  --material-draft:0px;--material-side-span:var(--material-thickness);
+  --edge-return:linear-gradient(135deg,#8ccad217,#0e353b21 62%,#204d5b2b);
+  --glass-wall-lit:linear-gradient(90deg,#204d5754,#9cd8db64 36%,#dbfff173 72%,#b8e6e166);
+  --glass-wall-shade:linear-gradient(90deg,#86c4d745,#427d8b5c 40%,#19445173);
+  --glass-wall-top:linear-gradient(180deg,#73b3c45c,#c2f2e87d 67%,#b0e6df66);
+  --glass-wall-bottom:linear-gradient(180deg,#527f8d5c,#24516280);
+}
+:root[data-theme=light] body.community-room [data-material=glass] {
+  --edge-return:linear-gradient(135deg,#def4f318,#9fc3cb24 62%,#c0dedb2a);
+  --glass-wall-lit:linear-gradient(90deg,#9fc7cf52,#d6f7eb8a 40%,#f8ffefa1 76%,#defff18a);
+  --glass-wall-shade:linear-gradient(90deg,#b9d8d970,#95bcc585 55%,#719eac80);
+  --glass-wall-top:linear-gradient(180deg,#b0d7dc70,#f3fff2a6 65%,#e1f7ef91);
+  --glass-wall-bottom:linear-gradient(180deg,#a3c2c578,#83acb485);
+}
+:root[data-theme] body.community-room [data-material=glass][data-depth-kind=edition] {
+  --material-thickness:22px;
+  --glass-left-start:12px;--glass-left-end:28px;--glass-right-start:56px;--glass-right-end:12px;
+  --glass-top-start:12px;--glass-top-end:64px;--glass-bottom-start:30px;--glass-bottom-end:12px;
+}
+:root[data-theme] body.community-room [data-material=glass][data-glass-finish=frosted][data-depth-kind=edition] {
+  --material-thickness:16px;
+  --glass-left-start:26px;--glass-left-end:38px;--glass-right-start:42px;--glass-right-end:28px;
+  --glass-top-start:26px;--glass-top-end:42px;--glass-bottom-start:38px;--glass-bottom-end:28px;
+}
+:root[data-theme] body.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before,
+:root[data-theme] body.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after {
+  width:var(--material-thickness);opacity:1;border-radius:0;
+}
+:root[data-theme] body.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before {
+  left:calc(var(--material-thickness) * -1);top:var(--glass-left-start,31px);bottom:var(--glass-left-end,31px);
+  transform:rotateY(-90deg);background:var(--glass-wall-lit);
+}
+:root[data-theme] body.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after {
+  right:calc(var(--material-thickness) * -1);top:var(--glass-right-start,31px);bottom:var(--glass-right-end,31px);
+  transform:rotateY(90deg);background:var(--glass-wall-shade);
+}
+:root[data-theme] body.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before,
+:root[data-theme] body.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after { height:var(--material-thickness);opacity:1;border-radius:0; }
+:root[data-theme] body.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before {
+  top:calc(var(--material-thickness) * -1);left:var(--glass-top-start,31px);right:var(--glass-top-end,31px);
+  transform:rotateX(90deg);background:var(--glass-wall-top);
+}
+:root[data-theme] body.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after {
+  bottom:calc(var(--material-thickness) * -1);left:var(--glass-bottom-start,31px);right:var(--glass-bottom-end,31px);
+  transform:rotateX(-90deg);background:var(--glass-wall-bottom);
+}
+/* The diagonal cuts need actual closing planes too. Lengths and angles come
+   directly from the v30 outline. Reuse the shell's two unused pseudo leaves,
+   and the old fallback sheen (empty when WebGL is active) for the small cuts.
+   The latter is now a transparent 3D holder, never a duplicate face highlight.
+   No new DOM, backdrop, bitmap or animation work is introduced. */
+:root[data-theme] body.community-room [data-material=glass][data-depth-kind=edition]:not([data-glass-finish=frosted]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::before,
+:root[data-theme] body.community-room [data-material=glass][data-depth-kind=edition]:not([data-glass-finish=frosted]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::after {
+  content:"";display:block;position:absolute;height:var(--material-thickness);pointer-events:none;backface-visibility:hidden;
+  transform-origin:0 0;border:0;border-radius:0;filter:none;box-shadow:none;
+  -webkit-mask-image:linear-gradient(180deg,transparent,#000 .7px,#000 calc(100% - .7px),transparent);
+  mask-image:linear-gradient(180deg,transparent,#000 .7px,#000 calc(100% - .7px),transparent);
+}
+:root[data-theme] body.community-room [data-material=glass][data-depth-kind=edition]:not([data-glass-finish=frosted]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::before {
+  left:calc(100% - 64px);top:0;width:85.041px;
+  transform:rotateZ(41.186deg) rotateX(-90deg);background:var(--glass-wall-top);
+}
+:root[data-theme] body.community-room [data-material=glass][data-depth-kind=edition]:not([data-glass-finish=frosted]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::after {
+  left:30px;top:100%;width:41.037px;
+  transform:rotateZ(223.025deg) rotateX(-90deg);background:var(--glass-wall-shade);
+}
+:root[data-theme] body.community-room [data-material=glass][data-depth-kind=edition]:not([data-glass-finish=frosted]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-sheen {
+  display:block;opacity:1;background:none;clip-path:none;transform:none;transform-style:preserve-3d;
+}
+:root[data-theme] body.community-room [data-material=glass][data-depth-kind=edition]:not([data-glass-finish=frosted]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-sheen::before,
+:root[data-theme] body.community-room [data-material=glass][data-depth-kind=edition]:not([data-glass-finish=frosted]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-sheen::after {
+  content:"";width:16.971px;height:var(--material-thickness);transform-origin:0 0;border-radius:0;
+  -webkit-mask-image:linear-gradient(180deg,transparent,#000 .7px,#000 calc(100% - .7px),transparent);
+  mask-image:linear-gradient(180deg,transparent,#000 .7px,#000 calc(100% - .7px),transparent);
+}
+:root[data-theme] body.community-room [data-material=glass][data-depth-kind=edition]:not([data-glass-finish=frosted]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-sheen::before {
+  left:0;top:12px;transform:rotateZ(-45deg) rotateX(-90deg);background:var(--glass-wall-lit);
+}
+:root[data-theme] body.community-room [data-material=glass][data-depth-kind=edition]:not([data-glass-finish=frosted]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-sheen::after {
+  left:100%;top:calc(100% - 12px);transform:rotateZ(135deg) rotateX(-90deg);background:var(--glass-wall-shade);
+}
+/* Ceramic's front glaze and exposed return share one tint in light mode,
+   including the inset seam; a dark crevice no longer frames the whole slab. */
+:root[data-theme=light] body.community-room [data-material=ceramic] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::before {
+  border-color:color-mix(in srgb,var(--edge-body) 75%,#8fa28a);
+  box-shadow:inset .7px .7px 0 #ffffff80,0 .7px 0 #6c82641c;
+}
+@media(max-width:600px) {
+  :root[data-theme] body.community-room [data-material=glass][data-depth-kind=edition] { --material-thickness:16px; }
+  :root[data-theme] body.community-room [data-material=glass][data-glass-finish=frosted][data-depth-kind=edition] { --material-thickness:12px; }
+}
+@media(forced-colors:active) { .community-room .material-shell { display:none!important; } }

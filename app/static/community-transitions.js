@@ -24,7 +24,7 @@
   function skip(){if(current)try{current.skipTransition();}catch(e){failed(e);}}
   function name(node,value){if(!node)return;named.push({node:node,value:node.style.getPropertyValue('view-transition-name'),priority:node.style.getPropertyPriority('view-transition-name')});node.style.setProperty('view-transition-name',value);}
   function article(id){return document.querySelector('.post[data-depth-id="'+id+'"]');}
-  function returnLink(){var origin=readOrigin(),id=postId(location.href);if(!origin||origin.id!==id)return;var a=document.querySelector('[data-post-return],.reader-navigation .back-link');if(a){a.href=origin.list;a.setAttribute('aria-label','返回这篇文章在列表中的位置');}}
+  function returnLink(){var origin=readOrigin(),id=postId(location.href);if(!origin||origin.id!==id)return;var a=document.querySelector('[data-post-return],.reader-navigation .back-link');if(a){var destination=url(origin.list);destination.hash='';a.href=destination.href;a.setAttribute('aria-label','返回这篇文章在列表中的位置');}}
   function configure(from,to,transition,inbound,activation){
     var token=++serial;reset();
     if(!from||!to||from.origin!==location.origin||to.origin!==location.origin){skip();return;}
@@ -40,10 +40,13 @@
     var selected=article(chosen);if(!selected){skip();return;}
     previous={present:document.documentElement.hasAttribute('data-community-transition'),value:document.documentElement.getAttribute('data-community-transition')};
     document.documentElement.dataset.communityTransition=opening?'reading-open':'reading-close';
+    // Keep scenery in its own viewport-sized snapshot. It must not be mixed
+    // with the much faster root fade while the incoming photograph decodes.
+    name(document.querySelector('.community-atmosphere'),'community-landscape');
     name(document.querySelector('.site-header'),'community-navigation');
     name(selected,'liss-post-stage');
-    name(selected.querySelector('[data-depth-post-title],.post-title,.post-body h1,.post-body > h2')||selected.querySelector('.post-body > p,.post-meta'),'liss-post-title');
-    name(selected.querySelector('.post-cover img,.post-body img'),'liss-post-cover');
+    // The whole article travels as one object. Independently interpolated
+    // title/image snapshots used different list/reader geometry and ghosted.
     var captured=inbound?transition.ready:transition.finished;
     captured.then(function(){if(token===serial)restoreNames();},function(){if(token===serial)restoreNames();});
     transition.finished.then(function(){if(token===serial){current=null;reset();}},function(){if(token===serial){current=null;reset();}});

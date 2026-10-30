@@ -12,6 +12,7 @@
 <meta name="description" content="{{ (site_settings|default({})).get('tagline', '记录与交流的小地方。探索 Liss 的作品，分享想法，让对话继续。') }}">
 <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
 <script>try{var t=localStorage.getItem('liss-theme');if(t==='light')document.documentElement.dataset.theme=t}catch(e){}</script>
+<script src="{{ url_for('static', filename='community-backgrounds.js') }}?v=20261031-32a" blocking="render"></script>
 {% if request.endpoint in ['main.index', 'main.edit', 'community.project_talk'] and current_user.is_authenticated %}
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/easymde-2.21.0/easymde.min.css') }}">
 {% endif %}
@@ -26,7 +27,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='community-theme.css') }}?v=20261030-27c">
 <link rel="stylesheet" href="{{ url_for('static', filename='community-studio.css') }}?v=20261030-27c">
 <link rel="stylesheet" href="{{ url_for('static', filename='community-portals.css') }}?v=20261030-27c">
-<link rel="stylesheet" href="{{ url_for('static', filename='community-crystal.css') }}?v=20261030-27c">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-crystal.css') }}?v=20261031-32a">
 <link rel="stylesheet" href="{{ url_for('static', filename='community-backgrounds.css') }}?v=20261030-27c">
 <link rel="stylesheet" href="{{ url_for('static', filename='community-experience.css') }}?v=20261030-27c">
 <link rel="stylesheet" href="{{ url_for('static', filename='community-avatar.css') }}?v=20261030-27c">
@@ -38,7 +39,9 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='community-reading-v28.css') }}?v=20261031-28d">
 <link rel="stylesheet" href="{{ url_for('static', filename='community-shapes-v30.css') }}?v=20261031-30e">
 <link rel="stylesheet" href="{{ url_for('static', filename='community-glass-optics-v31.css') }}?v=20261031-31a">
-<script src="{{ url_for('static', filename='community-transitions.js') }}?v=20261030-27c" blocking="render"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='community-edges-v32.css') }}?v=20261031-32a">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-navigation-v32.css') }}?v=20261031-32a">
+<script src="{{ url_for('static', filename='community-transitions.js') }}?v=20261031-32a" blocking="render"></script>
 {% endblock %}
 {% block navbar %}
 <a class="skip-link" href="#main-content">跳到正文</a>
@@ -88,11 +91,10 @@
 <script src="{{ url_for('static', filename='liss.js') }}?v=20261030-27c" defer></script>
 <script src="{{ url_for('static', filename='community-theme.js') }}?v=20261030-27c" defer></script>
 <script src="{{ url_for('static', filename='community-room.js') }}?v=20261030-27c" defer></script>
-<script src="{{ url_for('static', filename='community-spatial.js') }}?v=20261031-28c" defer></script>
+<script src="{{ url_for('static', filename='community-spatial.js') }}?v=20261031-32a" defer></script>
 <script src="{{ url_for('static', filename='community-gallery.js') }}?v=20261031-28a" defer></script>
-<script src="{{ url_for('static', filename='community-backgrounds.js') }}?v=20261030-27c" defer></script>
 <script src="{{ url_for('static', filename='community-procedural.js') }}?v=20261030-27c" defer></script>
-<script src="{{ url_for('static', filename='community-atmosphere.js') }}?v=20261030-27c" defer></script>
+<script src="{{ url_for('static', filename='community-atmosphere.js') }}?v=20261031-32a" defer></script>
 <script src="{{ url_for('static', filename='community-surfaces.js') }}?v=20261031-31a" defer></script>
 <script src="{{ url_for('static', filename='community-portals.js') }}?v=20261030-27c" defer></script>
 <script src="{{ url_for('static', filename='community-crystal.js') }}?v=20261030-27c" defer></script>
@@ -103,6 +105,6 @@
 <script src="{{ url_for('static', filename='writing.js') }}?v=20261030-27c" defer></script>
 <script src="{{ url_for('static', filename='community-appearance.js') }}?v=20261031-31a" defer></script>
 {% endif %}
-<script src="{{ url_for('static', filename='community-disclosure.js') }}?v=20261031-28a" defer></script>
+<script src="{{ url_for('static', filename='community-disclosure.js') }}?v=20261031-32a" defer></script>
 <script src="{{ url_for('static', filename='community-navigation.js') }}?v=20261031-28a" defer></script>
 {% endblock %}

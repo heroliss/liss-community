@@ -49,7 +49,7 @@
       // The following feed must make room. Padding collapses with the height
       // so its minimum border-box cannot leave a final 30px closing jump.
       // There is no per-frame JS measurement or permanent RAF.
-      var duration=Math.min(opening?520:380,Math.max(180,Math.abs(to-from)*.32));
+      var duration=Math.min(opening?760:560,Math.max(opening?420:320,Math.abs(to-from)*(opening?.55:.45)));
       var animation=state.body.animate([{height:from+'px',paddingTop:fromTop+'px',paddingBottom:fromBottom+'px'},{height:to+'px',paddingTop:(opening?top:0)+'px',paddingBottom:(opening?bottom:0)+'px'}],{duration:duration,easing:opening?'cubic-bezier(.22,.8,.22,1)':'cubic-bezier(.4,0,.6,1)',fill:'both'});
       state.animation=animation;animation.onfinish=function(){if(state.animation===animation)finish(state);};
     }
@@ -94,6 +94,6 @@
   }
   window.addEventListener('pagehide',function(){if(dispose)dispose();},{signal:lifetime.signal});
   window.addEventListener('pageshow',function(event){if(event.persisted)mount();},{signal:lifetime.signal});
-  window[KEY]={inspect:function(){return{version:'disclosure-v28',states:readState()};},destroy:function(){if(dispose)dispose();lifetime.abort();delete window[KEY];}};
+  window[KEY]={inspect:function(){return{version:'disclosure-v32',states:readState()};},destroy:function(){if(dispose)dispose();lifetime.abort();delete window[KEY];}};
   mount();
 })();

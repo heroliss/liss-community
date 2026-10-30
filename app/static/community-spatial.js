@@ -11,12 +11,27 @@
   var names = ['--depth-rx','--depth-ry','--depth-x','--depth-y','--depth-z',
     '--depth-scroll-rx','--depth-scroll-y','--depth-scroll-z','--depth-light-x','--depth-light-y','--depth-scroll-progress','--workspace-rx','--workspace-ry'];
   var roomNames = ['--room-x','--room-y','--room-rx','--room-ry'];
+  var poseNames = ['--depth-pose-rx','--depth-pose-ry','--depth-pose-rz',
+    '--depth-pose-mobile-rx','--depth-pose-mobile-ry','--depth-pose-mobile-rz'];
   var profiles = {
     edition:[5.76,11.04,16,10,18,.96], reply:[4.32,7.36,10,7,12,.64], image:[6.48,12.88,18,10,16,.64],
     reader:[0,0,0,0,0,0], workspace:[0,0,0,0,0,0],
     identity:[5.04,9.2,14,9,12,.68], ledge:[5.76,11.04,13,9,14,.48], crystal:[6.48,12.88,17,12,22,.72]
   };
   function clamp(value,min,max) { return Math.max(min,Math.min(max,value)); }
+  function stablePostPose(identifier) {
+    // Identity, never column/order/scroll, chooses an object's resting camera.
+    // Separate mixed lanes avoid coupling yaw direction to pitch or roll.
+    function lane(axis) {
+      var text='post:'+identifier+':'+axis,hash=2166136261;
+      for(var i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}
+      hash^=hash>>>16;hash=Math.imul(hash,0x7feb352d);hash^=hash>>>15;
+      hash=Math.imul(hash,0x846ca68b);hash^=hash>>>16;
+      return (hash>>>0)/4294967295*2-1;
+    }
+    var yaw=lane('yaw');
+    return [lane('pitch')*1.25,(yaw<0?-1:1)*(2.2+Math.abs(yaw)*3.6),lane('roll')*1.1];
+  }
   function snapshot(node,properties) {
     return properties.map(function(name){return [name,node.style.getPropertyValue(name),node.style.getPropertyPriority(name)];});
   }
@@ -109,8 +124,17 @@
         kind:host.dataset.depthKind||'edition',visible:!observer,focused:false,held:false,selecting:false,fullscreen:false,hoverControl:false,
         bounds:null,rest:[0,0],nested:!!host.parentElement.closest('[data-depth-host]'),follow:null,inside:false,entering:false,
         relayExcluded:!!host.closest('[data-appearance-preview]'),
-        skipEntry:!!fromCache&&entered.has(host),animation:null,savedStyles:snapshot(host,depth?names:roomNames),restores:[],written:{},
+        skipEntry:!!fromCache&&entered.has(host),animation:null,savedStyles:snapshot(host,depth?names.concat(poseNames):roomNames),restores:[],written:{},
         current:[0,0,0,0,0,0,0,0,50,50,.5,0,0],x:0,y:0};
+      // Feed editions only. Writing previews and the stable reading camera keep
+      // their deliberate pose; narrow screens use the same identity, attenuated.
+      if(depth&&scene.kind==='edition'&&host.classList.contains('post')&&host.dataset.depthId&&host.closest('.posts:not(.posts-detail)')&&!host.hasAttribute('data-appearance-preview')){
+        var pose=stablePostPose(host.dataset.depthId);
+        pose.forEach(function(value,index){
+          host.style.setProperty(poseNames[index],value.toFixed(3)+'deg');
+          host.style.setProperty(poseNames[index+3],(value*[.48,.44,.5][index]).toFixed(3)+'deg');
+        });
+      }
       ['data-depth-visible','data-depth-active','data-depth-held','data-depth-focus','data-depth-selecting','data-depth-fullscreen','data-depth-hover']
         .forEach(function(name){scene.restores.push(remember(host,name));});
       scenes.add(scene);byHost.set(host,scene);

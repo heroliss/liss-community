@@ -4,7 +4,7 @@
   'use strict';
   var key='__lissCommunityAtmosphere';
   if(window[key]&&typeof window[key].destroy==='function')window[key].destroy();
-  var lifetime=new AbortController(),dispose=null,inspectState=null,backgrounds=window.LissBackgrounds;
+  var lifetime=new AbortController(),dispose=null,suspend=null,resume=null,inspectState=null,backgrounds=window.LissBackgrounds;
   function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
   function mount(){
     if(dispose)dispose();
@@ -17,7 +17,7 @@
     wrapper.appendChild(landscapeWindow);body.insertBefore(wrapper,body.firstChild);
     wrapper.dataset.sceneRenderer='native-vector';
     var hadClass=body.classList.contains('has-atmosphere');body.classList.add('has-atmosphere');
-    var frame=0,lastTime=0,closed=false,dirty=true,dirtySize=true;
+    var frame=0,lastTime=0,closed=false,parked=false,dirty=true,dirtySize=true;
     var width=1,height=1,padding=100,mobile=false,light=false;
     var current=[0,0,0],target=[0,0,0],pointer=[0,0],scrollPixels=Math.max(0,window.scrollY||0),scrollPixelTarget=scrollPixels;
     // The spatial controller is the single owner of card poses. Its dominant
@@ -28,7 +28,7 @@
     var selectedChoice=backgrounds?backgrounds.read():{id:'mist',kind:'vector',quality:'auto',scroll:true};
     var appliedEntry=backgrounds?backgrounds.entry(selectedChoice.id):{id:'mist',kind:'vector',style:'mist'};
     var landscapeStatus='unrequested',landscapeSerial=0,landscapeResolution=null,pendingResolution=null,unsubscribeBackground=null;
-    var landscapeGeometry=null,vectorGeometry=null,vectorScene=null,proceduralScene=null,scrollRange=1;
+    var landscapeGeometry=null,vectorGeometry=null,vectorScene=null,proceduralScene=null,scrollRange=1,scenePending=true;
     function nativeVector(entry){
       vectorGeometry=null;
       if(proceduralScene){proceduralScene.destroy();proceduralScene=null;}
@@ -41,8 +41,8 @@
     function paused(){return html.dataset.roomMotion==='paused';}
     function held(){return pressed||editing||selection||modal||!activeWindow;}
     function savingData(){return !!(reducedData.matches||(backgrounds&&backgrounds.read&&backgrounds.read().dataSaver)||(navigator.connection&&navigator.connection.saveData));}
-    function blocked(){return closed||document.hidden||forced.matches||reduce.matches||savingData()||paused()||held();}
-    function schedule(){if(!closed&&!document.hidden&&!frame)frame=requestAnimationFrame(paint);}
+    function blocked(){return closed||parked||document.hidden||forced.matches||reduce.matches||savingData()||paused()||held();}
+    function schedule(){if(!closed&&!parked&&!document.hidden&&!frame)frame=requestAnimationFrame(paint);}
     function syncProceduralMotion(){
       var running=!!proceduralScene&&!blocked(),state=running?'running':'paused';
       if(wrapper.dataset.sceneMotion!==state)wrapper.dataset.sceneMotion=state;
@@ -61,17 +61,20 @@
       if(!choice.scroll)scrollPixelTarget=scrollPixels;
       if(entry.kind!=='image'||!backgrounds){
         if(backgrounds)backgrounds.load(choice);
+        if(vectorScene&&appliedEntry.id===entry.id){dirtySize=dirty=true;schedule();return;}
         nativeVector(entry);landscapeImage=null;landscapeGeometry=null;landscapeResolution=pendingResolution=null;
-        landscapeStatus='vector';appliedEntry=entry;wrapper.dataset.sceneArt='vector';ensureScene(false);
+        landscapeStatus='vector';appliedEntry=entry;scenePending=true;wrapper.dataset.sceneArt='vector';ensureScene(false);
         sizeSignature='';dirtySize=dirty=true;syncProceduralMotion();schedule();return;
       }
-      var resolved=resolution||backgrounds.resolve(choice);pendingResolution=resolved;landscapeStatus='loading';
+      var resolved=resolution||backgrounds.resolve(choice);
+      if(landscapeImage&&landscapeResolution&&resolved.url===landscapeResolution.url){dirtySize=dirty=true;schedule();return;}
+      pendingResolution=resolved;landscapeStatus='loading';
       backgrounds.load(choice,resolved).then(function(image){
         if(closed||serial!==landscapeSerial)return;
         pendingResolution=null;
         if(!image){landscapeImage=null;landscapeGeometry=null;landscapeResolution=null;landscapeStatus='unavailable';appliedEntry={id:'mist',kind:'vector',style:'mist'};nativeVector(appliedEntry);wrapper.dataset.sceneArt='vector';ensureScene(false);}
         else{if(proceduralScene){proceduralScene.destroy();proceduralScene=null;}landscapeImage=image;vectorScene=null;vectorGeometry=null;landscapeResolution=resolved;landscapeStatus='ready';appliedEntry=entry;image.className='community-landscape-image';image.alt='';image.setAttribute('aria-hidden','true');landscapeWindow.replaceChildren(image);wrapper.dataset.sceneArt='image';ensureScene(true);}
-        sizeSignature='';dirtySize=dirty=true;syncProceduralMotion();schedule();
+        scenePending=true;sizeSignature='';dirtySize=dirty=true;syncProceduralMotion();schedule();
       });
     }
     function upgradeResolution(){
@@ -127,10 +130,14 @@
       // principle. It never loops or resets at the document's lower edge, and
       // its explicit overscan leaves room for both the camera and local leaves.
       else if(vectorScene){var vectorTravel=vectorGeometry?Math.min(vectorGeometry.travel,Math.max(0,scrollPixels)*vectorGeometry.scrollRate):0;vectorScene.style.transform='translate3d('+dx.toFixed(2)+'px,'+(dy-vectorTravel).toFixed(2)+'px,0)';}
+      if(scenePending&&((landscapeImage&&landscapeGeometry)||(vectorScene&&vectorGeometry))){
+        scenePending=false;wrapper.dataset.sceneReady='true';
+        if(backgrounds&&backgrounds.releaseBootstrap)backgrounds.releaseBootstrap();
+      }
       nativeFrames++;dirty=false;
     }
     function paint(now){
-      frame=0;if(closed||document.hidden)return;
+      frame=0;if(closed||parked||document.hidden)return;
       if(dirtySize)resize();
       var unsettled=false,elapsed=lastTime?Math.min(50,now-lastTime):16;lastTime=now;
       if(!blocked()){
@@ -167,16 +174,21 @@
     var stateObserver=new MutationObserver(function(entries){if(entries.some(function(entry){return entry.attributeName==='data-theme';})){dirtySize=true;dirty=true;}gate();});stateObserver.observe(html,{attributes:true,attributeFilter:['data-theme','data-room-motion']});
     var dialogObserver=new MutationObserver(gate);dialogObserver.observe(body,{attributes:true,subtree:true,attributeFilter:['open']});
     if(window.ResizeObserver){resizeObserver=new ResizeObserver(invalidate);resizeObserver.observe(wrapper);resizeObserver.observe(body);}
-    nativeVector({style:'mist'});wrapper.dataset.sceneArt='vector';if(backgrounds)unsubscribeBackground=backgrounds.subscribe(function(choice){applyBackground(choice);});applyBackground(selectedChoice);
+    // A selected image starts on its preheated photographic base, never an
+    // unrelated mist drawing. Set the light-mode ink context immediately.
+    wrapper.dataset.sceneArt=appliedEntry.kind==='image'?'image':'vector';
+    if(backgrounds)unsubscribeBackground=backgrounds.subscribe(function(choice){applyBackground(choice);});applyBackground(selectedChoice);
     readLocks();if(!reduce.matches&&!paused())current[2]=target[2]=scrollPosition();gate();window.dispatchEvent(new Event('liss:spatial-request'));
     inspectState=function(){var procedural=proceduralScene?proceduralScene.inspect():null;if(procedural)procedural.scrollCamera={mode:'absolute-bounded',scrollOffset:vectorGeometry?Math.min(vectorGeometry.travel,Math.max(0,scrollPixels)*vectorGeometry.scrollRate):0,scrollRate:vectorGeometry?vectorGeometry.scrollRate:0,enabled:!!selectedChoice.scroll};return{renderer:wrapper.dataset.sceneRenderer,nativeFrames:nativeFrames,sceneFrames:0,composites:0,framePending:!!frame,state:wrapper.dataset.atmosphereState,width:width,height:height,scene:scene.slice(),camera:current.slice(),crystal:null,samplingEnabled:false,backgroundCompositePixels:0,compositeColorBytes:0,compositor:{enabled:false,hdr:false},procedural:procedural,landscape:{id:selectedChoice.id,appliedId:appliedEntry.id,state:landscapeStatus,ready:!!landscapeImage,width:landscapeImage?landscapeImage.naturalWidth:0,height:landscapeImage?landscapeImage.naturalHeight:0,resolution:landscapeResolution,nativeLayer:!!landscapeImage,travel:landscapeGeometry?landscapeGeometry.travel:0,scrollOffset:landscapeGeometry?Math.min(landscapeGeometry.travel,Math.max(0,scrollPixels)*.055):0,scrollRate:.055,progress:current[2],scrollRange:scrollRange,alpha:1,geometryAlpha:0,decodedImageBytes:landscapeImage?landscapeImage.naturalWidth*landscapeImage.naturalHeight*4:0}};};
+    suspend=function(){parked=true;activeWindow=false;pressed=false;freeze();};
+    resume=function(){parked=false;activeWindow=true;pressed=false;scrollPixels=scrollPixelTarget=Math.max(0,window.scrollY||0);dirtySize=dirty=true;gate();};
     dispose=function(){
       if(closed)return;closed=true;stop();abort.abort();stateObserver.disconnect();dialogObserver.disconnect();
       landscapeSerial++;if(unsubscribeBackground)unsubscribeBackground();if(proceduralScene)proceduralScene.destroy();proceduralScene=null;landscapeWindow.replaceChildren();landscapeImage=null;landscapeGeometry=null;vectorGeometry=null;vectorScene=null;
       if(resizeObserver)resizeObserver.disconnect();if(releaseTimer)clearTimeout(releaseTimer);
-      wrapper.remove();if(!hadClass)body.classList.remove('has-atmosphere');inspectState=null;
+      wrapper.remove();if(!hadClass)body.classList.remove('has-atmosphere');inspectState=null;suspend=resume=null;
     };
   }
-  window.addEventListener('pagehide',function(){if(dispose)dispose();},{signal:lifetime.signal});window.addEventListener('pageshow',function(event){if(event.persisted)mount();},{signal:lifetime.signal});
+  window.addEventListener('pagehide',function(event){if(event.persisted){if(suspend)suspend();}else if(dispose)dispose();},{signal:lifetime.signal});window.addEventListener('pageshow',function(event){if(event.persisted){if(resume)resume();else mount();}},{signal:lifetime.signal});
   window[key]={inspect:function(){return inspectState?inspectState():{mounted:false};},destroy:function(){if(dispose)dispose();lifetime.abort();delete window[key];}};mount();
 })();
