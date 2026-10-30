@@ -1,0 +1,43 @@
+/* A calm reading face: rounded optical depth, rather than four long drafted
+   walls. Keep the content/photograph 3D planes outside this material shell. */
+.community-room .crystal-reading [data-depth-kind=reader][data-material=glass] {
+  --material-thickness:8px;
+  --material-draft:0px;
+}
+.community-room .crystal-reading [data-depth-kind=reader][data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > :is(.material-side,.material-bottom) { display:none; }
+.community-room .crystal-reading [data-depth-kind=reader][data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back {
+  inset:1px 0 0;transform:translate3d(0,3px,-8px);border:0;
+  background:color-mix(in srgb,var(--appearance-accent,var(--accent)) 3%,transparent);
+  box-shadow:0 2px 2px -1px var(--material-contact),5px 14px 24px -16px var(--material-shadow),0 28px 42px -28px var(--material-shadow);
+}
+.community-room .crystal-reading [data-depth-kind=reader][data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  box-shadow:inset .7px .7px 0 #e6fff51f,inset -.7px -.7px 0 #05121c3b;
+}
+.community-room .crystal-reading [data-depth-kind=reader][data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim {
+  padding:.7px;transform:translateZ(.3px);
+  background:linear-gradient(135deg,#dffcf32b,transparent 38% 78%,#72949112);
+}
+
+/* Bounded ambient light replaces the full-height folio/spine. Feather the
+   entire field so no hard plane crosses the discussion heading. */
+.community-room .crystal-reading .crystal-reading-object {
+  inset:100px -5% auto;height:clamp(360px,72vh,820px);perspective:none;
+  border:0;border-radius:0;box-shadow:none;transform:none;
+  -webkit-mask-image:radial-gradient(ellipse closest-side,#000 20%,transparent 100%);
+  mask-image:radial-gradient(ellipse closest-side,#000 20%,transparent 100%);
+  background:radial-gradient(ellipse at 15% 35%,color-mix(in srgb,var(--accent) 5%,transparent),transparent 66%),radial-gradient(ellipse at 80% 65%,color-mix(in srgb,var(--room-warm) 3%,transparent),transparent 68%);
+}
+.community-room .crystal-reading-object > :is(.crystal-folio-wing,.crystal-folio-spine,.crystal-reading-plinth) { display:none; }
+.community-room .crystal-reading .reader-navigation { border-bottom:0; }
+.community-room .crystal-reading [data-depth-kind=reader] .post-meta::after { content:none; }
+
+/* Transparent illustrations must not acquire the rectangular bounds of their
+   empty canvas. A small static shadow belongs to the actual alpha silhouette. */
+.community-room .crystal-reading .post-body .depth-image-host > .depth-scroll > .depth-arrival > .depth-surface { box-shadow:none; }
+.community-room .crystal-reading .post-body .depth-image-host > .depth-scroll > .depth-arrival > .depth-surface::before,
+.community-room .crystal-reading .post-body .depth-image-host > .depth-scroll > .depth-arrival > .depth-surface::after { content:none; }
+.community-room .crystal-reading .post-body .depth-image-host img { filter:drop-shadow(3px 7px 5px #010c1666); }
+[data-theme=light] .community-room .crystal-reading .post-body .depth-image-host img { filter:drop-shadow(3px 7px 5px #193e4533); }
+[data-theme=light] .community-room .crystal-reading [data-depth-kind=reader][data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { box-shadow:inset .7px .7px 0 #fff9,inset -.7px -.7px 0 #426c7121; }
+@media(max-width:600px) { .community-room .crystal-reading .crystal-reading-object { inset-inline:-3%;height:500px; } }
+@media(forced-colors:active) { .community-room .crystal-reading .post-body .depth-image-host img { filter:none!important; } }
