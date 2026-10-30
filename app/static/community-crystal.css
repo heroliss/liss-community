@@ -151,3 +151,18 @@
 :root[data-theme=dark] body.community-room article.post[data-material=glass] .post-title>a:hover { color:#f1f6f5;text-decoration:underline;text-decoration-color:var(--accent);text-underline-offset:6px; }
 :root[data-theme=dark] body.community-room [data-material=glass] :is(.studio-thought-open,.comment-meta,.comment-author,.comment-date) { color:#edf4f3;text-shadow:0 1px 2px #041019cc,1px 3px 5px #04101980; }
 :root[data-theme=dark] body.community-room [data-material=glass] .reading-prose blockquote { color:var(--text);text-shadow:0 1px 2px #041019cc,1px 3px 5px #04101980; }
+/* Daylight has its own absorption and receiving light. Dark edge/ink shadows
+   are not inverted or reused on the pale panes. Keep the face gently milky
+   so a saturated background cannot erase dark text. */
+:root[data-theme=light] body.community-room [data-theme-color]:not([data-theme-color=''])[data-material=glass]>.depth-scroll>.depth-arrival>.depth-surface>.material-shell>.material-base {
+  background:radial-gradient(ellipse at 16% 3%,color-mix(in srgb,var(--appearance-accent,var(--accent)) 14%,transparent),transparent 68%),linear-gradient(140deg,#ffffff85,#f3faf875 62%,#e5f3f078);
+}
+:root[data-theme=light] body.community-room :is(.post-title,.post-body>h1,.studio-thought strong,.page-heading h1,.studio-introduction h1,.studio-console-intro h2,.portal-intro h1,.portal-console-heading h2,.profile-identity h1,.portal-live-name) { text-shadow:0 1px 0 #fff8,0 3px 6px #466d750d; }
+:root[data-theme=light] body.community-room :is(.post-byline,.post-excerpt,.post-body,.comment-meta,.comment-body,.studio-thought-speaker,.studio-thought-open,.post-footer) { text-shadow:none; }
+:root[data-theme=light] body.community-room .post-cover { box-shadow:5px 12px 18px -12px #426b7a47,0 2px 0 #e8f7f280; }
+:root[data-theme=light] body.community-room [data-depth-kind=image] .depth-image-plane { box-shadow:7px 15px 24px -14px #426b7a57,0 2px 0 #effaf48c; }
+:root[data-theme=light] body.community-room :is(.author-avatar,.studio-thought-speaker .avatar) { box-shadow:0 2px 3px #426b7a24,2px 6px 9px -6px #426b7a52; }
+:root[data-theme=light] body.community-room :is(.portal-live-name,.portal-monogram) { color:var(--text); }
+:root[data-theme=light] body.community-room :is(.portal-plate-brand,.portal-plate-caption) { color:var(--muted); }
+:root[data-theme=light] body.community-room .portal-monogram { text-shadow:0 1px 0 #fff8,1px 2px 0 #719a8d33; }
+:root[data-theme=light] body.community-room .portal-monogram>span { color:var(--accent); }

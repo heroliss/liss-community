@@ -11,6 +11,8 @@
   --material-shadow: #01090cb3;
   --material-contact: #01070780;
   --material-light: #d6ede2;
+  --material-side-dark: #020b10;
+  --material-side-mid: #07151a;
 }
 .community-room [data-material][data-theme-color]:not([data-theme-color='']) {
   --material-edge-tint: color-mix(in srgb,var(--material-edge) 15%,var(--appearance-accent,var(--material-edge)));
@@ -41,26 +43,47 @@
   background: var(--material-back);
   transform: translateZ(calc(var(--material-thickness) * -1));
   box-shadow: 16px 29px 45px -24px var(--material-shadow),4px 9px 16px -8px var(--material-contact);
+  /* Keep native outline coverage. Real layer isolation identifies the steep
+     side walls, not this rear plate, as the principal stepped contour. */
+  outline:1px solid transparent;outline-offset:-.5px;
 }
 .community-room .material-base {
   background: var(--material-base);
   box-shadow: inset 0 1px 0 #b4d2d21f,inset 0 -1px 0 #02090b78;
+  /* A transparent coverage fringe lets Chromium smooth the transformed face
+     contour. It does not rasterize/filter any ancestor or the readable text. */
+  outline: 1px solid transparent; outline-offset: -.5px;
 }
 .community-room .material-side,.community-room .material-bottom { inset: 0; border-radius: inherit; transform-style: preserve-3d; }
 .community-room .material-side::before,
 .community-room .material-side::after { content: ''; top: 12px; bottom: 12px; width: var(--material-thickness); background: var(--material-edge); }
 .community-room .material-side::before {
   left: calc(var(--material-thickness) * -1); border-radius: 6px 0 0 6px; transform-origin: right center; transform: rotateY(-90deg);
-  background: radial-gradient(ellipse at 50% var(--depth-light-y,35%),color-mix(in srgb,var(--material-specular,var(--material-light)) 27%,transparent),transparent 67%),linear-gradient(90deg,color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 35%,#020b10),color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 68%,#07151a));
+  background: radial-gradient(ellipse at 50% var(--depth-light-y,35%),color-mix(in srgb,var(--material-specular,var(--material-light)) 27%,transparent),transparent 67%),linear-gradient(90deg,color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 35%,var(--material-side-dark)),color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 68%,var(--material-side-mid)));
 }
 .community-room .material-side::after {
   right: calc(var(--material-thickness) * -1); border-radius: 0 6px 6px 0; transform-origin: left center; transform: rotateY(90deg);
-  background: radial-gradient(ellipse at 50% var(--depth-light-y,35%),color-mix(in srgb,var(--material-specular,var(--material-light)) 38%,transparent),transparent 62%),linear-gradient(90deg,var(--material-edge-tint,var(--material-edge)),color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 52%,#020b10));
+  background: radial-gradient(ellipse at 50% var(--depth-light-y,35%),color-mix(in srgb,var(--material-specular,var(--material-light)) 38%,transparent),transparent 62%),linear-gradient(90deg,var(--material-edge-tint,var(--material-edge)),color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 52%,var(--material-side-dark)));
 }
 .community-room .material-bottom::before,
 .community-room .material-bottom::after { content: ''; left: 6px; right: 6px; height: var(--material-thickness); background: var(--material-edge); }
 .community-room .material-bottom::before { top: calc(var(--material-thickness) * -1); transform-origin: center bottom; transform: rotateX(90deg); background: color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 78%,var(--material-light)); }
-.community-room .material-bottom::after { bottom: calc(var(--material-thickness) * -1); transform-origin: center top; transform: rotateX(-90deg); background: linear-gradient(0deg,color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 64%,#020b10),var(--material-edge-tint,var(--material-edge))); }
+.community-room .material-bottom::after { bottom: calc(var(--material-thickness) * -1); transform-origin: center top; transform: rotateX(-90deg); background: linear-gradient(0deg,color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 64%,var(--material-side-dark)),var(--material-edge-tint,var(--material-edge))); }
+/* Root's real layer-isolation captures identify the steep side planes as the
+   stepped silhouette. Fade their local depth ends before perspective: 23% of
+   a 24px wall projects to about 1 CSS px at 80deg, while its middle 54% stays
+   solid. A .24px local blur projected to just .04px and was ineffective.
+   Masks affect only empty side leaves, never text or a 3D ancestor. */
+.community-room .material-side::before,.community-room .material-side::after {
+  filter:none;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 23%,#000 77%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 23%,#000 77%,transparent);
+}
+.community-room .material-bottom::before,.community-room .material-bottom::after {
+  filter:none;
+  -webkit-mask-image:linear-gradient(180deg,transparent,#000 23%,#000 77%,transparent);
+  mask-image:linear-gradient(180deg,transparent,#000 23%,#000 77%,transparent);
+}
 .community-room .material-rim {
   padding: 1px; transform: translateZ(.6px);
   background: linear-gradient(125deg,transparent 3%,color-mix(in srgb,var(--material-specular,#c6ece9) 42%,transparent) 12%,#79b9c425 28%,transparent 44% 68%,#8ec6ca45 82%,transparent 98%);
@@ -83,6 +106,9 @@
   --material-side-span: calc(var(--material-thickness) * 1.0154);
   --material-draft: calc(var(--material-thickness) * .1763);
   --material-edge: #60919b; --material-back: #102a3208; --material-base: #152b369c;
+  --glass-edge-sink:#041019d9;--glass-edge-core:#10252f;--glass-edge-face:#15323fca;--glass-edge-return:#041019b3;
+  --glass-side-shadow:#04111b9e;--glass-top-shadow:#04111b80;--glass-edge-light:#d7faf47a;
+  --glass-bottom-light:#b5e3e159;--glass-bottom-core:#193844c4;--glass-bottom-deep:#06131cde;--glass-bottom-return:#4b778369;
 }
 .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
   background: url('textures/material-v22/glass-albedo.png'),linear-gradient(135deg,#4a778064,#11273094 58%,#41617461);
@@ -105,15 +131,15 @@
 .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before,
 .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after {
   width: var(--material-side-span); opacity: .92;
-  background: radial-gradient(ellipse at 50% var(--depth-light-y,35%),color-mix(in srgb,var(--material-specular,var(--material-light)) 48%,transparent),transparent 64%),linear-gradient(90deg,#041019d9,color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 70%,#10252f) 34%,#15323fca 70%,#041019b3);
+  background: radial-gradient(ellipse at 50% var(--depth-light-y,35%),color-mix(in srgb,var(--material-specular,var(--material-light)) 48%,transparent),transparent 64%),linear-gradient(90deg,var(--glass-edge-sink),color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 70%,var(--glass-edge-core)) 34%,var(--glass-edge-face) 70%,var(--glass-edge-return));
 }
 .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before {
   left: calc(var(--material-side-span) * -1); transform: rotateY(-80deg);
-  box-shadow: inset -1px 0 0 #d7faf47a,inset 2px 0 1px #04111b9e;
+  box-shadow: inset -1px 0 0 var(--glass-edge-light),inset 2px 0 1px var(--glass-side-shadow);
 }
 .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after {
   right: calc(var(--material-side-span) * -1); transform: rotateY(80deg);
-  box-shadow: inset 1px 0 0 #d7faf470,inset -2px 0 1px #04111b9e;
+  box-shadow: inset 1px 0 0 var(--glass-edge-light),inset -2px 0 1px var(--glass-side-shadow);
 }
 .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back {
   inset: calc(var(--material-draft) * -1);
@@ -123,15 +149,15 @@
 .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before,
 .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after {
   height: var(--material-side-span); opacity: .9;
-  background: linear-gradient(180deg,#b5e3e159,#193844c4 23%,#06131cde 72%,#4b778369);
+  background: linear-gradient(180deg,var(--glass-bottom-light),var(--glass-bottom-core) 23%,var(--glass-bottom-deep) 72%,var(--glass-bottom-return));
 }
 .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before {
   top: calc(var(--material-side-span) * -1); transform: rotateX(80deg);
-  box-shadow: inset 0 -1px 0 #d7faf47a,inset 0 2px 1px #04111b80;
+  box-shadow: inset 0 -1px 0 var(--glass-edge-light),inset 0 2px 1px var(--glass-top-shadow);
 }
 .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after {
   bottom: calc(var(--material-side-span) * -1); transform: rotateX(-80deg);
-  box-shadow: inset 0 1px 0 #d7faf459,inset 0 -2px 1px #04111b9e;
+  box-shadow: inset 0 1px 0 var(--glass-edge-light),inset 0 -2px 1px var(--glass-side-shadow);
 }
 .community-room [data-material=glass] .comment-date { color: var(--muted); }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -205,12 +231,17 @@
 .community-room .room-fold.has-spatial-model .spatial-leaf--fold { background: linear-gradient(128deg,#3a5146,#263c33); }
 .community-room .room-fold.has-spatial-model .spatial-paper-score { opacity: .78; border-color: #adc7ba40; }
 
-[data-theme=light] .community-room [data-material] { --material-shadow: #19372c3d; --material-contact: #19372c29; --material-light: #fcfff3; }
-[data-theme=light] .community-room [data-material=glass] { --material-edge: #95babe; --material-back: #d5eae905; }
-[data-theme=light] .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { background: linear-gradient(135deg,#ffffff26,#e5f4ee30 70%,#dfeef41f); -webkit-backdrop-filter: blur(9px) saturate(1.08); backdrop-filter: blur(9px) saturate(1.08); box-shadow: inset 0 1px 0 #ffffff70,inset -1px -1px 0 #397c8633; }
+[data-theme=light] .community-room [data-material] { --material-shadow: #426b7a2e; --material-contact: #426b7a1f; --material-light: #fcfff9; --material-side-dark:#b4cbd0;--material-side-mid:#e0ebeb; }
+[data-theme=light] .community-room [data-material=glass] {
+  --material-edge: #abcbd0; --material-back: #d5eae905;
+  --glass-edge-sink:#789fa34a;--glass-edge-core:#c1dadd;--glass-edge-face:#e0f0f0b3;--glass-edge-return:#7ca4aa59;
+  --glass-side-shadow:#426e7c33;--glass-top-shadow:#426e7c26;--glass-edge-light:#ffffffd1;
+  --glass-bottom-light:#ffffffc2;--glass-bottom-core:#bfd9df9c;--glass-bottom-deep:#86b0b36b;--glass-bottom-return:#e9f8f399;
+}
+[data-theme=light] .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { background: linear-gradient(135deg,#ffffff75,#e5f4ee66 70%,#e7f4f65c); -webkit-backdrop-filter: blur(9px) saturate(1.08); backdrop-filter: blur(9px) saturate(1.08); box-shadow: inset 0 1px 0 #ffffffa3,inset -1px -1px 0 #719fa31f; }
 [data-theme=light] .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::after { background: radial-gradient(ellipse at 43% 48%,#f5faf126 0%,#f5faf113 43%,transparent 79%); }
 [data-theme=light] .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim { background: radial-gradient(ellipse at var(--depth-light-x,32%) 0%,#ffffffc2,transparent 36%),linear-gradient(90deg,transparent 57%,#91c2c552 70%,#e5cd9873 75%,transparent 84%); background-size:100% 100%,100% 3px;background-position:0 0,0 100%;background-repeat:no-repeat; }
-[data-theme=light] .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back { background:linear-gradient(135deg,#f4ffff14,#3764760a 65%,#d4edf014);box-shadow:0 2px 3px #17415138,2px 6px 8px -3px #17415133,12px 24px 32px -19px #235c7047; }
+[data-theme=light] .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back { background:linear-gradient(135deg,#f4ffff24,#c8e1e614 65%,#e4f5ef24);box-shadow:0 1px 1px #5480821f,2px 5px 8px -4px #426b7a29,10px 24px 32px -20px #2f6f7033; }
 [data-theme=light] .community-room [data-material=ceramic] { --material-edge: #9daf97; --material-back: #d0dec8; }
 [data-theme=light] .community-room [data-material=ceramic] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { background: url('textures/material-v22/ceramic-albedo.png'),radial-gradient(ellipse at 18% -18%,#fffff9c2,transparent 65%),linear-gradient(145deg,#d8e8ce,#edf4e3 64%,#c9ddc0); box-shadow: inset 3px 5px 12px #fff9,inset -3px -5px 11px #57745022; }
 [data-theme=light] .community-room [data-material=paper] { --material-edge: #aeb89a; --material-back: #d1d9bd; }
@@ -219,6 +250,8 @@
 [data-theme=light] .community-room [data-material=metal] { --material-edge: #829e9f; --material-back: #becfd0; }
 [data-theme=light] .community-room [data-material=metal] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { background: url('textures/material-v22/metal-albedo.png'),linear-gradient(112deg,#c0cdd5,#e8eef1 15%,#b8c8d5 32%,#d7e0e6 64%,#acbdca); box-shadow: inset 0 2px 0 #fff9,inset 0 -2px 0 #4b69633b; }
 [data-theme=light] .community-room [data-material=metal] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim { background: linear-gradient(112deg,#fff9,#6d91904d 23%,transparent 46% 68%,#769d9859 91%); }
+[data-theme=light] .community-room [data-material=ceramic] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-sheen { background:radial-gradient(ellipse at 15% 4%,#fff9,transparent 58%); }
+[data-theme=light] .community-room [data-material=metal] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-sheen { background:linear-gradient(112deg,transparent 8%,#fff1 25%,#fff7 34%,#7c9ca01c 45%,transparent 68%); }
 [data-theme=light] .community-room [data-material][data-depth-kind=reply] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-sheen { opacity: .35; }
 
 /* Fixed editor controls must escape all depth ancestors, including any future

@@ -18,6 +18,15 @@
         button.hidden = false;
         button.disabled = reduce.matches;
         button.setAttribute('aria-pressed', String(blocked));
+        var action = reduce.matches ? '已遵循系统减少动态设置' : userPaused ? '继续动效' : '暂停动效';
+        button.setAttribute('aria-label', action);
+        button.title = action;
+        var icon = button.querySelector('svg');
+        if (icon) {
+          var iconPath = icon.querySelector('path');
+          if (iconPath) iconPath.setAttribute('d', blocked ? 'm9 5 11 7-11 7Z' : 'M8 5v14M16 5v14');
+          icon.dataset.motionIcon = blocked ? 'play' : 'pause';
+        }
         var label = button.querySelector('[data-room-motion-label]');
         if (label) label.textContent = reduce.matches ? '已减少动态' : userPaused ? '继续动效' : '暂停动效';
       });

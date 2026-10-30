@@ -13,12 +13,35 @@
     if (!hex || !preview || !picker) return;
     var initialColor = theme.normalize(hex.value), checked = root.querySelector('[name=appearance_material]:checked');
     var initialMaterial = checked ? checked.value : 'auto';
+    // Choose a real, editable starting look only for an untouched creation form.
+    // POST validation, existing posts and browser-restored drafts keep their values.
+    if (root.dataset.appearanceNew === 'true' && !root.dataset.appearanceSeeded && !hex.value.trim() && initialMaterial === 'auto' && !(body && body.value.trim())) {
+      var palette = ['#80bfa1','#76b8cf','#a59bd8','#d6a37e','#cf91a8','#bdc8b8','#92b8bc','#b4b883','#ba9eb4','#9baed0','#c5ad86','#8fb4a7'];
+      var materials = ['glass','glass','glass','ceramic','paper','metal'];
+      function sample(length) {
+        if (window.crypto && window.crypto.getRandomValues) {
+          var values = new Uint32Array(1); window.crypto.getRandomValues(values);
+          return values[0] % length;
+        }
+        return Math.floor(Math.random() * length);
+      }
+      initialColor = palette[sample(palette.length)];
+      initialMaterial = materials[sample(materials.length)];
+      var selected = root.querySelector('[name=appearance_material][value='+initialMaterial+']');
+      if (selected) {
+        hex.value = hex.defaultValue = initialColor;
+        root.querySelectorAll('[name=appearance_material]').forEach(function (radio) { radio.checked = radio.defaultChecked = radio === selected; });
+        root.dataset.appearanceSeeded = 'true';
+      }
+    }
     if (initialColor === null) initialColor = theme.normalize(document.body.dataset.postThemeColor || '') || '';
     function visible() { return root.open && (!composer || composer.open); }
     function appearance(activate) {
       var color = theme.normalize(hex.value), radio = root.querySelector('[name=appearance_material]:checked');
       var material = radio ? radio.value : 'auto';
-      preview.dataset.material = material === 'auto' ? 'glass' : material;
+      var automaticMaterial = root.dataset.appearanceAutoMaterial;
+      if (['glass','ceramic','paper','metal'].indexOf(automaticMaterial) === -1) automaticMaterial = 'glass';
+      preview.dataset.material = material === 'auto' ? automaticMaterial : material;
       if (color !== null) {
         var displayColor = color || theme.normalize(root.dataset.appearanceAutoColor || '') || '';
         preview.dataset.themeColor = displayColor;
@@ -28,7 +51,7 @@
       } else theme.tint(preview,preview.dataset.themeColor || '','draft');
       swatches.forEach(function (s) { s.setAttribute('aria-pressed',String(s.dataset.appearanceSwatch === color)); });
       status.textContent = (color === null ? '色值待校验' : color ? '整页实时配色' : '自动配色')+' · '+(radio ? radio.parentElement.lastElementChild.textContent : '自动安排');
-      root.querySelector('.appearance-sample-note').hidden = material !== 'auto';
+      root.querySelector('.appearance-sample-note').hidden = false;
     }
     swatches.forEach(function (swatch) {
       swatch.addEventListener('click',function () { hex.value=swatch.dataset.appearanceSwatch; appearance(true); },{signal:signal});

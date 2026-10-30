@@ -4,8 +4,7 @@
 <div class="posts{% if is_detail %} posts-detail{% endif %}">
 {% for post in posts %}
 {% set look = display_post_appearance(post) if display_post_appearance is defined else (post_appearance(post) if post_appearance is defined else {'material':'auto','color':'','hue':0,'saturation':0}) %}
-{% set default_material = 'glass' %}
-<article class="post{% if is_detail %} post-detail{% endif %}" data-depth-host data-depth-kind="{{ 'reader' if is_detail else 'edition' }}" data-depth-id="{{ post.id }}" data-theme-color="{{ look.color }}" data-pose="{{ post.id % 5 }}" data-material="{{ look.material if look.material != 'auto' else default_material }}"{% if look.color %} style="--appearance-hue:{{ look.hue }};--appearance-saturation:{{ look.saturation }}%;--appearance-accent:hsl({{ look.hue }} {{ look.saturation }}% 70%)"{% endif %}>
+<article class="post{% if is_detail %} post-detail{% endif %}" data-depth-host data-depth-kind="{{ 'reader' if is_detail else 'edition' }}" data-depth-id="{{ post.id }}" data-theme-color="{{ look.color }}" data-pose="{{ post.id % 5 }}" data-material="{{ ui.card_material(post.id,look.material) }}"{% if look.color %} style="--appearance-hue:{{ look.hue }};--appearance-saturation:{{ look.saturation }}%;--appearance-accent:hsl({{ look.hue }} {{ look.saturation }}% 70%)"{% endif %}>
 {% call depth.layers(material=true) %}
   {% set project_slug = canonical_project_slug(post.project_entry.project_slug) if post.project_entry else none %}
   {% if project_slug in project_catalog %}<a class="project-topic-tag" href="{{ url_for('community.project_talk', slug=project_slug) }}">{{ ui.icon('comment') }}{{ project_catalog[project_slug][0] }} · 项目交流</a>{% if is_detail %}<a class="project-topic-return quiet-link" href="{{ url_for('community.portfolio', path='projects/' ~ project_slug ~ '/') }}">查看作品 {{ ui.icon('arrow') }}</a>{% endif %}{% endif %}

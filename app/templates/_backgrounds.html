@@ -3,13 +3,18 @@
 <span class="background-announcement" data-background-announcement role="status" aria-live="polite"></span>
 <dialog class="background-dialog" id="community-background-dialog" data-background-dialog aria-labelledby="background-title">
   <div class="background-dialog-heading"><div><h2 id="background-title">窗外的风景</h2><p>选一种适合这次阅读的背景。</p></div><button type="button" class="icon-button" data-background-close aria-label="关闭背景选择">×</button></div>
-  <fieldset class="background-choices"><legend>背景画面</legend>
-    {% for id,title,description in [('mist','柔光留白','不下载图片'),('line','流线素描','不下载图片'),('coast','欧泊海岸','晶透海岸 · 按需载入'),('mineral-scroll','晶石长卷','暖光与水面 · 纵向画卷'),('ink-scroll','雾谷月色','月夜山水 · 纵向画卷'),('earthrise','地月之间','NASA / Apollo 8 · 实景照片')] %}
-    <label class="background-choice"><input type="radio" name="liss_background_v24" value="{{ id }}"{% if id == 'coast' %} checked{% endif %}><span class="background-thumb background-thumb-{{ id }}" aria-hidden="true"></span><span class="background-choice-copy"><strong>{{ title }}</strong><small>{{ description }}</small></span></label>
+  <div class="background-gallery"><fieldset class="background-choices"><legend>在浏览器中绘制 · 无需图片下载</legend>
+    {% for id,title,description in [('mist','柔光留白','稀疏 · 安静柔光'),('line','流线素描','低密度 · 细线留白'),('contour','山形等高','中密度 · 青铜地形'),('prism','棱镜折面','中密度 · 冷暖分面'),('orbital','轨道手记','中密度 · 几何弧线'),('paper','纸间山丘','低密度 · 暖灰叠景'),('ribbons','流彩织带','丰富 · 柔彩交织'),('constellation','星图余白','低密度 · 稀疏星点'),('spectrum','柔彩色域','低密度 · 多彩留白'),('dunes','层峦暖沙','中密度 · 远近山脊')] %}
+    <label class="background-choice"><input type="radio" name="liss_background_v24" value="{{ id }}"><span class="background-thumb background-thumb-{{ id }}" aria-hidden="true"></span><span class="background-choice-copy"><strong>{{ title }}</strong><small>{{ description }}</small></span></label>
     {% endfor %}
   </fieldset>
+  <fieldset class="background-choices background-choices-images"><legend>窗外实景与画卷 · 按需载入</legend>
+    {% for id,title,description in [('coast','欧泊海岸','晶透海岸 · 按需载入'),('mineral-scroll','晶石长卷','暖光与水面 · 纵向画卷'),('ink-scroll','雾谷月色','月夜山水 · 纵向画卷'),('earthrise','地月之间','NASA / Apollo 8 · 实景照片')] %}
+    <label class="background-choice"><input type="radio" name="liss_background_v24" value="{{ id }}"{% if id == 'coast' %} checked{% endif %}><span class="background-thumb background-thumb-{{ id }}" aria-hidden="true"></span><span class="background-choice-copy"><strong>{{ title }}</strong><small>{{ description }}</small></span></label>
+    {% endfor %}
+  </fieldset></div>
   <div class="background-options"><label data-background-quality-row>图片细节<select data-background-quality aria-label="图片细节"><option value="auto">按屏幕省流</option><option value="high">高清优先</option></select></label><label class="background-motion"><input type="checkbox" data-background-scroll checked><span>画卷跟随滚动</span></label></div>
-  <p class="background-motion-note" data-background-motion-note>长卷随页面缓慢展开，关闭后画卷保持原位。</p><p class="background-note" data-background-note>仅载入当前选中的图片。</p><a class="background-credit" data-background-credit hidden target="_blank" rel="noopener noreferrer"></a>
+  <p class="background-motion-note" data-background-motion-note>长卷仅以页面约 5.5% 的速度移动，关闭后保持原位。</p><p class="background-note" data-background-note>仅载入当前选中的图片。</p><a class="background-credit" data-background-credit hidden target="_blank" rel="noopener noreferrer"></a>
   <div class="background-dialog-actions"><button type="button" class="quiet-link" data-background-close>暂时保持</button><button type="button" class="button" data-background-apply>使用这个背景</button></div>
 </dialog>
 {% endmacro %}

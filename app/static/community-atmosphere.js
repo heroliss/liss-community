@@ -20,7 +20,7 @@
     var hadClass=body.classList.contains('has-atmosphere');body.classList.add('has-atmosphere');
     var frame=0,lastTime=0,lastSceneDraw=0,closed=false,dirty=true,dirtySize=true;
     var width=1,height=1,padding=100,mobile=false,light=false;
-    var current=[0,0,0],target=[0,0,0],pointer=[0,0];
+    var current=[0,0,0],target=[0,0,0],pointer=[0,0],scrollPixels=Math.max(0,window.scrollY||0),scrollPixelTarget=scrollPixels;
     // The spatial controller is the single owner of card poses. Its dominant
     // pose only moves this small counter-camera and the room's supporting light.
     var scene=[0,0,50,40,0],sceneTarget=scene.slice();
@@ -29,8 +29,10 @@
     var selectedChoice=backgrounds?backgrounds.read():{id:'mist',kind:'vector',quality:'auto',scroll:true};
     var appliedEntry=backgrounds?backgrounds.entry(selectedChoice.id):{id:'mist',kind:'vector',style:'mist'};
     var landscapeStatus='unrequested',landscapeSerial=0,landscapeResolution=null,pendingResolution=null,unsubscribeBackground=null;
-    var landscapeGeometry=null,vectorScene=null,scrollRange=1;
+    var landscapeGeometry=null,vectorScene=null,proceduralScene=null,scrollRange=1;
     function nativeVector(entry){
+      if(proceduralScene){proceduralScene.destroy();proceduralScene=null;}
+      if(window.LissProceduralScenes){proceduralScene=window.LissProceduralScenes.create(entry);vectorScene=proceduralScene.element;landscapeWindow.replaceChildren(vectorScene);return;}
       var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 1600 1000');svg.setAttribute('preserveAspectRatio','xMidYMid slice');svg.setAttribute('aria-hidden','true');svg.setAttribute('class','community-vector-scene');svg.dataset.vectorStyle=entry.style||'mist';
       svg.innerHTML='<defs><radialGradient id="room-v24-glow"><stop stop-color="var(--accent)" stop-opacity=".17"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></radialGradient><linearGradient id="room-v24-line"><stop stop-color="var(--accent)" stop-opacity="0"/><stop offset=".38" stop-color="var(--accent)" stop-opacity=".24"/><stop offset=".8" stop-color="var(--accent)" stop-opacity=".12"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs><ellipse cx="1320" cy="170" rx="650" ry="580" fill="url(#room-v24-glow)"/><ellipse cx="80" cy="800" rx="560" ry="600" fill="url(#room-v24-glow)"/><g class="community-vector-lines" fill="none" stroke="url(#room-v24-line)"><path d="M-120 750C240 1030 350 260 750 140S1370 430 1720-150" stroke-width="2.5"/><path d="M-100 812C180 1100 440 340 780 214S1370 500 1750-50" stroke-width="1"/></g>';
       landscapeWindow.replaceChildren(svg);vectorScene=svg;
@@ -45,8 +47,8 @@
     function held(){return pressed||editing||selection||modal||!activeWindow;}
     function blocked(){return closed||document.hidden||forced.matches||reduce.matches||paused()||held();}
     function schedule(){if(!closed&&!document.hidden&&!frame)frame=requestAnimationFrame(paint);}
-    function freeze(){stop();target=current.slice();sceneTarget=scene.slice();}
-    function scrollPosition(){return selectedChoice.scroll?clamp(Math.max(0,window.scrollY||0)/Math.max(1,scrollRange),0,1):0;}
+    function freeze(){stop();target=current.slice();sceneTarget=scene.slice();scrollPixelTarget=scrollPixels;}
+    function scrollPosition(){return selectedChoice.scroll?clamp(Math.max(0,window.scrollY||0)/Math.max(1,scrollRange),0,1):current[2];}
     function ensureScene(imageMode){
       if(!imageMode&&crystal){crystal.canvas.remove();crystal.destroy();crystal=null;}
       if(imageMode&&!crystal&&window.LissCrystalScene){crystal=window.LissCrystalScene.create();if(crystal){crystal.canvas.className='community-room-geometry-canvas';wrapper.appendChild(crystal.canvas);}}
@@ -54,6 +56,7 @@
     }
     function applyBackground(choice,resolution){
       selectedChoice=choice;var entry=backgrounds?backgrounds.entry(choice.id):{id:'mist',kind:'vector',style:'mist'},serial=++landscapeSerial;
+      if(!choice.scroll)scrollPixelTarget=scrollPixels;
       if(entry.kind!=='image'||!backgrounds){
         if(backgrounds)backgrounds.load(choice);
         nativeVector(entry);landscapeImage=null;landscapeGeometry=null;landscapeResolution=pendingResolution=null;
@@ -65,7 +68,7 @@
         if(closed||serial!==landscapeSerial)return;
         pendingResolution=null;
         if(!image){landscapeImage=null;landscapeGeometry=null;landscapeResolution=null;landscapeStatus='unavailable';appliedEntry={id:'mist',kind:'vector',style:'mist'};nativeVector(appliedEntry);wrapper.dataset.sceneArt='vector';ensureScene(false);}
-        else{landscapeImage=image;vectorScene=null;landscapeResolution=resolved;landscapeStatus='ready';appliedEntry=entry;image.className='community-landscape-image';image.alt='';image.setAttribute('aria-hidden','true');landscapeWindow.replaceChildren(image);wrapper.dataset.sceneArt='image';ensureScene(true);}
+        else{if(proceduralScene){proceduralScene.destroy();proceduralScene=null;}landscapeImage=image;vectorScene=null;landscapeResolution=resolved;landscapeStatus='ready';appliedEntry=entry;image.className='community-landscape-image';image.alt='';image.setAttribute('aria-hidden','true');landscapeWindow.replaceChildren(image);wrapper.dataset.sceneArt='image';ensureScene(true);}
         sizeSignature='';dirtySize=dirty=true;schedule();
       });
     }
@@ -86,12 +89,13 @@
       if(document.hidden||forced.matches){freeze();return;}
       if(reduce.matches){current=[0,0,0];target=current.slice();scene=[0,0,50,40,0];sceneTarget=scene.slice();dirty=true;schedule();return;}
       if(paused()||held()){freeze();if(dirty||dirtySize)schedule();return;}
-      target[0]=fine.matches?pointer[0]:0;target[1]=fine.matches?pointer[1]:0;target[2]=scrollPosition();schedule();
+      target[0]=fine.matches?pointer[0]:0;target[1]=fine.matches?pointer[1]:0;target[2]=scrollPosition();if(selectedChoice.scroll)scrollPixelTarget=Math.max(0,window.scrollY||0);schedule();
     }
     function resize(){
       dirtySize=false;
       var bounds=wrapper.getBoundingClientRect();width=Math.max(1,bounds.width);height=Math.max(1,bounds.height);mobile=width<700;
       light=html.dataset.theme==='light';scrollRange=Math.max(1,document.documentElement.scrollHeight-height);if(!blocked())target[2]=scrollPosition();
+      if(proceduralScene)proceduralScene.resize(width,height,light);
       landscapeGeometry=null;
       if(landscapeImage){
         var CW=width+padding*2,CH=height+padding*2,IW=landscapeImage.naturalWidth,IH=landscapeImage.naturalHeight,scale=Math.max(CW/IW,CH/IH),fullW=IW*scale,fullH=IH*scale;
@@ -108,7 +112,10 @@
     }
     function drawNative(){
       var coarse=fine.matches?1:.45,dx=current[0]*5*coarse-scene[1]*.24,dy=current[1]*5*.65*coarse-current[2]*13+scene[0]*.24-scene[4]*2;
-      var progress=selectedChoice.scroll&&!reduce.matches?current[2]:.35,travel=landscapeGeometry?landscapeGeometry.travel*progress:0;
+      // A long picture no longer sweeps its entire height over one document.
+      // Fifty-five picture pixels per 1000 CSS scroll pixels is a slow, bounded
+      // counter-camera; changing article length does not change that speed.
+      var travel=landscapeGeometry?Math.min(landscapeGeometry.travel,Math.max(0,scrollPixels)*.055):0;
       if(landscapeImage&&landscapeGeometry)landscapeImage.style.transform='translate3d('+dx.toFixed(2)+'px,'+(dy-travel).toFixed(2)+'px,0)';
       else if(vectorScene)vectorScene.style.transform='translate3d('+dx.toFixed(2)+'px,'+dy.toFixed(2)+'px,0) scale(1.08)';
       nativeFrames++;dirty=false;
@@ -120,6 +127,7 @@
       if(!blocked()){
         var blend=1-Math.exp(-elapsed/170);current.forEach(function(value,index){var difference=target[index]-value;if(Math.abs(difference)>.002){current[index]+=difference*blend;unsettled=true;}else current[index]=target[index];});
         var sceneBlend=1-Math.exp(-elapsed/225);scene.forEach(function(value,index){var difference=sceneTarget[index]-value;if(Math.abs(difference)>.015){scene[index]+=difference*sceneBlend;unsettled=true;}else scene[index]=sceneTarget[index];});
+        var scrollDifference=scrollPixelTarget-scrollPixels;if(Math.abs(scrollDifference)>.08){scrollPixels+=scrollDifference*blend;unsettled=true;}else scrollPixels=scrollPixelTarget;
       }
       // Native picture transforms follow every input frame. The optional small
       // room remains capped at 30 Hz; no card pixels are copied at either rate.
@@ -136,7 +144,7 @@
     document.addEventListener('pointerdown',function(event){if(event.isPrimary&&event.button===0){pressed=true;freeze();}},{capture:true,passive:true,signal:signal});
     function release(){if(releaseTimer)clearTimeout(releaseTimer);releaseTimer=setTimeout(function(){releaseTimer=0;pressed=false;gate();},0);}
     window.addEventListener('pointerup',release,{passive:true,signal:signal});window.addEventListener('pointercancel',release,{passive:true,signal:signal});
-    document.addEventListener('scroll',function(){if(!blocked()){target[2]=scrollPosition();schedule();}},{passive:true,signal:signal});
+    document.addEventListener('scroll',function(){if(!blocked()){target[2]=scrollPosition();if(selectedChoice.scroll)scrollPixelTarget=Math.max(0,window.scrollY||0);schedule();}},{passive:true,signal:signal});
     document.addEventListener('focusin',gate,{signal:signal});document.addEventListener('focusout',function(){queueMicrotask(gate);},{signal:signal});
     document.addEventListener('selectionchange',gate,{signal:signal});document.addEventListener('visibilitychange',gate,{signal:signal});
     window.addEventListener('blur',function(){activeWindow=false;pressed=false;gate();},{signal:signal});window.addEventListener('focus',function(){activeWindow=true;gate();},{signal:signal});
@@ -144,7 +152,7 @@
     reduce.addEventListener('change',gate,{signal:signal});forced.addEventListener('change',gate,{signal:signal});
     fine.addEventListener('change',function(){pointer=[0,0];if(!fine.matches)current[0]=current[1]=0;dirty=true;gate();},{signal:signal});
     window.addEventListener('liss:motion-state',gate,{signal:signal});window.addEventListener('liss:theme-change',function(){sizeSignature='';dirtySize=true;dirty=true;schedule();},{signal:signal});
-    window.addEventListener('liss:background-resolution',upgradeResolution,{signal:signal});
+    window.addEventListener('liss:background-resolution',function(){upgradeResolution();if(proceduralScene)invalidate();},{signal:signal});
     window.addEventListener('liss:spatial-frame',function(event){
       var detail=event.detail;if(!detail||detail.active===false){sceneTarget=scene.slice();return;}if(blocked())return;
       function value(name,fallback,min,max){var number=Number(detail[name]);return Number.isFinite(number)?clamp(number,min,max):fallback;}
@@ -155,10 +163,10 @@
     if(window.ResizeObserver){resizeObserver=new ResizeObserver(invalidate);resizeObserver.observe(wrapper);resizeObserver.observe(body);}
     nativeVector({style:'mist'});wrapper.dataset.sceneArt='vector';if(backgrounds)unsubscribeBackground=backgrounds.subscribe(function(choice){applyBackground(choice);});applyBackground(selectedChoice);
     readLocks();if(!reduce.matches&&!paused())current[2]=target[2]=scrollPosition();gate();window.dispatchEvent(new Event('liss:spatial-request'));
-    inspectState=function(){return{renderer:wrapper.dataset.sceneRenderer,nativeFrames:nativeFrames,sceneFrames:sceneFrames,composites:0,framePending:!!frame,state:wrapper.dataset.atmosphereState,width:width,height:height,scene:scene.slice(),camera:current.slice(),crystal:crystal?crystal.inspect():null,samplingEnabled:false,backgroundCompositePixels:0,compositeColorBytes:0,compositor:{enabled:false,hdr:false},landscape:{id:selectedChoice.id,appliedId:appliedEntry.id,state:landscapeStatus,ready:!!landscapeImage,width:landscapeImage?landscapeImage.naturalWidth:0,height:landscapeImage?landscapeImage.naturalHeight:0,resolution:landscapeResolution,nativeLayer:!!landscapeImage,travel:landscapeGeometry?landscapeGeometry.travel:0,progress:current[2],scrollRange:scrollRange,alpha:light ? .60 : .91,geometryAlpha:crystal ? .30 : 0,decodedImageBytes:landscapeImage?landscapeImage.naturalWidth*landscapeImage.naturalHeight*4:0}};};
+    inspectState=function(){return{renderer:wrapper.dataset.sceneRenderer,nativeFrames:nativeFrames,sceneFrames:sceneFrames,composites:0,framePending:!!frame,state:wrapper.dataset.atmosphereState,width:width,height:height,scene:scene.slice(),camera:current.slice(),crystal:crystal?crystal.inspect():null,samplingEnabled:false,backgroundCompositePixels:0,compositeColorBytes:0,compositor:{enabled:false,hdr:false},procedural:proceduralScene?proceduralScene.inspect():null,landscape:{id:selectedChoice.id,appliedId:appliedEntry.id,state:landscapeStatus,ready:!!landscapeImage,width:landscapeImage?landscapeImage.naturalWidth:0,height:landscapeImage?landscapeImage.naturalHeight:0,resolution:landscapeResolution,nativeLayer:!!landscapeImage,travel:landscapeGeometry?landscapeGeometry.travel:0,scrollOffset:landscapeGeometry?Math.min(landscapeGeometry.travel,Math.max(0,scrollPixels)*.055):0,scrollRate:.055,progress:current[2],scrollRange:scrollRange,alpha:light ? .60 : .91,geometryAlpha:crystal ? .30 : 0,decodedImageBytes:landscapeImage?landscapeImage.naturalWidth*landscapeImage.naturalHeight*4:0}};};
     dispose=function(){
       if(closed)return;closed=true;stop();abort.abort();stateObserver.disconnect();dialogObserver.disconnect();
-      landscapeSerial++;if(unsubscribeBackground)unsubscribeBackground();landscapeWindow.replaceChildren();landscapeImage=null;landscapeGeometry=null;vectorScene=null;
+      landscapeSerial++;if(unsubscribeBackground)unsubscribeBackground();if(proceduralScene)proceduralScene.destroy();proceduralScene=null;landscapeWindow.replaceChildren();landscapeImage=null;landscapeGeometry=null;vectorScene=null;
       if(resizeObserver)resizeObserver.disconnect();if(releaseTimer)clearTimeout(releaseTimer);
       if(crystal)crystal.destroy();wrapper.remove();if(!hadClass)body.classList.remove('has-atmosphere');inspectState=null;
     };

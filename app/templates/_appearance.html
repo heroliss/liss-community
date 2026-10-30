@@ -1,8 +1,10 @@
 {% import "_depth.html" as depth with context %}
+{% import "_ui.html" as ui with context %}
 {% macro controls(form) %}
 {% set color = form.appearance_color.data or '' %}
 {% set material = form.appearance_material.data or 'auto' %}
-<details class="post-appearance" data-appearance-editor data-appearance-auto-color="{{ (display_page_theme|default({})).get('automatic_color','') }}"{% if form.appearance_color.errors or form.appearance_material.errors %} open{% endif %}>
+{% set post_identifier = (display_page_theme|default({})).get('post_id') or 0 %}
+<details class="post-appearance" data-appearance-editor data-appearance-new="{{ 'true' if request.method == 'GET' and request.endpoint in ['main.index','community.project_talk'] else 'false' }}" data-appearance-auto-material="{{ ui.card_material(post_identifier) }}" data-appearance-auto-color="{{ (display_page_theme|default({})).get('automatic_color','') }}"{% if form.appearance_color.errors or form.appearance_material.errors %} open{% endif %}>
   <summary><span>文章外观</span><span class="appearance-current" data-appearance-status>配色与材质</span></summary>
   <div class="appearance-layout">
     <div class="appearance-controls">
@@ -23,10 +25,10 @@
       {% for error in form.appearance_material.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
     </div>
     <div class="appearance-sample-area" data-appearance-enhanced hidden>
-      <div class="appearance-sample" data-depth-host data-depth-kind="edition" data-pose="2" data-material="glass" data-appearance-preview>
+      <div class="appearance-sample" data-depth-host data-depth-kind="edition" data-pose="2" data-material="{{ ui.card_material(post_identifier,material) }}" data-appearance-preview>
       {% call depth.layers(material=true) %}<span class="appearance-sample-label">外观预览</span><h3 data-appearance-title>你的下一篇文章</h3><p data-appearance-excerpt>一点发现，一个故事，或还在酝酿的想法。</p><span class="appearance-sample-foot">发布后，仍可随时调整。</span>{% endcall %}
       </div>
-      <p class="appearance-sample-note">默认使用晶透玻璃；其他材质为你的文章增添一点不同。</p>
+      <p class="appearance-sample-note">颜色与材质都可以在这里调整，发布后也能继续修改。</p>
     </div>
   </div>
 </details>

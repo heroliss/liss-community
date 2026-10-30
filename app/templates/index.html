@@ -13,7 +13,7 @@
   </div>
   <div class="studio-conversation-model" data-room-scene aria-label="最近的想法">
     <div class="studio-model-world"><span class="studio-model-dais" aria-hidden="true"></span><span class="crystal-model-orbit" aria-hidden="true"></span>
-    {% for post in posts[:3] %}{% set preview = post|post_preview %}{% set thought_theme = display_post_appearance(post) %}<a class="studio-thought studio-thought-{{ loop.index }}" data-depth-host data-depth-kind="crystal" data-material="glass" data-post-theme-card data-theme-color="{{ thought_theme.color }}"{% if thought_theme.color %} style="--appearance-hue:{{ thought_theme.hue }};--appearance-saturation:{{ thought_theme.saturation }}%;--appearance-accent:hsl({{ thought_theme.hue }} {{ thought_theme.saturation }}% 70%);"{% endif %} href="{{ url_for('main.post', id=post.id) }}">{% call depth.layers(material=true) %}<span class="studio-thought-speaker">{{ ui.avatar(post.author, 'avatar-small') }}<span>{{ ui.author_name(post.author) }}</span></span><strong>{{ preview.title|truncate(28, true, '…') }}</strong><span class="studio-thought-open">继续这段想法 {{ ui.icon('arrow') }}</span>{% endcall %}</a>{% endfor %}
+    {% for post in posts[:3] %}{% set preview = post|post_preview %}{% set thought_theme = display_post_appearance(post) %}<a class="studio-thought studio-thought-{{ loop.index }}" data-depth-host data-depth-kind="crystal" data-material="{{ ui.card_material(post.id,thought_theme.material) }}" data-post-theme-card data-theme-color="{{ thought_theme.color }}"{% if thought_theme.color %} style="--appearance-hue:{{ thought_theme.hue }};--appearance-saturation:{{ thought_theme.saturation }}%;--appearance-accent:hsl({{ thought_theme.hue }} {{ thought_theme.saturation }}% 70%);"{% endif %} href="{{ url_for('main.post', id=post.id) }}">{% call depth.layers(material=true) %}<span class="studio-thought-speaker">{{ ui.avatar(post.author, 'avatar-small') }}<span>{{ ui.author_name(post.author) }}</span></span><strong>{{ preview.title|truncate(28, true, '…') }}</strong><span class="studio-thought-open">继续这段想法 {{ ui.icon('arrow') }}</span>{% endcall %}</a>{% endfor %}
     </div>
   </div>
 </header>
@@ -40,7 +40,15 @@
     <div class="studio-console-note"><span aria-hidden="true">{{ ui.icon('comment') }}</span><p>友善表达，尊重不同的声音。<br>让每一段对话，都有继续的余地。</p></div>
     {% if site_owner|default(none) %}<a class="studio-host" href="{{ url_for('main.user', username=site_owner.username) }}">认识站点作者 {{ ui.avatar(site_owner, 'avatar-small') }}{{ ui.icon('arrow') }}</a>{% endif %}
   {% endcall %}</section>
-  <a class="studio-works-door" data-depth-host data-depth-kind="crystal" data-material="glass" href="{{ url_for('community.portfolio', path='projects/') }}">{% call depth.layers(material=true) %}<span class="studio-door-art" aria-hidden="true"><i></i><i></i><i></i></span><span class="studio-door-copy"><strong>话题之外，<br>还有作品。</strong><span>游戏、工具、AI 与交互实验</span><b>探索全部作品 {{ ui.icon('arrow') }}</b></span>{% endcall %}</a>
+  <a class="studio-works-door works-gallery" data-depth-host data-depth-kind="crystal" data-material="glass" href="{{ url_for('community.portfolio', path='projects/') }}" aria-label="进入作品展厅：游戏、工具、AI 与交互实验">{% call depth.layers(material=true) %}
+    <span class="works-gallery-window" aria-hidden="true">
+      <span class="works-gallery-arch"></span><span class="works-gallery-floor"></span><span class="works-gallery-plinth"></span>
+      <svg class="works-gallery-cube" viewBox="0 0 120 130" fill="none"><path d="m60 13 43 25-43 25L17 38Z" fill="currentColor" fill-opacity=".86"/><path d="m17 38 43 25v52l-43-25Z" fill="currentColor" fill-opacity=".4"/><path d="m60 63 43-25v52l-43 25Z" fill="currentColor" fill-opacity=".64"/><path d="m60 13 43 25v52l-43 25-43-25V38Zm0 50v52M17 38l43 25 43-25" stroke="currentColor" stroke-width="1.2"/><path d="m60 29 16 9-16 10-16-10Z" fill="var(--bg)" fill-opacity=".48"/></svg>
+      <span class="works-gallery-code">{ }</span><span class="works-gallery-orbit"><i></i><i></i></span>
+      <span class="works-gallery-thread"></span>
+    </span>
+    <span class="works-gallery-copy"><span class="works-gallery-label">作品展厅</span><strong>把话题，<br>带进作品。</strong><span class="works-gallery-description">游戏、工具、AI 与交互实验。<br>看看想法如何变成可以体验的东西。</span><b>进入作品展厅 {{ ui.icon('arrow') }}</b></span>
+  {% endcall %}</a>
 </aside>
 </div>
 {% endblock %}

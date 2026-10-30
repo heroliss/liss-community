@@ -28,5 +28,7 @@
 .community-room :is(.studio-thought-speaker,.site-header,.composer>summary) .avatar { --avatar-depth:3.5px;--avatar-rim:1.5px; }
 [data-theme=light] .community-room .avatar::before { background:conic-gradient(from 115deg,#58777f,#aac5c2 23%,#f8fff8 29%,#83a3a9 43%,#49656f 69%,#bfd6d2 89%,#58777f);box-shadow:0 1px 1px #153a4b33,2px 4px 4px -2px #153a4b2e; }
 [data-theme=light] .community-room .avatar::after { background:linear-gradient(135deg,#fff,#b6d6da80 24%,#587c9245 54%,#98c4c799 77%,#f6fff5cc); }
+[data-theme=light] .community-room .avatar { box-shadow:inset 0 1px 1px #fff9,inset 0 -1px 2px #547f842e; }
+[data-theme=light] .community-room .avatar>span { text-shadow:0 1px 0 #ffffff80; }
 @media(max-width:600px) { .community-room .avatar { --avatar-depth:4px;--avatar-rim:1.5px; }.community-room .avatar-large { --avatar-depth:6px;--avatar-rim:2px; } }
 @media(forced-colors:active) { .community-room .avatar::before,.community-room .avatar::after { display:none; }.community-room .avatar { outline:1px solid CanvasText;box-shadow:none; } }

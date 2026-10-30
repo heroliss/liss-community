@@ -7,9 +7,17 @@
   var catalogue={
     mist:{id:'mist',title:'柔光留白',description:'安静的光色与空间',kind:'vector',style:'mist',bytes:0},
     line:{id:'line',title:'流线素描',description:'少量曲线，轻盈的层次',kind:'vector',style:'line',bytes:0},
-    coast:{id:'coast',title:'欧泊海岸',description:'熟悉的晶透海岸',kind:'image',src:'scenes/crystal-archipelago-v23.webp',compact:'scenes/crystal-archipelago-v24-compact.webp',bytes:153710,compactBytes:51266,width:1672,height:941,tall:false},
-    'mineral-scroll':{id:'mineral-scroll',title:'晶石长卷',description:'沿着暖光与水面向深处走',kind:'image',src:'scenes/mineral-scroll-v24.webp',bytes:287786,width:793,height:1983,tall:true},
-    'ink-scroll':{id:'ink-scroll',title:'雾谷月色',description:'山水、月光与一层薄雾',kind:'image',src:'scenes/ink-scroll-v24.webp',bytes:214700,width:793,height:1983,tall:true},
+    contour:{id:'contour',title:'山形等高',description:'沿着青铜色的地形慢慢阅读',kind:'vector',style:'contour',bytes:0},
+    prism:{id:'prism',title:'棱镜折面',description:'冷暖交叠的安静切面',kind:'vector',style:'prism',bytes:0},
+    orbital:{id:'orbital',title:'轨道手记',description:'弧线、刻度和遥远的圆心',kind:'vector',style:'orbital',bytes:0},
+    paper:{id:'paper',title:'纸间山丘',description:'层叠纸景与柔和的投影',kind:'vector',style:'paper',bytes:0},
+    ribbons:{id:'ribbons',title:'流彩织带',description:'几束低饱和颜色缓缓交织',kind:'vector',style:'ribbons',bytes:0},
+    constellation:{id:'constellation',title:'星图余白',description:'稀疏星点与几条偶然的连线',kind:'vector',style:'constellation',bytes:0},
+    spectrum:{id:'spectrum',title:'柔彩色域',description:'宽广留白中的三种轻柔色彩',kind:'vector',style:'spectrum',bytes:0},
+    dunes:{id:'dunes',title:'层峦暖沙',description:'温暖的轮廓，远近不同的山脊',kind:'vector',style:'dunes',bytes:0},
+    "coast":{"id":"coast","title":"欧泊海岸","description":"熟悉的晶透海岸","kind":"image","src":"scenes/coast-v25-ai-3840.webp","bytes":508034,"width":6688,"height":3764,"tall":false,"enhancement":"Real-ESRGAN x4plus","originalWidth":1672,"originalHeight":941,"nativeHighResolution":false,"variants":[{"file":"scenes/coast-v25-ai-960.webp","width":960,"height":540,"bytes":57280},{"file":"scenes/coast-v25-ai-1440.webp","width":1440,"height":810,"bytes":117914},{"file":"scenes/coast-v25-ai-1920.webp","width":1920,"height":1081,"bytes":187428},{"file":"scenes/coast-v25-ai-2560.webp","width":2560,"height":1441,"bytes":289842},{"file":"scenes/coast-v25-ai-3840.webp","width":3840,"height":2161,"bytes":508034}]},
+    "mineral-scroll":{"id":"mineral-scroll","title":"晶石长卷","description":"沿着暖光与水面向深处走","kind":"image","src":"scenes/mineral-v25-ai-3172.webp","bytes":1956076,"width":3172,"height":7932,"tall":true,"enhancement":"Real-ESRGAN x4plus","originalWidth":793,"originalHeight":1983,"nativeHighResolution":false,"variants":[{"file":"scenes/mineral-v25-ai-960.webp","width":960,"height":2401,"bytes":392674},{"file":"scenes/mineral-v25-ai-1440.webp","width":1440,"height":3601,"bytes":686528},{"file":"scenes/mineral-v25-ai-1920.webp","width":1920,"height":4801,"bytes":1027892},{"file":"scenes/mineral-v25-ai-2560.webp","width":2560,"height":6402,"bytes":1481324},{"file":"scenes/mineral-v25-ai-3172.webp","width":3172,"height":7932,"bytes":1956076}]},
+    "ink-scroll":{"id":"ink-scroll","title":"雾谷月色","description":"山水、月光与一层薄雾","kind":"image","src":"scenes/ink-v25-ai-3172.webp","bytes":1340522,"width":3172,"height":7932,"tall":true,"enhancement":"Real-ESRGAN x4plus","originalWidth":793,"originalHeight":1983,"nativeHighResolution":false,"variants":[{"file":"scenes/ink-v25-ai-960.webp","width":960,"height":2401,"bytes":255180},{"file":"scenes/ink-v25-ai-1440.webp","width":1440,"height":3601,"bytes":460906},{"file":"scenes/ink-v25-ai-1920.webp","width":1920,"height":4801,"bytes":692746},{"file":"scenes/ink-v25-ai-2560.webp","width":2560,"height":6402,"bytes":1007892},{"file":"scenes/ink-v25-ai-3172.webp","width":3172,"height":7932,"bytes":1340522}]},
     earthrise:{id:'earthrise',title:'地月之间',description:'阿波罗 8 号的窗外',kind:'image',src:'scenes/earthrise-v24-3840.webp',width:4136,height:4136,tall:false,anchorX:.5,anchorY:.88,credit:'NASA / Apollo 8 · AS08-14-2384',creditUrl:'https://www.nasa.gov/image-detail/as08-14-2384orig/',variants:[
       {file:'scenes/earthrise-v24-960.webp',width:960,height:960,bytes:11722},
       {file:'scenes/earthrise-v24-1440.webp',width:1440,height:1440,bytes:22746},
@@ -76,7 +84,18 @@
     var radios=Array.from(dialog.querySelectorAll('[name=liss_background_v24]')),quality=dialog.querySelector('[data-background-quality]'),scroll=dialog.querySelector('[data-background-scroll]');
     var note=dialog.querySelector('[data-background-note]'),qualityRow=dialog.querySelector('[data-background-quality-row]'),motionNote=dialog.querySelector('[data-background-motion-note]'),credit=dialog.querySelector('[data-background-credit]');
     function selected(){var radio=radios.find(function(r){return r.checked;});return catalogue[radio&&radio.value]?radio.value:current.id;}
-    function detail(){var e=entry(selected()),r=resolution({id:e.id,quality:quality.value,scroll:scroll.checked});qualityRow.hidden=e.kind!=='image'||!(e.compact||e.variants&&e.variants.length>1);note.textContent=e.kind==='vector'?'不下载背景图片。':(e.tall?'原图 '+e.width+' × '+e.height:'按屏幕载入 '+r.width+' × '+r.height)+' · 约 '+Math.round(r.bytes/1024)+' KB，仅在使用时载入。';scroll.disabled=reduce.matches;motionNote.textContent=reduce.matches?'已遵循系统的减少动态设置。':'长卷随页面缓慢展开，关闭后画卷保持原位。';if(credit){credit.hidden=!e.credit;credit.textContent=e.credit||'';if(e.creditUrl)credit.href=e.creditUrl;else credit.removeAttribute('href');}}
+    function detail(){
+      var e=entry(selected()),r=resolution({id:e.id,quality:quality.value,scroll:scroll.checked});
+      qualityRow.hidden=e.kind!=='image'||!(e.compact||e.variants&&e.variants.length>1);
+      if(e.kind==='vector')note.textContent='在浏览器中绘制，不下载背景图片。';
+      else{
+        var origin=e.enhancement?'AI 增强 '+e.width+' × '+e.height+'（原图 '+e.originalWidth+' × '+e.originalHeight+'）':'图源 '+e.width+' × '+e.height;
+        note.textContent=origin+' · 本次载入 '+r.width+' × '+r.height+'，约 '+Math.round(r.bytes/1024)+' KB。';
+      }
+      scroll.disabled=reduce.matches;
+      motionNote.textContent=reduce.matches?'已遵循系统的减少动态设置。':e.tall?'长卷仅以页面约 5.5% 的速度移动，关闭后保持原位。':'背景只作轻微位移，关闭后保持原位。';
+      if(credit){credit.hidden=!e.credit;credit.textContent=e.credit||'';if(e.creditUrl)credit.href=e.creditUrl;else credit.removeAttribute('href');}
+    }
     function closeDialog(){if(typeof dialog.close==='function')dialog.close();else{dialog.removeAttribute('open');if(opener&&opener.isConnected)opener.focus({preventScroll:true});}}
     function sync(){radios.forEach(function(r){r.checked=r.value===current.id;});quality.value=current.quality;scroll.checked=current.scroll;detail();}
     document.querySelectorAll('[data-background-open]').forEach(function(button){button.hidden=false;button.addEventListener('click',function(){opener=button;sync();if(typeof dialog.showModal==='function'){dialog.showModal();}else{dialog.setAttribute('open','');}},{signal:signal});});

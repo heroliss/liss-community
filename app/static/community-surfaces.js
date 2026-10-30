@@ -9,7 +9,7 @@
   var scriptURL = document.currentScript && document.currentScript.src;
   var textureURL = new URL('textures/material-v22/normal-roughness.png', scriptURL || document.baseURI).href;
   var lifetime = new AbortController(), dispose = null;
-  var metrics = { version: 'native-optical-v24b', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'narrow-rounded-chamfer', transmission: 'native-backdrop', edgeSampling: false, contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
+  var metrics = { version: 'native-optical-v25', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'narrow-rounded-chamfer', transmission: 'native-backdrop', edgeSampling: false, antialias: 'analytic-rounded-coverage', contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
   var inspectState = function () { return Object.assign({}, metrics); };
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
   var vertex = [
@@ -21,7 +21,8 @@
     'precision highp float;',
     'varying vec2 vUv;',
     'uniform sampler2D uMap;',
-    'uniform vec2 uSize,uAngles,uLight;',
+    'uniform vec2 uSize,uAngles,uLight,uTileSize;',
+    'uniform vec4 uCorners;',
     'uniform vec3 uBase,uAccent;',
     'uniform float uKind,uMode,uAccentMix,uReadingLimit;',
     'const float PI=3.14159265;',
@@ -117,7 +118,16 @@
     ' }',
     ' color=clamp(color+vec3(dither(uv*uSize)*.85/255.),0.,1.);',
     ' if(uKind<.5)opacity=clamp(opacity+dither(uv*uSize+vec2(37.,113.))*.40/255.,0.,1.);',
-    ' gl_FragColor=vec4(color,opacity);',
+    // A fullscreen quad has no geometric edge for MSAA to sample. Instead,
+    // evaluate the actual rounded face contour, with coverage bounded in CSS
+    // pixels even on a very tall article's deliberately small lighting tile.
+    ' float radius=uv.x<.5?(uv.y<.5?uCorners.x:uCorners.w):(uv.y<.5?uCorners.y:uCorners.z);',
+    ' radius=min(radius,min(uSize.x,uSize.y)*.5);',
+    ' vec2 edgePoint=abs((uv-.5)*uSize)-(uSize*.5-vec2(radius));',
+    ' float contour=length(max(edgePoint,vec2(0.)))+min(max(edgePoint.x,edgePoint.y),0.)-radius;',
+    ' float aa=clamp(max(uSize.x/uTileSize.x,uSize.y/uTileSize.y)*.65,.65,1.35);',
+    ' float coverage=1.-smoothstep(-aa,.30,contour);',
+    ' gl_FragColor=vec4(color,opacity*coverage);',
     '}'
   ].join('\n');
 
@@ -191,7 +201,7 @@
         shell.appendChild(canvas);
         var scene = { host: host, surface: surface, shell: shell, canvas: canvas, context: context, previous: host.getAttribute('data-surface-renderer'),
           kind: 0, visible: !io, ratio: 0, held: false, dirty: true, metadata: true, rx: 0, ry: 0, lx: 50, ly: 35,
-          width: 500, height: 300, base: [.1,.2,.2], accent: ambient.slice(), accentMix: 0, readingLimit: .045 };
+          width: 500, height: 300, radii: [18,31,22,14], base: [.1,.2,.2], accent: ambient.slice(), accentMix: 0, readingLimit: .045 };
         scenes.push(scene); byHost.set(host,scene); if (io) io.observe(host); if (ro) ro.observe(surface);
       });
       layoutDirty = metadataDirty = true;
@@ -201,7 +211,8 @@
       if (metadataDirty) ambient = parseColor(getComputedStyle(body).getPropertyValue('--accent'),[.62,.76,.72]);
       scenes.forEach(function (scene) {
         if (!scene.visible || (!metadataDirty && !scene.metadata)) return;
-        var style = getComputedStyle(scene.host), kind = Math.max(0,kinds.indexOf(scene.host.dataset.material));
+        var style = getComputedStyle(scene.host), faceStyle=getComputedStyle(scene.surface), kind = Math.max(0,kinds.indexOf(scene.host.dataset.material));
+        scene.radii=['border-top-left-radius','border-top-right-radius','border-bottom-right-radius','border-bottom-left-radius'].map(function(name){var value=parseFloat(faceStyle.getPropertyValue(name));return Number.isFinite(value)?Math.max(0,value):14;});
         var palette = lightMode ? [[.78,.86,.91],[.72,.84,.66],[.87,.79,.61],[.63,.72,.81]] : [[.12,.20,.28],[.10,.25,.17],[.25,.21,.13],[.16,.22,.30]];
         scene.kind = kind; scene.base = palette[kind];
         var custom = !!scene.host.dataset.themeColor;
@@ -241,7 +252,7 @@
       var texture = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,texture);
       gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-      var uniforms = {}; ['uMap','uSize','uAngles','uLight','uBase','uAccent','uKind','uMode','uAccentMix','uReadingLimit'].forEach(function (name) { uniforms[name] = gl.getUniformLocation(program,name); });
+      var uniforms = {}; ['uMap','uSize','uAngles','uLight','uTileSize','uCorners','uBase','uAccent','uKind','uMode','uAccentMix','uReadingLimit'].forEach(function (name) { uniforms[name] = gl.getUniformLocation(program,name); });
       return { program: program, buffer: buffer, texture: texture, position: gl.getAttribLocation(program,'aPosition'), uniforms: uniforms, ready: false };
     }
     function uploadMap() {
@@ -268,6 +279,7 @@
         gl.viewport(x,y,tileWidth,tileHeight); gl.scissor(x,y,tileWidth,tileHeight); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
         // CSS has a downward Y axis; the shader's tangent space is Y-up.
         gl.uniform2f(u.uSize,scene.width,scene.height); gl.uniform2f(u.uAngles,-scene.rx*Math.PI/180,scene.ry*Math.PI/180);
+        gl.uniform2f(u.uTileSize,tileWidth,tileHeight);gl.uniform4fv(u.uCorners,scene.radii);
         gl.uniform2f(u.uLight,(scene.lx-50)/50,(50-scene.ly)/50); gl.uniform3fv(u.uBase,scene.base); gl.uniform3fv(u.uAccent,scene.accent);
         gl.uniform1f(u.uKind,scene.kind); gl.uniform1f(u.uMode,lightMode?1:0); gl.uniform1f(u.uAccentMix,scene.accentMix);gl.uniform1f(u.uReadingLimit,scene.readingLimit);
         gl.drawArrays(gl.TRIANGLES,0,6); metrics.tiles++;

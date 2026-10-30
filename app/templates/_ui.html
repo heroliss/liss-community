@@ -23,6 +23,7 @@
 {% endif %}</svg>
 {%- endmacro %}
 {% macro author_name(user) -%}{{ user.display_name|default(user.name or user.username, true) }}{%- endmacro %}
+{% macro card_material(identifier=0, saved='auto') -%}{{ saved if saved in ['glass','ceramic','paper','metal'] else {3:'ceramic',6:'paper',7:'metal'}.get((identifier|int(0)) % 8,'glass') }}{%- endmacro %}
 {% macro identity_badge(user) -%}
 {% if user.is_site_owner|default(false) %}<span class="identity-badge identity-author">站点作者</span>{% elif user.is_visitor|default(false) %}<span class="identity-badge">访客</span>{% elif user.is_system|default(false) %}<span class="identity-badge">系统身份</span>{% elif user.is_registered|default(false) %}<span class="identity-badge identity-account">账号</span>{% endif %}
 {%- endmacro %}
