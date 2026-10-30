@@ -84,6 +84,9 @@
       // a fixed rotateX origin on each IO re-entry caused the visible scroll pop.
       if(entered.has(scene.host))return;
       entered.add(scene.host);
+      // A mounted photograph arrives with its moving card, rather than sliding
+      // a second time inside the same physical object.
+      if(scene.kind==='image'&&pointerSceneFor(scene.host)!==scene)return;
       if(scene.header||scene.kind==='workspace'||scene.kind==='reader'||!scene.arrival||!scene.arrival.animate||!active(scene)||held(scene)||scene.focused)return;
       stopArrival(scene,true);
       var animation=scene.arrival.animate([
@@ -218,8 +221,7 @@
         if(clientPoint.known&&fine.matches&&!blocked()&&!pressed){
           var hit=document.elementFromPoint(clientPoint.x,clientPoint.y);
           updateHoverControl(hit);
-          if(pointerOwner&&(!hit||!pointerOwner.host.contains(hit))){pointerOwner.inside=false;pointerOwner.x=pointerOwner.y=0;pointerOwner=null;pointer.present=false;}
-          if(pointer.present){pointer.x=clientPoint.x+scrollX;pointer.y=clientPoint.y+scrollY;}
+          if(!selectionPresent)aimPointer(hit,clientPoint.x+scrollX,clientPoint.y+scrollY);
         }
       }
       var dt=lastTime?Math.min(48,time-lastTime):16;lastTime=time;
@@ -281,6 +283,29 @@
       var host=node&&node.nodeType===1?node.closest(selector):null;
       while(host){var scene=byHost.get(host);if(scene)return scene;host=host.parentElement&&host.parentElement.closest(selector);}return null;
     }
+    function pointerSceneFor(node){
+      var scene=sceneFor(node);
+      if(!scene||scene.kind!=='image')return scene;
+      var host=scene.host.parentElement&&scene.host.parentElement.closest('[data-depth-host]');
+      while(host){
+        var parent=byHost.get(host);
+        if(parent&&parent.kind!=='image'){
+          var profile=profiles[parent.kind]||profiles.edition;
+          // Covers and reply images belong to the card's camera. A stable
+          // reader/editor is a boundary: its picture may still respond alone.
+          return profile[0]||profile[1]?parent:scene;
+        }
+        host=host.parentElement&&host.parentElement.closest('[data-depth-host]');
+      }
+      return scene;
+    }
+    function aimPointer(node,pageX,pageY){
+      var scene=pointerSceneFor(node);
+      if(!scene&&!pointerOwner){pointer.present=false;return;}
+      if(pointerOwner!==scene){if(pointerOwner){pointerOwner.inside=false;pointerOwner.x=pointerOwner.y=0;}pointerOwner=scene;}
+      pointer={x:pageX,y:pageY,present:!!scene};
+      if(scene){scene.inside=true;if(node.closest(interactive)){scene.x=scene.y=0;scene.inside=false;}}
+    }
     function ancestors(node,callback){
       var host=node&&node.nodeType===1?node.closest(selector):null;
       while(host){var scene=byHost.get(host);if(scene)callback(scene);host=host.parentElement&&host.parentElement.closest(selector);}
@@ -331,11 +356,7 @@
       clientPoint={x:event.clientX,y:event.clientY,known:true};
       if(fine.matches&&!blocked())updateHoverControl(event.target);
       if(!fine.matches||blocked()||pressed||selectionPresent)return;
-      var scene=sceneFor(event.target);
-      if(!scene&&!pointerOwner)return;
-      if(pointerOwner!==scene){if(pointerOwner){pointerOwner.inside=false;pointerOwner.x=pointerOwner.y=0;}pointerOwner=scene;}
-      pointer={x:event.pageX,y:event.pageY,present:!!scene};
-      if(scene){scene.inside=true;if(event.target.closest(interactive)){scene.x=scene.y=0;scene.inside=false;}}
+      aimPointer(event.target,event.pageX,event.pageY);
       schedule();
     },{passive:true,signal:signal});
     document.addEventListener('pointerover',function(event){
