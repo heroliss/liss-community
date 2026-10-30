@@ -9,7 +9,7 @@
   var scriptURL = document.currentScript && document.currentScript.src;
   var textureURL = new URL('textures/material-v22/normal-roughness.png', scriptURL || document.baseURI).href;
   var lifetime = new AbortController(), dispose = null;
-  var metrics = { version: 'room-material-v26', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'narrow-rounded-chamfer', transmission: 'native-backdrop', edgeSampling: false, antialias: 'analytic-rounded-coverage', lighting: 'upper-left-area-key+ambient', pigment: 'shared-css-gpu', contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
+  var metrics = { version: 'room-material-v28', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'narrow-rounded-chamfer', transmission: 'native-backdrop', edgeSampling: false, antialias: 'analytic-rounded-coverage', lighting: 'upper-left-area-key+ambient', pigment: 'shared-css-gpu', contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
   var inspectState = function () { return Object.assign({}, metrics); };
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
   var vertex = [
@@ -54,16 +54,16 @@
     ' vec2 uv=vUv;vec2 tile=vec2(mod(uKind,2.),step(1.5,uKind));',
     ' vec2 micro=fract(uv*uSize/(uKind>1.5&&uKind<2.5?155.:190.));',
     ' vec4 data=texture2D(uMap,tile*.5+vec2(.0059)+micro*.4882);',
-    ' vec2 detail=data.rg*2.-1.;float strength=uKind<.5?.115:uKind<1.5?.32:uKind<2.5?.65:.55;',
+    ' vec2 detail=data.rg*2.-1.;float strength=uKind<.5?.115:uKind<1.5?.48:uKind<2.5?.78:.72;',
     ' vec2 edgeDistance=min(uv,1.-uv)*uSize;',
-    ' float bevelWidth=uKind<.5?3.5:uKind<1.5?6.:uKind<2.5?2.5:4.;',
+    ' float bevelWidth=uKind<.5?3.5:uKind<1.5?12.:uKind<2.5?1.5:6.;',
     ' vec2 edgeWeight=1.-smoothstep(vec2(0.),vec2(bevelWidth),edgeDistance);',
     ' float bevel=max(edgeWeight.x,edgeWeight.y);',
     ' vec2 bevelNormal=vec2((uv.x<.5?-1.:1.)*edgeWeight.x,(uv.y<.5?1.:-1.)*edgeWeight.y);',
     ' float bevelLength=length(bevelNormal);bevelNormal=bevelLength>.0001?bevelNormal/bevelLength:vec2(0.);',
     ' float normalDepth=uKind<.5?.42:.26;',
     ' float paperFold=uv.x-.81+uv.y*.06;',
-    ' vec2 formNormal=uKind>1.5&&uKind<2.5?vec2(-.14*exp(-sq(paperFold/.018))*sign(paperFold),.02*sin(uv.x*PI)):uKind>.5&&uKind<1.5?(uv-.5)*.045:vec2(0.);',
+    ' vec2 formNormal=uKind>1.5&&uKind<2.5?vec2(-.20*exp(-sq(paperFold/.022))*sign(paperFold),.035*sin(uv.x*PI)):uKind>.5&&uKind<1.5?vec2((uv.x-.5)*.16,(.5-uv.y)*.12):vec2(0.);',
     ' vec3 N=rotateNormal(normalize(vec3(detail.x*strength+bevelNormal.x*bevel*normalDepth+formNormal.x,detail.y*strength+bevelNormal.y*bevel*normalDepth+formNormal.y,1.)));',
     ' vec2 p=vec2((uv.x-.5)*clamp(uSize.x/uSize.y,.35,2.8),.5-uv.y);',
     // A room-space key stays above/left as the card and its normal rotate.
@@ -94,8 +94,12 @@
     '  float faceReflection=clamp(.009+grazing*.19+min(energy,.5)*.06+reflected,0.,.135);',
     '  opacity=clamp(faceReflection+rim,0.,.44);',
     ' }else if(uKind<1.5){',
-    '  vec3 S=specular(N,V,L,max(.25,rough),vec3(.045),false);',
-    '  color=base*(.48+nl*.64)*(.94+data.a*.12)+S*reflectionTint*.26+reflectionTint*softbox*.055;',
+    // Ceramic is a thick domed glaze: a wide soft pool with a rounded shoulder,
+    // while the matte pits use the already loaded normal/roughness atlas.
+    '  vec3 S=specular(N,V,L,clamp(rough*.85,.20,.42),vec3(.045),false);',
+    '  float glazePool=exp(-sq((R.x+.30)/.48)-sq((R.y-.40)/.58));',
+    '  float glazeShoulder=smoothstep(0.,12.,min(edgeDistance.x,edgeDistance.y));',
+    '  color=base*(.44+nl*.67)*(.80+data.a*.29)*(.91+glazeShoulder*.09)+S*reflectionTint*.38+reflectionTint*glazePool*.075;',
     '  opacity=1.;',
     ' }else if(uKind<2.5){',
     '  float sigma=rough*rough,A=1.-.5*sigma/(sigma+.33),B=.45*sigma/(sigma+.09);',
@@ -104,12 +108,17 @@
     '  float diffuse=nl*(A+B*azimuth*sin(alpha)*tan(beta));',
     '  vec2 fibreScale=min(uSize,uTileSize*1.5);',
     '  float fibres=sin(uv.y*fibreScale.y*.59+sin(uv.x*fibreScale.x*.043)*1.4)*sin(uv.x*fibreScale.x*.17);',
-    '  float foldShade=1.-.045*exp(-sq(paperFold/.012))+.035*exp(-sq((paperFold+.013)/.014));',
-    '  color=base*(.60+diffuse*.51)*(.86+data.a*.25+fibres*.05)*foldShade;opacity=1.;',
+    // Woven fibres and a quiet diagonal handling crease stay fixed to the
+    // sheet rather than shimmering in screen space during scroll.
+    '  float foldShade=1.-.13*exp(-sq(paperFold/.013))+.075*exp(-sq((paperFold+.017)/.018));',
+    '  color=base*(.57+diffuse*.54)*(.76+data.a*.34+fibres*.10)*foldShade;opacity=1.;',
     ' }else{',
     '  vec3 S=specular(N,V,L,rough,mix(vec3(.48,.57,.64),uAccent,.20),true);',
-    '  float ribbon=exp(-sq((R.x+.39)/.24)-sq((R.y-.36)/.80));',
-    '  color=base*(.52+nl*.53)*(.93+data.a*.14)+S*.22+reflectionTint*ribbon*.09;',
+    // Anodised metal has an elongated, directional reflection. Its machining
+    // bands are deliberately broader than a subpixel line at atlas resolution.
+    '  float ribbon=exp(-sq((R.x+.39)/.14)-sq((R.y-.36)/.95));',
+    '  float brush=.96+.04*sin(uv.y*min(uSize.y,uTileSize.y)*1.35+data.a*2.);',
+    '  color=base*(.47+nl*.55)*(.83+data.a*.25)*brush+S*.38+reflectionTint*ribbon*.13;',
     '  opacity=1.;',
     ' }',
     ' if(uKind>.5){',
@@ -227,6 +236,9 @@
       });
       document.querySelectorAll(selector).forEach(function (host) {
         if (byHost.has(host)) return;
+        // Account portals have their own single console shell. Their stable
+        // inner form deliberately has no second glass body or lighting tile.
+        if (host.dataset.depthKind === 'workspace' && host.closest('.portal-console')) return;
         var surface = host.querySelector(':scope > .depth-scroll > .depth-arrival > .depth-surface');
         var shell = surface && surface.querySelector(':scope > .material-shell');
         if (!shell) return;

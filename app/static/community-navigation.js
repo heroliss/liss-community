@@ -37,7 +37,10 @@
     function settle(now){
       frame=0;if(closed||token!==serial||!target.isConnected)return;
       stable=Math.abs(scrollY-previous)<.5?stable+1:0;previous=scrollY;
-      if((stable>=4&&now-started>140)||now-started>1800){focus(target);return;}
+      // Keep the existing single settle loop. A desk already at its anchor
+      // still needs time to finish opening before editor focus removes its clip.
+      var revealing=target.dataset&&target.dataset.disclosurePhase;
+      if((stable>=4&&now-started>140&&!revealing)||now-started>1800){focus(target);return;}
       frame=requestAnimationFrame(settle);
     }
     frame=requestAnimationFrame(settle);return true;

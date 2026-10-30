@@ -1,0 +1,140 @@
+/* One room, different objects: a rounded ceramic slab, a handled paper folio
+   and a machined metal plate. Glass remains the default translucent material.
+   These details are inert leaves, never filters on the text-bearing 3D parent. */
+.community-room [data-material=ceramic] {
+  --material-thickness:22px;
+  --material-radius:38px 49px 37px 28px;
+  --material-edge:#557d69;
+}
+.community-room [data-material=ceramic] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  background:radial-gradient(ellipse at 19% 3%,#dcefd51a,transparent 58%),var(--surface-pigment,var(--material-base));
+  box-shadow:inset 3px 4px 7px #e2f0d62e,inset -4px -6px 10px #07171070;
+}
+.community-room [data-material=ceramic] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim {
+  padding:2px;
+  background:linear-gradient(133deg,color-mix(in srgb,var(--material-specular,#dce8de) 53%,transparent),transparent 40% 100%);
+}
+.community-room [data-material=ceramic] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back {
+  background:linear-gradient(138deg,color-mix(in srgb,var(--material-edge) 65%,#d7e5cf),var(--material-back) 68%);
+}
+.community-room [data-material=ceramic] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before,
+.community-room [data-material=ceramic] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after { top:30px;bottom:30px; }
+.community-room [data-material=ceramic] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before,
+.community-room [data-material=ceramic] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after { left:28px;right:32px; }
+
+.community-room [data-material=paper] {
+  --material-thickness:3px;
+  --material-radius:2px 8px 34px 3px;
+  --paper-fold-light:#a58e6b;
+  --paper-fold-shadow:#282017;
+}
+.community-room [data-material=paper] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  background:repeating-linear-gradient(7deg,#f5e9c60b 0 .7px,transparent .7px 5px),repeating-linear-gradient(101deg,#100c0812 0 .6px,transparent .6px 8px),var(--surface-pigment,var(--material-base));
+  box-shadow:inset 0 1px 0 #f6e9c03b,inset -1px -1px 0 #1c150b52;
+}
+/* Pigment-independent fibres and the turned corner sit above the lighting tile,
+   but below real content. A sparse edge gives paper a tactile, unglazed finish. */
+.community-room [data-material=paper] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::before {
+  inset:0;border-radius:inherit;transform:translateZ(.7px);
+  background:repeating-linear-gradient(7deg,#f4e5c00f 0 .5px,transparent .5px 5px),repeating-linear-gradient(101deg,#100c080c 0 .5px,transparent .5px 8px);
+  box-shadow:inset 0 1px 0 #f6e9c01f;
+}
+.community-room [data-material=paper] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::after {
+  right:0;bottom:0;width:49px;height:45px;border-radius:0 0 31px 0;
+  background:linear-gradient(139deg,transparent 45%,var(--paper-fold-shadow) 46% 49%,var(--paper-fold-light) 51% 73%,var(--surface-pigment,var(--material-base)) 96%);
+  transform:translateZ(1.2px) rotateX(-7deg);
+  box-shadow:none;
+}
+.community-room [data-material=paper] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back {
+  /* A page block, not a second sheet protruding from the front silhouette. */
+  transform:translateZ(calc(var(--material-thickness) * -1));
+}
+.community-room [data-material=paper] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim { opacity:.38; }
+.community-room [data-material=paper] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after {
+  background:repeating-linear-gradient(180deg,var(--material-edge) 0 .7px,var(--material-back) .7px 1.5px);
+}
+
+.community-room [data-material=metal] {
+  --material-thickness:9px;
+  --material-radius:5px 8px 5px 5px;
+  --material-edge:#8195a3;
+}
+.community-room [data-material=metal] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  background:repeating-linear-gradient(0deg,#e4edf40a 0 .6px,transparent .6px 3px),linear-gradient(118deg,#d5e4e910,transparent 45%),var(--surface-pigment,var(--material-base));
+  box-shadow:inset 1px 2px 1px #e2edf260,inset -1px -2px 1px #030d19a1;
+}
+.community-room [data-material=metal] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim {
+  padding:2px;
+  background:linear-gradient(135deg,#ecf5ff70,#b7cbd626 32%,transparent 52% 100%);
+}
+.community-room [data-material=metal] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before {
+  background:linear-gradient(90deg,var(--material-side-mid),#a2b8c8 75%,var(--material-edge));
+}
+.community-room [data-material=metal] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after {
+  background:linear-gradient(90deg,var(--material-edge),var(--material-side-dark));
+}
+
+/* Form controls stay on a stable plane. The old oversized, independently tilted
+   rear tray plus a second 24px glass body produced the stray corner outlines. */
+.community-room .depth-workpad[data-depth-kind=workspace] {
+  --material-thickness:8px;
+  --material-radius:16px 21px 17px 13px;
+}
+.community-room .depth-workpad[data-depth-kind=workspace] > .workspace-chassis { inset:9px 3px 2px; }
+.community-room .depth-workpad .workspace-chassis-back {
+  inset:0;border-radius:var(--material-radius);border:0;
+  background:linear-gradient(135deg,#90bac01a,#1835430d 65%);
+  transform:translateZ(-15px) rotateX(calc(var(--workspace-rx) * .16)) rotateY(calc(var(--workspace-ry) * .16));
+  box-shadow:5px 12px 19px -13px #010a179c;
+}
+.community-room .depth-workpad :is(.workspace-chassis-side,.workspace-chassis-lip) { display:none; }
+.community-room .depth-workpad[data-depth-kind=workspace] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back { inset:0; }
+
+/* An account console already has its own shell. Keep only that body instead of
+   nesting a second glass slab around the fields. The single aligned plinth is
+   connected to its lower edge and lit from the same upper-left room key. */
+.community-room .portal-console .depth-workpad[data-depth-kind=workspace] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell { display:none; }
+.community-room .portal-console { padding-bottom:6px; }
+.community-room .portal-console::before { content:none; }
+.community-room .portal-console-face {
+  border-top:1px solid #c8e7dc47;
+  box-shadow:inset 1px 1px 0 #b8d8cc24,inset -1px -1px 0 #07171e4a,2px 4px 0 #18343a,7px 17px 24px -18px #010b16b3;
+}
+.community-room .portal-console-plinth {
+  height:7px;margin:-1px 6px 0;padding-left:16px;border-radius:0 0 13px 10px;
+  background:linear-gradient(180deg,#294746,#142e32);
+  box-shadow:2px 4px 5px -2px #010a1778,6px 12px 16px -10px #010a178c;
+}
+.community-room .portal-console-plinth>span { width:13px;height:2px;opacity:.58; }
+
+[data-theme=light] .community-room [data-material=ceramic] { --material-edge:#becdb3; }
+[data-theme=light] .community-room [data-material=ceramic] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  box-shadow:inset 4px 6px 10px #ffffffab,inset -4px -6px 10px #6275552b;
+}
+[data-theme=light] .community-room [data-material=paper] { --paper-fold-light:#fff6d9;--paper-fold-shadow:#a19273; }
+[data-theme=light] .community-room [data-material=paper] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::before {
+  background:repeating-linear-gradient(7deg,#654e2c12 0 .5px,transparent .5px 5px),repeating-linear-gradient(101deg,#fff8df3b 0 .5px,transparent .5px 8px);
+}
+[data-theme=light] .community-room [data-material=metal] { --material-edge:#91a8b8; }
+[data-theme=light] .community-room [data-material=metal] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  box-shadow:inset 1px 2px 1px #ffffffdf,inset -1px -2px 1px #46617057;
+}
+[data-theme=light] .community-room .portal-console-face {
+  border-top-color:#ffffffc7;
+  box-shadow:inset 1px 1px 0 #ffffffd9,inset -1px -1px 0 #6e969224,2px 4px 0 #9db4ab,7px 17px 24px -18px #1c435252;
+}
+[data-theme=light] .community-room .portal-console-plinth { background:linear-gradient(180deg,#c7dad0,#a3bfb8);box-shadow:2px 4px 5px -2px #21485228,6px 12px 16px -10px #21485245; }
+[data-theme=light] .community-room .depth-workpad .workspace-chassis-back { background:linear-gradient(135deg,#bcd5d52e,#d3e7e51a);box-shadow:5px 12px 19px -13px #315c7040; }
+
+@media(max-width:600px) {
+  .community-room [data-material=ceramic][data-depth-kind=edition] { --material-thickness:16px;--material-radius:28px 35px 29px 20px; }
+  .community-room [data-material=paper][data-depth-kind=edition] { --material-thickness:3px; }
+  .community-room [data-material=metal][data-depth-kind=edition] { --material-thickness:7px; }
+  .community-room [data-material=paper] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::after { width:37px;height:35px; }
+  .community-room .depth-workpad[data-depth-kind=workspace] > .workspace-chassis { inset:9px 3px 2px; }
+}
+@media(prefers-reduced-motion:reduce) { .community-room .depth-workpad .workspace-chassis-back { transform:translateZ(-15px); } }
+@media(forced-colors:active) {
+  .community-room .portal-console-face { background:Canvas;border:1px solid CanvasText;box-shadow:none; }
+  .community-room :is(.portal-console-plinth,.workspace-chassis) { display:none; }
+}

@@ -84,3 +84,34 @@ body.community-room:has(>.community-atmosphere[data-scene-art=image]) :is(.ateli
 @media(max-width:600px) { .community-room .atelier-backdrop { inset:0 7px 30px 0; }.atelier-dialogue-pair { --bubble-rear-z:-110px; }.atelier-note { bottom:22px; } }
 @media(prefers-reduced-motion:reduce) { .community-room .atelier-backdrop,.atelier-dialogue-pair { transform:none; }.bubble-thought { transform:translateZ(var(--bubble-front-z)) rotateY(-12deg) rotateZ(-5deg); }.bubble-reply { transform:translateZ(var(--bubble-rear-z)) rotateY(15deg) rotateZ(10deg); } }
 @media(forced-colors:active) { .conversation-atelier { display:none; }.community-room details.composer>summary { outline:1px solid CanvasText; }.community-room details.composer>summary::before,.community-room details.composer>summary::after,.workspace-chassis { display:none; } }
+
+/* The writing invitation responds like a glass lid: one light pass, a raised
+   tool, then a quiet held pose. The editor below always remains a flat plane. */
+.community-room details.composer>summary { transition:transform .55s cubic-bezier(.16,1,.3,1),filter .3s; }
+.community-room details.composer>summary>.composer-invitation-light { position:absolute;inset:1px;overflow:hidden;border-radius:inherit;pointer-events:none;transform:translateZ(1px);opacity:0;transition:opacity .2s; }
+.composer-invitation-light>i { position:absolute;inset:-90% auto -90% -34%;width:32%;background:linear-gradient(90deg,transparent,#d9fff12b 48%,#eefff951 50%,#d9fff11f 54%,transparent);transform:translateX(0) rotateZ(23deg); }
+.community-room details.composer>summary>.composer-invitation-orbit { position:absolute;right:18px;top:calc(50% - 25px);width:50px;height:50px;border:1px solid color-mix(in srgb,var(--accent) 50%,transparent);border-right-color:transparent;border-bottom-color:transparent;border-radius:50%;pointer-events:none;opacity:0;transform:translateZ(18px) rotateZ(-55deg) scale(.72);transition:opacity .25s,transform .65s cubic-bezier(.16,1,.3,1); }
+.community-room details.composer>summary>.icon { transition:transform .55s cubic-bezier(.16,1,.3,1),filter .4s; }
+.community-room details.composer>summary:focus-visible { outline:2px solid var(--focus);outline-offset:7px; }
+.community-room details.composer>summary:focus-visible>.composer-invitation-orbit { opacity:.8;transform:translateZ(18px) rotateZ(55deg) scale(1); }
+@keyframes atelier-invitation-light { from { transform:translateX(0) rotateZ(23deg); } to { transform:translateX(450%) rotateZ(23deg); } }
+@media(hover:hover) and (pointer:fine) {
+  :root:not([data-room-motion=paused]) .community-room details.composer:not([open])>summary:hover { transform:translateZ(17px) translateY(-3px) rotateX(-2.8deg) rotateY(-2deg); }
+  :root:not([data-room-motion=paused]) .community-room details.composer>summary:hover>.composer-invitation-light { opacity:1; }
+  :root:not([data-room-motion=paused]) .community-room details.composer>summary:hover>.composer-invitation-light>i { animation:atelier-invitation-light 1s cubic-bezier(.2,.6,.25,1) both; }
+  :root:not([data-room-motion=paused]) .community-room details.composer>summary:hover>.composer-invitation-orbit { opacity:.75;transform:translateZ(18px) rotateZ(55deg) scale(1); }
+  :root:not([data-room-motion=paused]) .community-room details.composer>summary:hover>.icon { transform:translateZ(29px) translateY(-3px) rotateZ(8deg);filter:drop-shadow(5px 10px 4px #0008); }
+  .community-room :is(.nav-write,.studio-entry-actions>.button,.discussion-join>.button) { transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s; }
+  :root:not([data-room-motion=paused]) .community-room :is(.nav-write,.studio-entry-actions>.button,.discussion-join>.button):hover { transform:translateY(-2px);box-shadow:0 4px 0 color-mix(in srgb,var(--accent) 35%,var(--bg)),5px 12px 20px -12px #000a; }
+  :root:not([data-room-motion=paused]) .community-room :is(.nav-write,.studio-entry-actions>.button,.discussion-join>.button):active { transform:translateY(1px);box-shadow:none; }
+}
+:root[data-theme=light] .composer-invitation-light>i { background:linear-gradient(90deg,transparent,#fff8 50%,transparent); }
+:root[data-room-motion=paused] .community-room details.composer>summary,:root[data-room-motion=paused] .community-room details.composer>summary>* { animation:none!important;transition:none!important; }
+:root[data-room-motion=paused] .composer-invitation-light,:root[data-room-motion=paused] .composer-invitation-orbit { opacity:0!important; }
+@media(prefers-reduced-motion:reduce) {
+  .community-room details.composer>summary,.community-room details.composer>summary>* { animation:none!important;transition:none!important; }
+  .community-room details.composer>summary>.composer-invitation-light,.community-room details.composer>summary>.composer-invitation-orbit { display:none; }
+  :root:not([data-room-motion=paused]) .community-room details.composer>summary:hover,:root:not([data-room-motion=paused]) .community-room details.composer>summary:hover>.icon { transform:none;filter:none; }
+  :root:not([data-room-motion=paused]) .community-room :is(.nav-write,.studio-entry-actions>.button,.discussion-join>.button):hover { transform:none;transition:none; }
+}
+@media(forced-colors:active) { .composer-invitation-light,.composer-invitation-orbit { display:none; } }
