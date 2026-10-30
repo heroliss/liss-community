@@ -9,7 +9,7 @@
   var scriptURL = document.currentScript && document.currentScript.src;
   var textureURL = new URL('textures/material-v22/normal-roughness.png', scriptURL || document.baseURI).href;
   var lifetime = new AbortController(), dispose = null;
-  var metrics = { version: 'room-material-v28', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'narrow-rounded-chamfer', transmission: 'native-backdrop', edgeSampling: false, antialias: 'analytic-rounded-coverage', lighting: 'upper-left-area-key+ambient', pigment: 'shared-css-gpu', contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
+  var metrics = { version: 'room-material-v28c', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'narrow-rounded-chamfer', transmission: 'native-backdrop', edgeSampling: false, antialias: 'analytic-rounded-coverage', lighting: 'upper-left-area-key+ambient', pigment: 'shared-css-gpu', materialContrast: 'intrinsic-grain-in-reading-budget', contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
   var inspectState = function () { return Object.assign({}, metrics); };
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
   var vertex = [
@@ -77,7 +77,7 @@
     ' float softbox=exp(-sq((R.x+.38)/.34)-sq((R.y-.42)/.50));',
     ' vec3 edgeDirection=bevelLength>.0001?vec3(bevelNormal,0.):vec3(0.,0.,1.);',
     ' float edgeLight=bevelLength>.0001?max(dot(rotateNormal(edgeDirection),L),0.):0.;',
-    ' vec3 color;float opacity;',
+    ' vec3 color;float opacity;float intrinsic=.5;',
     ' if(uKind<.5){',
     '  vec3 S=specular(N,V,L,max(.075,rough*.82),vec3(.04),false);',
     '  float energy=dot(S,vec3(.2126,.7152,.0722));',
@@ -100,6 +100,7 @@
     '  float glazePool=exp(-sq((R.x+.30)/.48)-sq((R.y-.40)/.58));',
     '  float glazeShoulder=smoothstep(0.,12.,min(edgeDistance.x,edgeDistance.y));',
     '  color=base*(.44+nl*.67)*(.80+data.a*.29)*(.91+glazeShoulder*.09)+S*reflectionTint*.38+reflectionTint*glazePool*.075;',
+    '  intrinsic=clamp((data.a-.81)*18.+.5,0.,1.);',
     '  opacity=1.;',
     ' }else if(uKind<2.5){',
     '  float sigma=rough*rough,A=1.-.5*sigma/(sigma+.33),B=.45*sigma/(sigma+.09);',
@@ -112,6 +113,7 @@
     // sheet rather than shimmering in screen space during scroll.
     '  float foldShade=1.-.13*exp(-sq(paperFold/.013))+.075*exp(-sq((paperFold+.017)/.018));',
     '  color=base*(.57+diffuse*.54)*(.76+data.a*.34+fibres*.10)*foldShade;opacity=1.;',
+    '  intrinsic=clamp((data.a-.81)*2.8+.5+fibres*.18,0.,1.);',
     ' }else{',
     '  vec3 S=specular(N,V,L,rough,mix(vec3(.48,.57,.64),uAccent,.20),true);',
     // Anodised metal has an elongated, directional reflection. Its machining
@@ -119,6 +121,7 @@
     '  float ribbon=exp(-sq((R.x+.39)/.14)-sq((R.y-.36)/.95));',
     '  float brush=.96+.04*sin(uv.y*min(uSize.y,uTileSize.y)*1.35+data.a*2.);',
     '  color=base*(.47+nl*.55)*(.83+data.a*.25)*brush+S*.38+reflectionTint*ribbon*.13;',
+    '  intrinsic=clamp((data.a-.81)*3.5+.5+(brush-.96)*4.,0.,1.);',
     '  opacity=1.;',
     ' }',
     ' if(uKind>.5){',
@@ -128,8 +131,18 @@
     '  float luminance=dot(energy,vec3(.2126,.7152,.0722));',
     '  if(uMode>.5){',
     '   float floorLight=mix(.50,uReadingLimit,readPool);',
-    '   energy=mix(energy,vec3(1.),clamp((floorLight-luminance)/max(1.-luminance,.0001),0.,1.));',
-    '  }else energy*=min(1.,mix(.16,uReadingLimit,readPool)/max(luminance,.0001));',
+    // The old hard ceiling/floor made every bright/dark microfacet converge
+    // on one luminance. Reserve intrinsic material variation inside that same
+    // reading budget; directional lighting changes exposure, not the grain.
+    '   float targetLight=floorLight+(1.-floorLight)*(.28+.65*intrinsic)*(.8+.2*luminance);',
+    '   energy=mix(energy*min(1.,targetLight/max(luminance,.0001)),vec3(1.),clamp((targetLight-luminance)/max(1.-luminance,.0001),0.,1.));',
+    '  }else{',
+    '   float ceiling=mix(.16,uReadingLimit,readPool);',
+    '   float textureStrength=uKind<1.5?.16:uKind<2.5?.30:.24;',
+    '   float exposure=luminance/(luminance+ceiling*.7);',
+    '   float targetLight=ceiling*(.62+.30*exposure)*(1.-textureStrength+textureStrength*intrinsic);',
+    '   energy*=targetLight/max(luminance,.0001);',
+    '  }',
     '  color=displayRGB(energy);',
     ' }',
     ' color=clamp(color+vec3(dither(uv*uSize)*.85/255.),0.,1.);',

@@ -202,19 +202,29 @@ html { scrollbar-gutter: stable; }
 .community-room span.depth-image-host[data-depth-host] {
   display: inline-block; width: fit-content; max-width: 100%; vertical-align: top; margin-block: 28px 34px;
   --depth-camera: 1500px; --depth-rest-rx:1.1deg; --depth-rest-ry:-2.4deg; --depth-rest-rz:-0.264deg;
+  --image-radius:2px; --image-glint-soft:#d4e9f50c; --image-glint-trace:#eefbf507;
+  --image-edge-light:#d6eceb46; --image-edge-dark:#07131f80; --image-edge-shadow:#010a1759;
 }
 .community-room .post-cover:has(.depth-image-host) { display: block; overflow: visible; aspect-ratio: auto; background: transparent; border: 0; max-height: none; }
-.community-room .post-cover .depth-image-host { display: block; width: 100%; margin: 0; --depth-rest-rx:1.65deg; --depth-rest-ry:-4deg; }
+.community-room .post-cover .depth-image-host { display: block; width: 100%; margin: 0; --depth-rest-rx:1.65deg; --depth-rest-ry:-4deg; --image-radius:7px; }
 .community-room .post-body p > .depth-image-host:only-child { display: block; margin-inline: auto; }
-.community-room [data-depth-kind=image] > .depth-scroll > .depth-arrival > .depth-surface { width: fit-content; max-width: 100%; padding: 0; box-shadow: 7px 15px 23px -18px var(--depth-shadow); }
+/* A photograph has a soft upper-left reflection and a narrow receiving edge.
+   Keep the centre transparent: a filled, independently tilted backing sheet
+   could surface as a white rectangle when the picture changed its local pose. */
+.community-room [data-depth-host][data-depth-kind=edition] .post-cover:has(.depth-image-host)::after { content:none; }
+.community-room [data-depth-kind=image] > .depth-scroll > .depth-arrival > .depth-surface { width: fit-content; max-width: 100%; padding: 0; border-radius:var(--image-radius); box-shadow: 7px 15px 23px -18px var(--depth-shadow); }
 .community-room [data-depth-kind=image] > .depth-scroll > .depth-arrival > .depth-surface::before {
-  content: ''; top: 1px; bottom: 1px; right: 0; width: 4px; background: var(--depth-edge);
-  transform-origin: right center; transform: rotateY(-79deg); border-radius: 0 2px 2px 0;
+  content:''; inset:0; border-radius:inherit; z-index:1;
+  background:radial-gradient(ellipse at calc(18% + (var(--depth-light-x,50%) - 50%) * .18) calc(4% + (var(--depth-light-y,50%) - 50%) * .12),var(--image-glint-soft),transparent 67%),linear-gradient(126deg,transparent 7%,var(--image-glint-trace) 22%,transparent 43% 100%);
+  transform:translateZ(.55px);
+  box-shadow:inset .7px .7px 0 var(--image-edge-light),inset -.6px -.6px 0 var(--image-edge-dark);
 }
 .community-room [data-depth-kind=image] > .depth-scroll > .depth-arrival > .depth-surface::after {
-  content: ''; bottom: 0; left: 1px; right: 1px; height: 4px; background: color-mix(in srgb,var(--room-warm) 36%,var(--line));
-  transform-origin: center bottom; transform: rotateX(-80deg);
+  content:''; inset:0 -2px -3px 1px; border-radius:inherit; background:transparent;
+  border:1px solid var(--image-edge-dark); border-top-color:var(--image-edge-light); border-left-color:var(--image-edge-light);
+  transform:translateZ(-3px); box-shadow:2px 4px 5px -3px var(--image-edge-shadow);
 }
+[data-theme=light] .community-room span.depth-image-host[data-depth-host] { --image-edge-light:#effbf67a; --image-edge-dark:#31586643; --image-edge-shadow:#173b4f2b; }
 .community-room [data-depth-kind=image] :is(img,button) { display: block; width: auto; max-width: 100%; height: auto; margin: 0; }
 .community-room [data-depth-kind=image] img { aspect-ratio: auto; object-fit: contain; border: 0; border-radius: 2px; }
 .community-room [data-depth-kind=image] button { border: 0; padding: 0; background: transparent; border-radius: 2px; cursor: zoom-in; text-align: inherit; }

@@ -107,7 +107,7 @@
       if(depth&&!surface)return;
       var scene={surfaceId:++surfaceSerial,host:host,scroll:scroll,arrival:arrival,surface:surface,header:!depth,
         kind:host.dataset.depthKind||'edition',visible:!observer,focused:false,held:false,selecting:false,fullscreen:false,hoverControl:false,
-        bounds:null,rest:[0,0],nested:!!host.parentElement.closest('[data-depth-host]'),inside:false,entering:false,
+        bounds:null,rest:[0,0],nested:!!host.parentElement.closest('[data-depth-host]'),follow:null,inside:false,entering:false,
         relayExcluded:!!host.closest('[data-appearance-preview]'),
         skipEntry:!!fromCache&&entered.has(host),animation:null,savedStyles:snapshot(host,depth?names:roomNames),restores:[],written:{},
         current:[0,0,0,0,0,0,0,0,50,50,.5,0,0],x:0,y:0};
@@ -129,7 +129,11 @@
       dirtyRegistry=false;
       scenes.forEach(function(scene){if(!scene.host.isConnected)unregister(scene);});
       document.querySelectorAll(selector).forEach(register);
-      scenes.forEach(function(scene){scene.nested=!!scene.host.parentElement.closest('[data-depth-host]');});
+      scenes.forEach(function(scene){
+        scene.nested=!!scene.host.parentElement.closest('[data-depth-host]');
+        var owner=scene.kind==='image'?pointerSceneFor(scene.host):scene;
+        scene.follow=owner!==scene?owner:null;
+      });
     }
     function measure(){
       dirtyLayout=false;
@@ -181,7 +185,7 @@
       // writing poses; the atmosphere consumes these damped numbers on its RAF.
       var dominant=null,best=-Infinity;
       if(!blocked())scenes.forEach(function(scene){
-        if(!scene.visible||scene.fullscreen||scene.relayExcluded||!scene.bounds)return;
+        if(!scene.visible||scene.fullscreen||scene.relayExcluded||scene.follow||!scene.bounds)return;
         var b=scene.bounds,overlap=Math.min(b.top+b.height,scrollY+innerHeight)-Math.max(b.top,scrollY);
         if(overlap<=0)return;
         var weight=scene.kind==='edition'||scene.kind==='image'?1.2:scene.kind==='reply'?1.1:scene.header ? .12 : scene.kind==='ledge' ? .3 : .7;
@@ -225,11 +229,15 @@
         }
       }
       var dt=lastTime?Math.min(48,time-lastTime):16;lastTime=time;
-      var blend=1-Math.exp(-dt/115),continueFrame=false;
+      var blend=1-Math.exp(-dt/115),imageBlend=1-Math.exp(-dt/165),continueFrame=false;
       attr(html,'data-community-spatial',blocked()?'static':'ready');
       scenes.forEach(function(scene){
         if(!observer&&scene.bounds)scene.visible=scene.bounds.top+scene.bounds.height>scrollY&&scene.bounds.top<scrollY+innerHeight;
-        var enabled=active(scene),frozen=held(scene),focused=scene.focused;
+        var follow=scene.follow;
+        // A mounted image shares the card's input owner, including its locks.
+        // Its small local drift may lag, but never establishes another camera.
+        var familyHeld=follow&&(!active(follow)||held(follow)||follow.focused||follow.fullscreen);
+        var enabled=active(scene),frozen=held(scene)||familyHeld,focused=scene.focused;
         attr(scene.host,'data-depth-visible',String(scene.visible));attr(scene.host,'data-depth-held',String(scene.held));
         attr(scene.host,'data-depth-focus',String(focused));attr(scene.host,'data-depth-selecting',String(scene.selecting));
         attr(scene.host,'data-depth-hover',String(scene.hoverControl));
@@ -254,6 +262,15 @@
         var values=[-y*profile[0]*attenuation,x*profile[1]*attenuation,x*profile[2]*attenuation,y*profile[3]*attenuation,
           pointerEnabled?profile[4]*attenuation:0,progress*1.25*scrollGain,-progress*14*scrollGain,(1-progress*progress)*20*scrollGain,
           50+x*22,50+y*18,(progress+1)*.5];
+        if(follow){
+          // Read the parent's already damped numbers, not the projected image
+          // bounds. Bounded same-direction targets plus a slower non-overshoot
+          // blend give a little suspension without a second hit-test owner.
+          var c=follow.current;
+          values[0]=clamp(c[0]*.20,-1.2,1.2);values[1]=clamp(c[1]*.20,-2.2,2.2);
+          values[2]=clamp(c[2]*.18,-3,3);values[3]=clamp(c[3]*.18,-2,2);
+          values[4]=clamp(c[4]*.22,0,4);values[8]=c[8];values[9]=c[9];
+        }
         if(scene.header)values=[-y*8,x*12,x*16,y*10,0,0,0,0,50,50,.5];
         if(reduce.matches||scene.fullscreen)values=[0,0,0,0,0,0,0,0,50,50,.5];
         // The writing plane stays face-on. Only its separate physical cradle
@@ -262,7 +279,7 @@
         var unsettled=false;
         values.forEach(function(value,index){
           var difference=value-scene.current[index];
-          if(Math.abs(difference)>.008){scene.current[index]+=difference*blend;unsettled=true;}else scene.current[index]=value;
+          if(Math.abs(difference)>.008){scene.current[index]+=difference*(follow?imageBlend:blend);unsettled=true;}else scene.current[index]=value;
         });
         if(reduce.matches||scene.fullscreen){scene.current=values;unsettled=false;}
         if(scene.header){
