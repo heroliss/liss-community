@@ -1,0 +1,32 @@
+{% import "_depth.html" as depth with context %}
+{% macro controls(form) %}
+{% set color = form.appearance_color.data or '' %}
+{% set material = form.appearance_material.data or 'auto' %}
+<details class="post-appearance" data-appearance-editor{% if form.appearance_color.errors or form.appearance_material.errors %} open{% endif %}>
+  <summary><span>文章外观</span><span class="appearance-current" data-appearance-status>配色与材质</span></summary>
+  <div class="appearance-layout">
+    <div class="appearance-controls">
+      <p class="appearance-intro">给文章一点自己的气质。色彩留在边缘与光影，文字仍然清晰。</p>
+      <div class="appearance-palette" data-appearance-enhanced hidden aria-label="推荐主题色">
+      {% for hex, name in [('#80bfa1','苔绿'),('#76b8cf','冰蓝'),('#a59bd8','鸢紫'),('#d6a37e','琥珀'),('#cf91a8','蔷薇'),('#bdc8b8','雾灰')] %}
+        <button type="button" class="appearance-swatch" style="--swatch:{{ hex }}" data-appearance-swatch="{{ hex }}" aria-label="{{ name }}" aria-pressed="false"><span></span></button>
+      {% endfor %}
+        <label class="appearance-picker" title="自选颜色"><span>自选</span><input type="color" value="{{ color if color else '#80bfa1' }}" data-appearance-picker aria-label="自选主题色"></label>
+      </div>
+      <div class="appearance-color-row"><label for="appearance_color">主题色</label>{{ form.appearance_color(class_='form-control appearance-hex', placeholder='自动配色', spellcheck='false', autocomplete='off', maxlength=7, **{'aria-describedby':'appearance-color-help','aria-invalid':'true' if form.appearance_color.errors else 'false'}) }}<button type="button" class="quiet-link" data-appearance-reset data-appearance-enhanced hidden>恢复自动</button></div>
+      <p class="field-help" id="appearance-color-help">可填 #80bfa1 这样的色值；留空由网站安排。</p>
+      {% for error in form.appearance_color.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+      <fieldset class="appearance-materials"><legend>卡片材质</legend><div class="appearance-material-options">
+      {% for value, label in form.appearance_material.choices %}<label><input type="radio" name="appearance_material" value="{{ value }}"{% if material == value %} checked{% endif %}><span class="material-chip material-chip-{{ value }}" aria-hidden="true"></span><span>{{ label }}</span></label>{% endfor %}
+      </div></fieldset>
+      {% for error in form.appearance_material.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+    </div>
+    <div class="appearance-sample-area" data-appearance-enhanced hidden>
+      <div class="appearance-sample" data-depth-host data-depth-kind="edition" data-pose="2" data-material="glass" data-appearance-preview>
+      {% call depth.layers(material=true) %}<span class="appearance-sample-label">外观预览</span><h3 data-appearance-title>你的下一篇文章</h3><p data-appearance-excerpt>一点发现，一个故事，或还在酝酿的想法。</p><span class="appearance-sample-foot">发布后，仍可随时调整。</span>{% endcall %}
+      </div>
+      <p class="appearance-sample-note">自动材质由网站搭配，预览以玻璃示意。</p>
+    </div>
+  </div>
+</details>
+{% endmacro %}

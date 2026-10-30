@@ -14,6 +14,8 @@
 
 2026-10-30 新的阅读室视觉版本已在 `design/community-reading-room` 分支完成本地验收，见[设计与验证记录](docs/design-reading-room.md)。此分支的本地隔离预览不代表正式站已经更新。
 
+v21 增加可保存的文章主题色与材质、连续的滚动姿态、透景玻璃及场景联动，见 [v21 变更与验收](docs/community-v21.md)。已有文章保持自动搭配；更新前需备份并按[外观迁移说明](docs/post-appearance.md)准备存储。
+
 作品展厅由 Astro 构建并部署到 [Liss Works](https://heroliss.github.io/liss-works/)，旧 `/works/` 入口重定向并保留路径。社区导航可以进入作品，22 项作品各自有 `/projects/<slug>/talk/` 讨论页；这里发表的讨论属于真实文章，可在文章流阅读、继续评论并由原作者编辑。原文章保留，关联表只记录项目关系。
 
 ## 网站管理

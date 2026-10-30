@@ -19,8 +19,9 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='community-identity.css') }}?v=20261030-17">
 <link rel="stylesheet" href="{{ url_for('static', filename='community-spatial.css') }}?v=20261030-19b">
 <link rel="stylesheet" href="{{ url_for('static', filename='community-depth.css') }}?v=20261030-19b">
-<link rel="stylesheet" href="{{ url_for('static', filename='community-atmosphere.css') }}?v=20261030-20b">
-<link rel="stylesheet" href="{{ url_for('static', filename='community-materials.css') }}?v=20261030-20b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-atmosphere.css') }}?v=20261030-21b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-materials.css') }}?v=20261030-21b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-appearance.css') }}?v=20261030-21b">
 <script src="{{ url_for('static', filename='community-transitions.js') }}?v=20261030-19b" blocking="render"></script>
 {% endblock %}
 {% block navbar %}
@@ -67,12 +68,13 @@
 {{ moment.locale("zh-cn") }}
 <script src="{{ url_for('static', filename='liss.js') }}?v=20261025-1" defer></script>
 <script src="{{ url_for('static', filename='community-room.js') }}?v=20261030-19b" defer></script>
-<script src="{{ url_for('static', filename='community-spatial.js') }}?v=20261030-19b" defer></script>
+<script src="{{ url_for('static', filename='community-spatial.js') }}?v=20261030-21b" defer></script>
 <script src="{{ url_for('static', filename='community-gallery.js') }}?v=20261030-19b" defer></script>
-<script src="{{ url_for('static', filename='community-atmosphere.js') }}?v=20261030-20b" defer></script>
+<script src="{{ url_for('static', filename='community-atmosphere.js') }}?v=20261030-21b" defer></script>
 {% if request.endpoint in ['main.index', 'main.edit', 'community.project_talk'] and current_user.is_authenticated %}
 <script src="{{ url_for('static', filename='vendor/dompurify-3.4.17/purify.min.js') }}" defer></script>
 <script src="{{ url_for('static', filename='vendor/easymde-2.21.0/easymde.min.js') }}" defer></script>
 <script src="{{ url_for('static', filename='writing.js') }}?v=20261024-2" defer></script>
+<script src="{{ url_for('static', filename='community-appearance.js') }}?v=20261030-21b" defer></script>
 {% endif %}
 {% endblock %}

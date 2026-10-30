@@ -11,6 +11,7 @@ from werkzeug.utils import safe_join
 from . import db
 from .main.forms import PostForm
 from .models import Permission, Post
+from .post_appearance import post_appearance
 
 community = Blueprint('community', __name__)
 
@@ -105,7 +106,7 @@ class ProjectEntry(db.Model):
 def project_context():
     from .transactional_mail import email_accounts_enabled
     return {'project_catalog': PROJECTS, 'canonical_project_slug': canonical_project_slug,
-            'email_accounts_enabled': email_accounts_enabled}
+            'email_accounts_enabled': email_accounts_enabled, 'post_appearance': post_appearance}
 
 
 @community.get('/writing-guide/')
@@ -130,6 +131,7 @@ def project_talk(slug):
         if not current_user.is_authenticated or not current_user.can(Permission.WRITE_ARTICLES):
             abort(403)
         post = Post(body=form.body.data, author=current_user._get_current_object())
+        form.save_appearance(post)
         db.session.add(ProjectEntry(project_slug=slug, post=post))
         db.session.commit()
         return redirect(url_for('main.post', id=post.id))

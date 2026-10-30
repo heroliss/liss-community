@@ -1,10 +1,10 @@
 /* One spatial controller for native Flask pages. Stable hosts own perspective;
-   scroll / finite arrival / pointer surfaces each own a different transform. */
+   scroll and pointer surfaces own transforms; finite arrival only settles light. */
 (function () {
   'use strict';
   var key = '__lissCommunitySpatial';
   if (window[key] && typeof window[key].destroy === 'function') window[key].destroy();
-  var lifetime = new AbortController(), dispose = null, entered = new WeakMap(), serial = 0;
+  var lifetime = new AbortController(), dispose = null, entered = new WeakSet(), serial = 0;
   var selector = '[data-depth-host],[data-room-scene]';
   var interactive = 'input,textarea,select,[contenteditable="true"],.CodeMirror,.editor-toolbar';
   var fullscreenSelector = '.editor-toolbar.fullscreen,.CodeMirror-fullscreen,.editor-preview-active-side';
@@ -30,7 +30,7 @@
     var scenes=new Set(),byHost=new WeakMap(),inserted=[],restorers=[];
     var frame=0,lastTime=0,closed=false,dirtyLayout=true,dirtyRegistry=true,dirtyLocks=true;
     var pointerOwner=null,pointer={x:0,y:0,present:false},clientPoint={x:0,y:0,known:false},hoveredControl=null,dirtyHitTest=false;
-    var timers=new Set(),windowActive=true,modalOpen=false,pressed=false,selectionPresent=false;
+    var timers=new Set(),windowActive=true,modalOpen=false,pressed=false,selectionPresent=false,lastRelay='',lastFrame=null;
     var previousState=html.getAttribute('data-community-spatial');
     function attr(node,name,value){if(node.getAttribute(name)!==value)node.setAttribute(name,value);}
     function remember(node,name){
@@ -77,15 +77,17 @@
       if(cancel){scene.animation.cancel();scene.animation=null;}
       else if(scene.animation.playState==='running')scene.animation.pause();
     }
-    function startArrival(scene,time){
+    function startArrival(scene){
       scene.entering=false;
+      // Entry is a one-time light settling, not another angular pose. Replaying
+      // a fixed rotateX origin on each IO re-entry caused the visible scroll pop.
+      if(entered.has(scene.host))return;
+      entered.add(scene.host);
       if(scene.header||!scene.arrival||!scene.arrival.animate||!active(scene)||held(scene)||scene.focused)return;
-      if(time-(entered.get(scene.host)||-10000)<900)return;
-      entered.set(scene.host,time);stopArrival(scene,true);
-      var gain=scene.kind==='reader'||scene.kind==='workspace'?.3:1;
+      stopArrival(scene,true);
       var animation=scene.arrival.animate([
-        {transform:'translate3d(0,'+(12*gain)+'px,0) rotateX('+(-2.8*gain)+'deg)',opacity:.94},
-        {transform:'none',opacity:1}
+        {opacity:.96},
+        {opacity:1}
       ],{duration:450,easing:'cubic-bezier(.16,1,.3,1)',fill:'none'});
       scene.animation=animation;
       animation.finished.then(function(){if(scene.animation===animation){animation.cancel();scene.animation=null;}}).catch(function(){});
@@ -101,7 +103,8 @@
       if(depth&&!surface)return;
       var scene={host:host,scroll:scroll,arrival:arrival,surface:surface,header:!depth,
         kind:host.dataset.depthKind||'edition',visible:!observer,focused:false,held:false,selecting:false,fullscreen:false,hoverControl:false,
-        bounds:null,nested:!!host.parentElement.closest('[data-depth-host]'),inside:false,entering:false,
+        bounds:null,rest:[0,0],nested:!!host.parentElement.closest('[data-depth-host]'),inside:false,entering:false,
+        relayExcluded:!!host.closest('[data-appearance-preview]'),
         skipEntry:!!fromCache&&entered.has(host),animation:null,savedStyles:snapshot(host,depth?names:roomNames),restores:[],written:{},
         current:[0,0,0,0,0,0,0,0,50,50,.5],x:0,y:0};
       ['data-depth-visible','data-depth-active','data-depth-held','data-depth-focus','data-depth-selecting','data-depth-fullscreen','data-depth-hover']
@@ -142,6 +145,8 @@
         }
         if(!b){var r=host.getBoundingClientRect();b={left:r.left+scrollX,top:r.top+scrollY,width:r.width,height:r.height};}
         scene.bounds=b;
+        var computed=getComputedStyle(host);
+        scene.rest=[parseFloat(computed.getPropertyValue('--depth-rest-rx'))||0,parseFloat(computed.getPropertyValue('--depth-rest-ry'))||0];
         if(!observer)scene.visible=b.top+b.height>scrollY&&b.top<scrollY+innerHeight;
       });
     }
@@ -166,6 +171,32 @@
     function write(scene,index,value,unit){
       var name=names[index],next=value.toFixed(index===10?4:2)+(unit||'');
       if(scene.written[name]!==next){scene.host.style.setProperty(name,next);scene.written[name]=next;}
+    }
+    function relayFrame(){
+      // Geometry was measured in the read batch. Do not query layout again after
+      // writing poses; the atmosphere consumes these damped numbers on its RAF.
+      var dominant=null,best=-Infinity;
+      if(!blocked())scenes.forEach(function(scene){
+        if(!scene.visible||scene.fullscreen||scene.relayExcluded||!scene.bounds)return;
+        var b=scene.bounds,overlap=Math.min(b.top+b.height,scrollY+innerHeight)-Math.max(b.top,scrollY);
+        if(overlap<=0)return;
+        var weight=scene.kind==='edition'||scene.kind==='image'?1.2:scene.kind==='reply'?1.1:scene.header ? .12 : scene.kind==='ledge' ? .3 : .7;
+        var score=overlap/Math.max(1,Math.min(b.height,innerHeight))*weight-
+          Math.abs(b.top+b.height*.5-scrollY-innerHeight*.5)/Math.max(1,innerHeight)*.15;
+        if(scene===pointerOwner)score+=3;
+        if(score>best){best=score;dominant=scene;}
+      });
+      var detail={active:!!dominant,id:null,kind:null,rx:0,ry:0,x:0,y:0,scroll:.5,lightX:50,lightY:50};
+      if(dominant){
+        var c=dominant.current;
+        detail.id=dominant.host.dataset.depthId||dominant.host.id||null;detail.kind=dominant.header?'header':dominant.kind;
+        detail.rx=dominant.rest[0]+c[0]+c[5];detail.ry=dominant.rest[1]+c[1];
+        detail.x=c[2];detail.y=c[3]+c[6];detail.scroll=c[10];detail.lightX=c[8];detail.lightY=c[9];
+        ['rx','ry','x','y','scroll','lightX','lightY'].forEach(function(name){detail[name]=Number(detail[name].toFixed(2));});
+      }
+      var signature=JSON.stringify(detail);
+      lastFrame=detail;
+      if(signature!==lastRelay){lastRelay=signature;window.dispatchEvent(new CustomEvent('liss:spatial-frame',{detail:Object.assign({},detail)}));}
     }
     function paint(time){
       frame=0;if(closed)return;
@@ -193,7 +224,7 @@
         else if(!enabled||frozen)stopArrival(scene,false);
         else if(focused)stopArrival(scene,true);
         else if(scene.animation&&scene.animation.playState==='paused')scene.animation.play();
-        if(scene.entering)startArrival(scene,time);
+        if(scene.entering)startArrival(scene);
         if(!enabled&&!reduce.matches&&!scene.fullscreen)return;
         if(frozen&&!reduce.matches&&!scene.fullscreen)return;
         var b=scene.bounds,profile=profiles[scene.kind]||profiles.edition;
@@ -227,6 +258,7 @@
         }
         if(unsettled&&enabled)continueFrame=true;
       });
+      relayFrame();
       if(continueFrame)schedule();else lastTime=0;
     }
     function sceneFor(node){
@@ -276,7 +308,7 @@
         if(scene.visible&&!previous){if(scene.skipEntry)scene.skipEntry=false;else scene.entering=true;dirtyLayout=true;}
         if(!scene.visible){scene.inside=false;scene.x=scene.y=0;if(hoveredControl&&scene.host.contains(hoveredControl))updateHoverControl(null);stopArrival(scene,true);}
       });schedule();
-    },{threshold:0}):null;
+    },{threshold:0,rootMargin:'160px 0px 160px 0px'}):null;
     var resizeObserver=window.ResizeObserver?new ResizeObserver(invalidate):null;
     document.addEventListener('pointermove',function(event){
       if(event.pointerType==='touch')return;
@@ -322,6 +354,9 @@
     reduce.addEventListener('change',gate,{signal:signal});
     fine.addEventListener('change',function(){leavePointer();gate();},{signal:signal});
     window.addEventListener('liss:motion-state',gate,{signal:signal});
+    window.addEventListener('liss:spatial-request',function(){
+      if(lastFrame)window.dispatchEvent(new CustomEvent('liss:spatial-frame',{detail:Object.assign({},lastFrame)}));else schedule();
+    },{signal:signal});
     document.addEventListener('liss:depth-content',function(){dirtyRegistry=true;dirtyLocks=true;invalidate();},{signal:signal});
     document.addEventListener('liss:write',function(){dirtyLocks=true;invalidate();},{signal:signal});
     var stateObserver=new MutationObserver(gate);

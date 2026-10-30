@@ -1,4 +1,4 @@
-/* v20 material leaves. The stationary host still owns perspective, and the
+/* Material leaves. The stationary host still owns perspective, and the
    v19 controller still owns pointer/scroll transforms. Filtered or masked
    leaves never become a preserve-3d ancestor of the actual article content. */
 .community-room .material-shell { display: none; }
@@ -12,6 +12,14 @@
   --material-contact: #01070780;
   --material-light: #d6ede2;
   --material-inset: 0px;
+}
+.community-room [data-material][data-theme-color]:not([data-theme-color='']) {
+  --material-edge-tint: color-mix(in srgb,var(--material-edge) 50%,var(--appearance-accent,var(--material-edge)));
+  --material-specular: color-mix(in srgb,var(--appearance-accent) 70%,#e2f7f0);
+}
+.community-room [data-material][data-theme-color]:not([data-theme-color='']) .material-base::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(ellipse at var(--depth-light-x,30%) 12%,color-mix(in srgb,var(--appearance-accent) 8%,transparent),transparent 76%);
 }
 .community-room [data-material][data-depth-kind=edition] {
   --depth-camera: 1350px;
@@ -57,19 +65,19 @@
 .community-room .material-side::after { content: ''; top: 12px; bottom: 12px; width: var(--material-thickness); background: var(--material-edge); }
 .community-room .material-side::before {
   left: calc(var(--material-thickness) * -1); border-radius: 6px 0 0 6px; transform-origin: right center; transform: rotateY(-90deg);
-  background: linear-gradient(90deg,color-mix(in srgb,var(--material-edge) 65%,#020b10),var(--material-edge));
+  background: linear-gradient(90deg,color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 35%,#020b10),color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 68%,#07151a));
 }
 .community-room .material-side::after {
   right: calc(var(--material-thickness) * -1); border-radius: 0 6px 6px 0; transform-origin: left center; transform: rotateY(90deg);
-  background: linear-gradient(90deg,var(--material-edge),color-mix(in srgb,var(--material-edge) 52%,#020b10));
+  background: linear-gradient(90deg,var(--material-edge-tint,var(--material-edge)),color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 52%,#020b10));
 }
 .community-room .material-bottom::before,
 .community-room .material-bottom::after { content: ''; left: 6px; right: 6px; height: var(--material-thickness); background: var(--material-edge); }
-.community-room .material-bottom::before { top: calc(var(--material-thickness) * -1); transform-origin: center bottom; transform: rotateX(90deg); background: color-mix(in srgb,var(--material-edge) 78%,var(--material-light)); }
-.community-room .material-bottom::after { bottom: calc(var(--material-thickness) * -1); transform-origin: center top; transform: rotateX(-90deg); background: linear-gradient(0deg,color-mix(in srgb,var(--material-edge) 64%,#020b10),var(--material-edge)); }
+.community-room .material-bottom::before { top: calc(var(--material-thickness) * -1); transform-origin: center bottom; transform: rotateX(90deg); background: color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 78%,var(--material-light)); }
+.community-room .material-bottom::after { bottom: calc(var(--material-thickness) * -1); transform-origin: center top; transform: rotateX(-90deg); background: linear-gradient(0deg,color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 64%,#020b10),var(--material-edge-tint,var(--material-edge))); }
 .community-room .material-rim {
   padding: 1px; transform: translateZ(.6px);
-  background: linear-gradient(125deg,transparent 3%,#c6ece96b 12%,#79b9c425 28%,transparent 44% 68%,#8ec6ca45 82%,transparent 98%);
+  background: linear-gradient(125deg,transparent 3%,color-mix(in srgb,var(--material-specular,#c6ece9) 42%,transparent) 12%,#79b9c425 28%,transparent 44% 68%,#8ec6ca45 82%,transparent 98%);
   -webkit-mask: linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor; mask: linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); mask-composite: exclude;
 }
@@ -79,40 +87,46 @@
   transform: translate3d(calc((var(--depth-light-x,50%) - 50%) * .32),calc((var(--depth-light-y,50%) - 50%) * .12),1px);
 }
 
-/* Smoked glass: genuine backdrop blur on a leaf, thick tinted edges and an
-   offset edge veil. The latter approximates refraction rather than ray tracing. */
+/* Low-tint cast glass. Only the text's reading pool is darkened; the perimeter
+   transmits the studio. A sampled scene strip bends through its thicker edge.
+   This is an optical approximation, not a physical ray-traced material. */
 .community-room [data-material=glass] {
   --material-thickness: 14px; --material-radius: 16px 28px 19px 12px;
-  --material-edge: #466d70; --material-back: #10282c66; --material-base: #14292ff0;
+  --material-edge: #3f6568; --material-back: #10282c20; --material-base: #14292ff0;
 }
 .community-room [data-material=glass] .material-base {
   background: linear-gradient(135deg,#25494be6,#10272bf2 58%,#1b3237e8);
-  box-shadow: inset 2px 3px 8px #c8ede510,inset -3px -3px 9px #020b115e;
+  box-shadow: inset 2px 3px 9px #c8ede50d,inset -3px -3px 9px #020b113d;
+}
+.community-room [data-material=glass] .material-base::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(ellipse at 43% 48%,#08161c61 0%,#08161c38 40%,#08161c0a 79%,transparent 100%);
 }
 .community-room [data-material=glass] .material-rim {
-  padding: 1.25px;
-  background: radial-gradient(ellipse at left top,#d5f5f25e 0%,#94c9d124 25%,transparent 62%),linear-gradient(90deg,transparent 57%,#7bc8d638 70%,#e0cba733 76%,transparent 85%);
+  padding: 1px;
+  background: radial-gradient(ellipse at var(--depth-light-x,32%) 0%,color-mix(in srgb,var(--material-specular,#d5f5f2) 46%,transparent) 0%,color-mix(in srgb,var(--material-specular,#94c9d1) 15%,transparent) 24%,transparent 53%),linear-gradient(90deg,transparent 57%,color-mix(in srgb,var(--material-edge-tint,#7bc8d6) 19%,transparent) 70%,#e0cba725 76%,transparent 85%);
   background-size: 100% 100%,100% 5px; background-position: 0 0,0 100%; background-repeat: no-repeat;
 }
 .community-room [data-material=glass] .material-refraction {
-  display: block; padding: 4px; transform: translate3d(1.5px,-.8px,.35px);
-  background: radial-gradient(ellipse at left top,#73d9d619 0%,#ecf9de12 15%,transparent 56%),linear-gradient(90deg,transparent 58%,#79badd24 72%,#cbb98a18 79%,transparent 89%);
-  background-size: 100% 100%,100% 6px; background-position: 0 0,0 100%; background-repeat: no-repeat;
+  display: block; padding: 4.5px; transform: translateZ(.35px); overflow: hidden;
+  background: radial-gradient(ellipse at left top,#73d9d616 0%,#ecf9de0d 15%,transparent 56%),linear-gradient(90deg,transparent 58%,#79badd20 72%,#cbb98a15 79%,transparent 89%);
+  background-size: 100% 100%,100% 8px; background-position: 0 0,0 100%; background-repeat: no-repeat;
   -webkit-mask: linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor; mask: linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); mask-composite: exclude;
 }
+.community-room .material-optic-sample { position: absolute; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; opacity: .85; filter: saturate(1.25) contrast(1.12); }
 .community-room [data-material=glass] .material-sheen { background: linear-gradient(115deg,transparent 5%,#acdbd908 24%,#e0ffed1a 33%,transparent 47% 100%); }
 .community-room [data-material=glass] .comment-date { color: var(--muted); }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .community-room [data-material=glass] .material-back { background: #102c3424; }
+  .community-room [data-material=glass] .material-back { background: #102c340a; }
   .community-room [data-material=glass] .material-base {
-    background: linear-gradient(135deg,#254b4e9e,#10272bc4 58%,#18353ab0);
-    -webkit-backdrop-filter: blur(16px) saturate(1.3) brightness(.82);
-    backdrop-filter: blur(16px) saturate(1.3) brightness(.82);
+    background: linear-gradient(135deg,#48777940,#10272b4d 58%,#37646a33);
+    -webkit-backdrop-filter: blur(11px) saturate(1.18) brightness(1.05);
+    backdrop-filter: blur(11px) saturate(1.18) brightness(1.05);
   }
   .community-room [data-material=glass] .material-refraction {
-    -webkit-backdrop-filter: blur(1.2px) saturate(1.6) contrast(1.08);
-    backdrop-filter: blur(1.2px) saturate(1.6) contrast(1.08);
+    -webkit-backdrop-filter: blur(.65px) saturate(1.6) contrast(1.12);
+    backdrop-filter: blur(.65px) saturate(1.6) contrast(1.12);
   }
 }
 
@@ -125,7 +139,7 @@
   background: radial-gradient(ellipse at 18% -18%,#79998636,transparent 62%),linear-gradient(145deg,#263e36,#172b2a 64%,#203a35);
   box-shadow: inset 3px 5px 12px #bed2b31a,inset -3px -5px 11px #06130f8c;
 }
-.community-room [data-material=ceramic] .material-rim { padding: 1px; background: linear-gradient(132deg,#c6d7b743,transparent 35% 74%,#527a655e); }
+.community-room [data-material=ceramic] .material-rim { padding: 1px; background: linear-gradient(132deg,color-mix(in srgb,var(--material-specular,#c6d7b7) 27%,transparent),transparent 35% 74%,color-mix(in srgb,var(--material-edge-tint,#527a65) 37%,transparent)); }
 .community-room [data-material=ceramic] .material-sheen { background: radial-gradient(ellipse at 14% 0%,#d6eac80d,transparent 65%); }
 
 /* An opaque warm charcoal folio; the thin lower edge reads as a page block. */
@@ -137,7 +151,7 @@
   background: linear-gradient(120deg,#30352b,#242e29 50%,#272e26);
   box-shadow: inset 0 1px 0 #d7dfb61c,inset 0 -1px 0 #11170f8c;
 }
-.community-room [data-material=paper] .material-rim { padding: 1px; background: linear-gradient(110deg,#ced6b528,transparent 21% 90%,#a5b29320); }
+.community-room [data-material=paper] .material-rim { padding: 1px; background: linear-gradient(110deg,color-mix(in srgb,var(--material-specular,#ced6b5) 18%,transparent),transparent 21% 90%,#a5b29320); }
 .community-room [data-material=paper] .material-sheen { background: none; }
 .community-room [data-material=paper] .material-bottom::after { background: linear-gradient(180deg,#6a705d,#3c483b 24%,#66705a 45%,#394739 64%,#58654f); }
 
@@ -150,7 +164,7 @@
   background: linear-gradient(112deg,#1c2a31,#33474d 15%,#20343d 32%,#1a2b33 64%,#30444a);
   box-shadow: inset 0 2px 0 #d4e3e92e,inset 0 -2px 0 #071319a3;
 }
-.community-room [data-material=metal] .material-rim { padding: 1px; background: linear-gradient(112deg,#d7e9ef75,#a2c5d127 23%,transparent 46% 68%,#89b1c040 91%); }
+.community-room [data-material=metal] .material-rim { padding: 1px; background: linear-gradient(112deg,color-mix(in srgb,var(--material-specular,#d7e9ef) 46%,transparent),#a2c5d127 23%,transparent 46% 68%,color-mix(in srgb,var(--material-edge-tint,#89b1c0) 25%,transparent) 91%); }
 .community-room [data-material=metal] .material-sheen { background: linear-gradient(112deg,transparent 7%,#b8d4de08 27%,#c4e7ef19 32%,#d8eef724 35%,transparent 43% 100%); }
 .community-room :is([data-material=glass],[data-material=metal]) :is(.post-date,.edit-post) { color: var(--muted); }
 
@@ -179,12 +193,21 @@
 .community-room .room-fold.has-spatial-model .spatial-leaf--fold { background: linear-gradient(128deg,#3a5146,#263c33); }
 .community-room .room-fold.has-spatial-model .spatial-paper-score { opacity: .78; border-color: #adc7ba40; }
 .community-room .community-aside [data-depth-kind=ledge]:nth-of-type(even) { --depth-rest-rx: -.7deg; --depth-rest-ry: 2.7deg; --depth-rest-rz: -.2deg; }
-.community-room .community-aside [data-depth-kind=ledge] > .depth-scroll > .depth-arrival > .depth-surface::before { height: 15px; background: radial-gradient(ellipse at center,#73968d40,transparent 73%); transform: translateZ(-14px) rotateX(62deg); }
-.community-room .community-aside [data-depth-kind=ledge] > .depth-scroll > .depth-arrival > .depth-surface::after { background: radial-gradient(ellipse at left center,#608e8740,transparent 74%); }
+.community-room .community-aside [data-depth-kind=ledge] > .depth-scroll > .depth-arrival > .depth-surface::before {
+  height: 23px; bottom: -11px; left: -5px; right: -8px; border-radius: 42% 12% 30% 11%;
+  background: linear-gradient(155deg,#57796d2e,#203d3933 45%,#091a200d 82%);
+  box-shadow: 8px 13px 20px -13px #01090da8;
+  transform: translateZ(-14px) rotateX(calc(59deg + var(--scene-support-rx,0deg))) rotateY(var(--scene-support-ry,0deg));
+}
+.community-room .community-aside [data-depth-kind=ledge] > .depth-scroll > .depth-arrival > .depth-surface::after {
+  background: radial-gradient(ellipse at var(--scene-light-x,35%) center,#8aafa444,transparent 72%);
+  opacity: .65;
+}
 
 [data-theme=light] .community-room [data-material] { --material-shadow: #19372c3d; --material-contact: #19372c29; --material-light: #fcfff3; }
-[data-theme=light] .community-room [data-material=glass] { --material-edge: #91b0a8; --material-back: #c4d8ce70; }
-[data-theme=light] .community-room [data-material=glass] .material-base { background: linear-gradient(135deg,#f1fae9d9,#e5f2e2e8 70%,#e0eee2df); -webkit-backdrop-filter: blur(16px) saturate(1.15); backdrop-filter: blur(16px) saturate(1.15); box-shadow: inset 2px 3px 8px #fff9,inset -2px -3px 7px #597b6b19; }
+[data-theme=light] .community-room [data-material=glass] { --material-edge: #91b0a8; --material-back: #c4d8ce1a; }
+[data-theme=light] .community-room [data-material=glass] .material-base { background: linear-gradient(135deg,#f1fae957,#e5f2e261 70%,#e0eee247); -webkit-backdrop-filter: blur(11px) saturate(1.15); backdrop-filter: blur(11px) saturate(1.15); box-shadow: inset 2px 3px 8px #fff5,inset -2px -3px 7px #597b6b12; }
+[data-theme=light] .community-room [data-material=glass] .material-base::after { background: radial-gradient(ellipse at 43% 48%,#f0f5e6b3 0%,#f0f5e680 40%,#f0f5e60a 79%,transparent); }
 [data-theme=light] .community-room [data-material=glass] .material-rim { background: linear-gradient(128deg,#ffffffd9,#749d9b55 24%,transparent 43% 67%,#658c8b55 90%); }
 [data-theme=light] .community-room [data-material=ceramic] { --material-edge: #9daf97; --material-back: #d0dec8; }
 [data-theme=light] .community-room [data-material=ceramic] .material-base { background: radial-gradient(ellipse at 18% -18%,#fffff9c2,transparent 65%),linear-gradient(145deg,#e3edd4,#edf4e3 64%,#d9e8d0); box-shadow: inset 3px 5px 12px #fff9,inset -3px -5px 11px #57745022; }
@@ -211,8 +234,8 @@
   .community-room [data-material][data-depth-kind=edition][data-pose="4"] { --depth-rest-rx: 1deg; --depth-rest-ry: 1.7deg; --depth-rest-rz: .1deg; }
   .community-room [data-material][data-depth-kind=reply][data-pose] { --depth-rest-rx: .6deg; --depth-rest-ry: -.6deg; --depth-rest-rz: 0deg; --material-thickness: 4px; }
   .community-room [data-material][data-depth-kind=reply]:nth-child(even) { --depth-rest-rx: -.4deg; --depth-rest-ry: .7deg; }
-  .community-room [data-material=glass] .material-base { -webkit-backdrop-filter: blur(10px) saturate(1.2) brightness(.86); backdrop-filter: blur(10px) saturate(1.2) brightness(.86); }
-  .community-room [data-material] .material-refraction { padding: 3px; }
+  .community-room [data-material=glass] .material-base { -webkit-backdrop-filter: blur(8px) saturate(1.15) brightness(1.02); backdrop-filter: blur(8px) saturate(1.15) brightness(1.02); }
+  .community-room [data-material] .material-refraction { padding: 3.5px; }
   .community-room [data-material=glass] .material-rim { padding: 1px; }
   .community-room .room-fold.has-spatial-model .spatial-leaf--main::after { -webkit-backdrop-filter: none; backdrop-filter: none; }
 }

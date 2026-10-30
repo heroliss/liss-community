@@ -59,6 +59,7 @@ def index():
         post = Post(body=form.body.data,
                     author=current_user._get_current_object())
         db.session.add(post)
+        form.save_appearance(post)
         db.session.commit()
         return redirect(url_for('.index'))
     page = request.args.get('page', 1, type=int)
@@ -176,11 +177,14 @@ def edit(id):
     form = PostForm()
     if form.validate_on_submit():
         post.body = form.body.data
+        form.save_appearance(post)
         db.session.add(post)
         db.session.commit()
         flash('修改已提交！')
         return redirect(url_for('.post', id=post.id))
-    form.body.data = post.body
+    if not form.is_submitted():
+        form.body.data = post.body
+    form.load_appearance(post)
     return render_template('edit_post.html', form=form)
 
 

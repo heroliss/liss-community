@@ -10,6 +10,7 @@ import bleach
 from flask import current_app, request, url_for
 from flask_login import UserMixin, AnonymousUserMixin
 from itsdangerous import BadData
+from sqlalchemy.orm import validates
 import hmac
 from app.exceptions import ValidationError
 from . import db, login_manager
@@ -406,6 +407,9 @@ class Post(db.Model):
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     hidden = db.Column(db.Boolean, nullable=False, default=False, server_default='0', index=True)
     comments = db.relationship('Comment', backref='post', lazy='dynamic')
+    appearance = db.relationship('PostAppearance', back_populates='post', uselist=False,
+                                 cascade='all, delete-orphan', single_parent=True,
+                                 lazy='selectin')
 
     @property
     def visible_comment_count(self):
@@ -510,6 +514,29 @@ class Post(db.Model):
 
 
 db.event.listen(Post.body, 'set', Post.on_changed_body)
+
+
+class PostAppearance(db.Model):
+    """An optional row keeps pre-existing articles and their bodies untouched."""
+    __tablename__ = 'post_appearances'
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id', ondelete='CASCADE'), primary_key=True)
+    theme_color = db.Column(db.String(7), nullable=False, default='', server_default='')
+    card_material = db.Column(db.String(16), nullable=False, default='auto', server_default='auto')
+    post = db.relationship('Post', back_populates='appearance')
+    __table_args__ = (
+        db.CheckConstraint("card_material IN ('auto','glass','ceramic','paper','metal')", name='ck_post_appearance_material'),
+        db.CheckConstraint("theme_color = '' OR (length(theme_color) = 7 AND substr(theme_color,1,1) = '#')", name='ck_post_appearance_color_shape'),
+    )
+
+    @validates('theme_color')
+    def validate_theme_color(self, _key, value):
+        from .post_appearance import normalize_color
+        return normalize_color(value)
+
+    @validates('card_material')
+    def validate_card_material(self, _key, value):
+        from .post_appearance import normalize_material
+        return normalize_material(value)
 
 
 class Comment(db.Model):
