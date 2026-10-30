@@ -9,7 +9,7 @@
   var scriptURL = document.currentScript && document.currentScript.src;
   var textureURL = new URL('textures/material-v22/normal-roughness.png', scriptURL || document.baseURI).href;
   var lifetime = new AbortController(), dispose = null;
-  var metrics = { version: 'room-material-v30', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'material-specific-flat-chamfer-or-soft-shoulder', shapeProfiles: ['crystal-plane','ceramic-rim','paper-sheet','folded-metal','leather-pad','cork-cut','slate-cleft'], transmission: 'native-backdrop', edgeSampling: false, antialias: 'analytic-rounded-coverage', lighting: 'upper-left-area-key+ambient', pigment: 'shared-css-gpu', materialContrast: 'intrinsic-grain-in-reading-budget', materialKinds: 7, atlasSources: 4, contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
+  var metrics = { version: 'room-material-v31', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'material-specific-flat-chamfer-or-soft-shoulder', shapeProfiles: ['crystal-plane','ceramic-rim','paper-sheet','folded-metal','leather-pad','cork-cut','slate-cleft'], transmission: 'native-backdrop', edgeSampling: false, antialias: 'analytic-rounded-coverage', lighting: 'upper-left-area-key+ambient', pigment: 'shared-css-gpu', materialContrast: 'intrinsic-grain-in-reading-budget', materialKinds: 7, materialChoices: 8, glassFinishes: 2, atlasSources: 4, contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
   var inspectState = function () { return Object.assign({}, metrics); };
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
   var vertex = [
@@ -25,7 +25,7 @@
     'uniform mat3 uWorld;',
     'uniform vec4 uCorners;',
     'uniform vec3 uBase,uAccent;',
-    'uniform float uKind,uMode,uAccentMix,uReadingLimit;',
+    'uniform float uKind,uMode,uAccentMix,uReadingLimit,uFrost;',
     'const float PI=3.14159265;',
     'float sq(float x){return x*x;}',
     'vec3 linearRGB(vec3 value){return mix(value/12.92,pow((value+.055)/1.055,vec3(2.4)),step(vec3(.04045),value));}',
@@ -63,7 +63,7 @@
     ' vec4 data=texture2D(uMap,tile*.5+vec2(.0059)+micro*.4882);',
     ' vec2 physical=uv*min(uSize,uTileSize*1.5);float coarse=.5,fineGrain=.5,strata=0.;',
     ' if(uKind>3.5){coarse=noise21(physical/12.);fineGrain=noise21(physical/3.6+vec2(19.7,4.9));strata=sin(physical.y*.108+sin(physical.x*.018)*1.35);}',
-    ' vec2 detail=data.rg*2.-1.;float strength=uKind<.5?.115:uKind<1.5?.48:uKind<2.5?.78:uKind<3.5?.72:uKind<4.5?.88:uKind<5.5?.54:.66;',
+    ' vec2 detail=data.rg*2.-1.;float strength=uKind<.5?mix(.115,.26,uFrost):uKind<1.5?.48:uKind<2.5?.78:uKind<3.5?.72:uKind<4.5?.88:uKind<5.5?.54:.66;',
     ' vec2 edgeDistance=min(uv,1.-uv)*uSize;',
     // Hard materials have a flat chamfer, not the same cylindrical shoulder
     // on every left/right edge. Only ceramic and leather keep a soft roll.
@@ -98,7 +98,7 @@
     ' float edgeLight=bevelLength>.0001?max(dot(rotateNormal(edgeDirection),L),0.):0.;',
     ' vec3 color;float opacity;float intrinsic=.5;',
     ' if(uKind<.5){',
-    '  vec3 S=specular(N,V,L,max(.075,rough*.82),vec3(.04),false);',
+    '  vec3 S=specular(N,V,L,mix(max(.075,rough*.82),clamp(.54+rough*.20,.54,.75),uFrost),vec3(.04),false);',
     '  float energy=dot(S,vec3(.2126,.7152,.0722));',
     '  float grazing=.04+.96*pow(1.-nv,5.);',
     // One broad key reflection and weak ambient fill. Only key-facing bevels
@@ -111,7 +111,10 @@
     '  vec3 warm=vec3(1.,.965,.875);',
     '  color=mix(cool,warm,clamp(keyWindow*.16,0.,.16))+reflectionTint*softbox*.07;',
     '  float faceReflection=clamp(.009+grazing*.19+min(energy,.5)*.06+reflected,0.,.135);',
-    '  opacity=clamp(faceReflection+rim,0.,.44);',
+    // A satin face spreads the key reflection instead of adding another white
+    // veil. Native backdrop diffusion supplies transmission, in both modes.
+    '  float satinReflection=.018+grazing*.075+min(energy,.5)*.025+softbox*.026;',
+    '  opacity=clamp(mix(faceReflection+rim,satinReflection+rim*.48,uFrost),0.,.44);',
     ' }else if(uKind<1.5){',
     // Ceramic is a thick domed glaze: a wide soft pool with a rounded shoulder,
     // while the matte pits use the already loaded normal/roughness atlas.
@@ -315,7 +318,7 @@
         shell.appendChild(canvas);
         var scene = { host: host, surface: surface, shell: shell, canvas: canvas, context: context, previous: host.getAttribute('data-surface-renderer'),
           previousPigment:host.style.getPropertyValue('--surface-pigment'),previousPigmentPriority:host.style.getPropertyPriority('--surface-pigment'),
-          kind: 0, visible: !io, ratio: 0, held: false, dirty: true, metadata: true, painted:false,rx: 0, ry: 0, lx: 50, ly: 35,
+          kind: 0, finish: 'clear', frosted: 0, visible: !io, ratio: 0, held: false, dirty: true, metadata: true, painted:false,rx: 0, ry: 0, lx: 50, ly: 35,
           width: 500, height: 300, radii: [18,31,22,14], base: [.1,.2,.2], accent: ambient.slice(), accentMix: 0, readingLimit: .045 };
         scenes.push(scene); byHost.set(host,scene); if (io) io.observe(host); if (ro) ro.observe(surface);
       });
@@ -331,6 +334,8 @@
         scene.radii=['border-top-left-radius','border-top-right-radius','border-bottom-right-radius','border-bottom-left-radius'].map(function(name){var value=parseFloat(faceStyle.getPropertyValue(name));return Number.isFinite(value)?Math.max(0,value):14;});
         var palette = lightMode ? [[.78,.86,.91],[.72,.84,.66],[.87,.79,.61],[.63,.72,.81],[.77,.67,.57],[.85,.75,.57],[.69,.73,.77]] : [[.12,.20,.28],[.10,.25,.17],[.25,.21,.13],[.16,.22,.30],[.29,.17,.12],[.34,.26,.14],[.17,.21,.25]];
         scene.kind = kind; scene.base = parseColor(style.getPropertyValue('--material-base'),palette[kind]);scene.world=worldNormal(scene.host);
+        scene.frosted = kind===0 && scene.host.dataset.glassFinish==='frosted' ? 1 : 0;
+        scene.finish = kind===0 ? (scene.frosted ? 'frosted' : 'clear') : null;
         var custom = !!scene.host.dataset.themeColor;
         // A draft/page hue must not recolor another author's unthemed post.
         var ownAccent=parseColor(style.getPropertyValue('--accent'),[.64,.87,.72]);
@@ -372,7 +377,7 @@
       var texture = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,texture);
       gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-      var uniforms = {}; ['uMap','uSize','uAngles','uWorld','uLight','uTileSize','uCorners','uBase','uAccent','uKind','uMode','uAccentMix','uReadingLimit'].forEach(function (name) { uniforms[name] = gl.getUniformLocation(program,name); });
+      var uniforms = {}; ['uMap','uSize','uAngles','uWorld','uLight','uTileSize','uCorners','uBase','uAccent','uKind','uMode','uAccentMix','uReadingLimit','uFrost'].forEach(function (name) { uniforms[name] = gl.getUniformLocation(program,name); });
       return { program: program, buffer: buffer, texture: texture, position: gl.getAttribLocation(program,'aPosition'), uniforms: uniforms, ready: false };
     }
     function uploadMap() {
@@ -403,6 +408,7 @@
         gl.uniform2f(u.uTileSize,tileWidth,tileHeight);gl.uniform4fv(u.uCorners,scene.radii);
         gl.uniform2f(u.uLight,(scene.lx-50)/50,(50-scene.ly)/50); gl.uniform3fv(u.uBase,scene.base); gl.uniform3fv(u.uAccent,scene.accent);
         gl.uniform1f(u.uKind,scene.kind); gl.uniform1f(u.uMode,lightMode?1:0); gl.uniform1f(u.uAccentMix,scene.accentMix);gl.uniform1f(u.uReadingLimit,scene.readingLimit);
+        gl.uniform1f(u.uFrost,scene.frosted);
         gl.drawArrays(gl.TRIANGLES,0,6); metrics.tiles++;
       });
       items.forEach(function (scene,index) {
@@ -487,11 +493,11 @@
     mutationObserver = new MutationObserver(function (entries) {
       var changed=false;
       entries.forEach(function (entry) {
-        if(entry.type==='attributes'&&entry.attributeName==='data-material'){var scene=byHost.get(entry.target);if(scene)scene.metadata=scene.dirty=true;else registryDirty=true;changed=true;}
+        if(entry.type==='attributes'&&(entry.attributeName==='data-material'||entry.attributeName==='data-glass-finish')){var scene=byHost.get(entry.target);if(scene)scene.metadata=scene.dirty=true;else registryDirty=true;changed=true;}
         if(entry.type==='attributes'&&entry.attributeName==='data-depth-fullscreen'){changed=true;}
         if(entry.type==='childList'&&Array.from(entry.addedNodes).concat(Array.from(entry.removedNodes)).some(function(node){return node.nodeType===1&&((node.matches&&node.matches(selector))||(node.querySelector&&node.querySelector(selector)));})){registryDirty=true;changed=true;}
       });if(changed)schedule(true);
-    });mutationObserver.observe(body,{subtree:true,childList:true,attributes:true,attributeFilter:['data-material','data-depth-fullscreen']});observers.push(mutationObserver);
+    });mutationObserver.observe(body,{subtree:true,childList:true,attributes:true,attributeFilter:['data-material','data-glass-finish','data-depth-fullscreen']});observers.push(mutationObserver);
     stateObserver = new MutationObserver(function (entries) { if(entries.some(function(entry){return entry.attributeName==='data-theme';}))metadata();gate(); });
     stateObserver.observe(html,{attributes:true,attributeFilter:['data-theme','data-room-motion']});observers.push(stateObserver);
     var dialogObserver=new MutationObserver(gate);dialogObserver.observe(body,{subtree:true,attributes:true,attributeFilter:['open']});observers.push(dialogObserver);
@@ -511,7 +517,7 @@
     mapImage = new Image(); mapImage.onload = uploadMap; mapImage.onerror = function(){metrics.failures++;metrics.lastError='Material normal map could not be loaded';};mapImage.src=textureURL;
     scan();readLocks();schedule(true);window.dispatchEvent(new Event('liss:surface-request'));
     inspectState = function () { return Object.assign({},metrics,{registered:scenes.length,framePending:!!frame,atlasWidth:atlas.width,atlasHeight:atlas.height,visible:scenes.filter(function(scene){return scene.visible;}).length,
-      materials:scenes.filter(function(scene){return scene.visible;}).slice(0,8).map(function(scene){return {kind:kinds[scene.kind],accent:scene.accent,accentMix:scene.accentMix,pigment:scene.base,readingLimit:scene.readingLimit,painted:scene.painted,dirty:scene.dirty,world:scene.world};})}); };
+      materials:scenes.filter(function(scene){return scene.visible;}).slice(0,8).map(function(scene){return {kind:kinds[scene.kind],finish:scene.finish,accent:scene.accent,accentMix:scene.accentMix,pigment:scene.base,readingLimit:scene.readingLimit,painted:scene.painted,dirty:scene.dirty,world:scene.world};})}); };
     dispose = function () {
       if(closed)return;closed=true;stop();abort.abort();if(releaseTimer)clearTimeout(releaseTimer);observers.forEach(function(observer){observer.disconnect();});
       if(mapImage){mapImage.onload=mapImage.onerror=null;mapImage.removeAttribute('src');}

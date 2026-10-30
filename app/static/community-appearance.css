@@ -25,7 +25,8 @@
 .appearance-material-options label { display:flex; align-items:center; gap:7px; min-height:38px; font-size:.85rem; font-weight:400; margin:0; cursor:pointer; }
 .appearance-material-options input { accent-color:var(--accent); margin:0; }
 .material-chip { width:19px; height:23px; border-radius:4px 7px 5px 2px; transform:rotate(-7deg); box-shadow:2px 4px 5px #0005; background:#4d7270; }
-.material-chip-glass { background:linear-gradient(125deg,#b2d6cc72,#35576822); border:1px solid #bddcd480; }
+.material-chip-glass { background:linear-gradient(125deg,#c7f5ec25,#3557680a); border:1px solid #d7fff0bb; }
+.material-chip-frosted { background:radial-gradient(circle at 35% 40%,#f3fff11e 0 .8px,transparent 1px) 0 0/3px 3px,linear-gradient(125deg,#c7e8e3b3,#668d978a); border:1px solid #bddcd480; }
 .material-chip-ceramic { background:linear-gradient(140deg,#638c7e,#233e37); }
 .material-chip-paper { background:linear-gradient(100deg,#d1c9ad,#6d705b); }
 .material-chip-metal { background:linear-gradient(120deg,#4d6670,#1c2c38 48%,#708793); }

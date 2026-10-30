@@ -12,6 +12,7 @@ depends_on = None
 
 _OLD = {'auto', 'glass', 'ceramic', 'paper', 'metal'}
 _NEW = _OLD | {'leather', 'cork', 'slate'}
+_KNOWN_FORWARD = _NEW | {'frosted'}
 _CHECK = "card_material IN ('auto','glass','ceramic','paper','metal','leather','cork','slate')"
 
 
@@ -21,8 +22,9 @@ def upgrade():
                     if item['name'] == 'ck_post_appearance_material'), None)
     known_shape = re.fullmatch(r"\s*card_material\s+IN\s*\(\s*'[a-z]+'(?:\s*,\s*'[a-z]+')*\s*\)\s*", current or '', re.I)
     tokens = set(re.findall(r"'([^']*)'", current or '')) if known_shape else set()
-    # Public-demo preparation may already have installed the current check.
-    if tokens == _NEW:
+    # Public-demo preparation may already have installed this or the known
+    # later glass-finish check. Never narrow an adopted store back to eight.
+    if tokens == _NEW or tokens == _KNOWN_FORWARD:
         return
     if tokens != _OLD:
         raise RuntimeError('Unrecognized post material constraint; keep the database and inspect its schema before upgrading.')

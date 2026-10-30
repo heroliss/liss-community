@@ -524,7 +524,7 @@ class PostAppearance(db.Model):
     card_material = db.Column(db.String(16), nullable=False, default='auto', server_default='auto')
     post = db.relationship('Post', back_populates='appearance')
     __table_args__ = (
-        db.CheckConstraint("card_material IN ('auto','glass','ceramic','paper','metal','leather','cork','slate')", name='ck_post_appearance_material'),
+        db.CheckConstraint("card_material IN ('auto','glass','ceramic','paper','metal','leather','cork','slate','frosted')", name='ck_post_appearance_material'),
         db.CheckConstraint("theme_color = '' OR (length(theme_color) = 7 AND substr(theme_color,1,1) = '#')", name='ck_post_appearance_color_shape'),
     )
 

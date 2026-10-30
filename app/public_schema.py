@@ -101,11 +101,27 @@ def migrate_owner_schema(database):
 
 
 def migrate_material_catalog(database):
-    """Widen the known material check once, retaining data and a safety snapshot.
+    """Historical v29 catalog upgrade retained for explicit maintenance calls."""
+    old_tokens = ('auto', 'glass', 'ceramic', 'paper', 'metal')
+    new_tokens = old_tokens + ('leather', 'cork', 'slate')
+    _migrate_material_constraint(database, (frozenset(old_tokens),), new_tokens,
+                                 forward_tokens=(frozenset(new_tokens + ('frosted',)),))
 
-    create_all cannot alter an existing CHECK. Public-demo stores do not use an
-    Alembic revision marker, so preparation performs the same narrow upgrade.
+
+def migrate_glass_finishes(database):
+    """Add a separately saved frosted finish without changing existing values.
+
+    Public-demo stores have no Alembic version marker. Both known historical
+    catalogs can safely widen to the current check in one backed-up transaction.
     """
+    oldest = ('auto', 'glass', 'ceramic', 'paper', 'metal')
+    previous = oldest + ('leather', 'cork', 'slate')
+    _migrate_material_constraint(database, (frozenset(oldest), frozenset(previous)),
+                                 previous + ('frosted',))
+
+
+def _migrate_material_constraint(database, accepted_tokens, target_tokens, forward_tokens=()):
+    """Rebuild only the recognized constraint; a failed copy keeps the old table."""
     database = Path(database)
     if not database.is_file():
         return
@@ -113,9 +129,7 @@ def migrate_material_catalog(database):
     from alembic.migration import MigrationContext
     from alembic.operations import Operations
 
-    old_tokens = {'auto', 'glass', 'ceramic', 'paper', 'metal'}
-    new_tokens = old_tokens | {'leather', 'cork', 'slate'}
-    check_sql = "card_material IN ('auto','glass','ceramic','paper','metal','leather','cork','slate')"
+    check_sql = 'card_material IN (' + ','.join("'" + token + "'" for token in target_tokens) + ')'
     engine = sa.create_engine(sa.URL.create('sqlite', database=str(database)))
     try:
         with engine.connect() as connection:
@@ -127,9 +141,9 @@ def migrate_material_catalog(database):
                             if item['name'] == 'ck_post_appearance_material'), None)
             known_shape = re.fullmatch(r"\s*card_material\s+IN\s*\(\s*'[a-z]+'(?:\s*,\s*'[a-z]+')*\s*\)\s*", current or '', re.I)
             tokens = set(re.findall(r"'([^']*)'", current or '')) if known_shape else set()
-            if tokens == new_tokens:
+            if tokens == set(target_tokens) or frozenset(tokens) in forward_tokens:
                 return
-            if tokens != old_tokens:
+            if frozenset(tokens) not in accepted_tokens:
                 raise RuntimeError('Unrecognized post material constraint; keep the database and inspect its schema before upgrading.')
             backup_database(database, database.parent / ('before-material-catalog-'
                 + time.strftime('%Y%m%d-%H%M%S') + '-' + secrets.token_hex(3) + '.sqlite'))

@@ -1,0 +1,58 @@
+/* Two optical finishes share one physical glass model and one native backdrop.
+   Finish changes are metadata, never another bitmap or a sampled backdrop copy. */
+:root[data-theme] body.community-room [data-material=glass] {
+  --glass-optic-blur:4px;--glass-optic-saturation:1.13;
+  --glass-optic-face:radial-gradient(ellipse at 16% 4%,color-mix(in srgb,var(--appearance-accent,var(--accent)) 10%,transparent),transparent 58%),linear-gradient(140deg,#13313e1c,#081b293b 62%,#1e454626);
+  --glass-optic-receiver:linear-gradient(180deg,#04121e46,#04121e18 28% 68%,#04121e65);
+}
+:root[data-theme] body.community-room [data-material=glass][data-glass-finish=frosted] {
+  --glass-optic-blur:18px;--glass-optic-saturation:1.03;
+  --glass-optic-face:radial-gradient(ellipse at 20% 5%,color-mix(in srgb,var(--appearance-accent,var(--accent)) 15%,transparent),transparent 67%),linear-gradient(140deg,#d9f0e624,#8bb3b747 55%,#c0dad92e);
+  --glass-optic-receiver:linear-gradient(180deg,#081b275e,#081b2747 28% 65%,#07172473);
+}
+:root[data-theme=light] body.community-room [data-material=glass] {
+  --glass-optic-face:radial-gradient(ellipse at 16% 4%,color-mix(in srgb,var(--appearance-accent,var(--accent)) 6%,transparent),transparent 58%),linear-gradient(140deg,#ffffffbd,#f3faf5b8 62%,#edf7f2b8);
+  --glass-optic-receiver:linear-gradient(180deg,#ffffff16,transparent 28% 68%,#ffffff24);
+  --muted:#3b4a46;--subtle:#3b4a46;
+}
+:root[data-theme=light] body.community-room [data-material=glass][data-glass-finish=frosted] {
+  --glass-optic-face:radial-gradient(ellipse at 20% 5%,color-mix(in srgb,var(--appearance-accent,var(--accent)) 8%,transparent),transparent 67%),linear-gradient(140deg,#f6faf7e3,#e3eeebd6 55%,#f0f6f2de);
+  --glass-optic-receiver:linear-gradient(180deg,#ffffff29,transparent 28% 65%,#ffffff32);
+}
+:root[data-theme=light] body.community-room :is(article.post,[data-post-theme-card],[data-appearance-preview])[data-material=glass],
+:root[data-theme=light] body.community-room :is(article.post,[data-post-theme-card],[data-appearance-preview])[data-theme-color]:not([data-theme-color=''])[data-material=glass] {
+  --muted:#3b4a46;--subtle:#3b4a46;
+}
+
+/* Repeat the existing nonempty-theme guard deliberately: the crystal theme
+   rule is more specific than an ordinary finish selector, including in light. */
+:root[data-theme] body.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base,
+:root[data-theme] body.community-room [data-theme-color]:not([data-theme-color=''])[data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  background:var(--glass-optic-face);
+  -webkit-backdrop-filter:blur(var(--glass-optic-blur)) saturate(var(--glass-optic-saturation));
+  backdrop-filter:blur(var(--glass-optic-blur)) saturate(var(--glass-optic-saturation));
+}
+:root[data-theme] body.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::after,
+:root[data-theme] body.community-room [data-theme-color]:not([data-theme-color=''])[data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::after {
+  background:var(--glass-optic-receiver);
+}
+
+/* Polished crystal keeps the v30 large cuts. Satin glass is a softly cast,
+   closed slab: the same front/back profile, diffuse edge and shorter returns. */
+.community-room [data-material=glass][data-glass-finish=frosted][data-depth-kind=edition] {
+  --material-shape-profile:satin-glass;--material-thickness:12px;
+  --material-side-span:var(--material-thickness);--material-radius:26px 42px 28px 38px;
+  --material-outline:inset(0 round 26px 42px 28px 38px);
+}
+.community-room [data-material=glass][data-glass-finish=frosted][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before,
+.community-room [data-material=glass][data-glass-finish=frosted][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after { top:43px;bottom:40px;opacity:.58; }
+.community-room [data-material=glass][data-glass-finish=frosted][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before,
+.community-room [data-material=glass][data-glass-finish=frosted][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after { left:40px;right:44px;opacity:.55; }
+.community-room [data-material=glass][data-glass-finish=frosted][data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim {
+  padding:.7px;opacity:.36;background:linear-gradient(135deg,#d9f0e84a,transparent 44% 80%,#a7c4c51c);
+}
+@media(max-width:600px) {
+  :root[data-theme] body.community-room [data-material=glass] { --glass-optic-blur:3px; }
+  :root[data-theme] body.community-room [data-material=glass][data-glass-finish=frosted] { --glass-optic-blur:13px; }
+  .community-room [data-material=glass][data-glass-finish=frosted][data-depth-kind=edition] { --material-thickness:9px; }
+}
