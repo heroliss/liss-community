@@ -28,8 +28,9 @@
     var selectedChoice=backgrounds?backgrounds.read():{id:'mist',kind:'vector',quality:'auto',scroll:true};
     var appliedEntry=backgrounds?backgrounds.entry(selectedChoice.id):{id:'mist',kind:'vector',style:'mist'};
     var landscapeStatus='unrequested',landscapeSerial=0,landscapeResolution=null,pendingResolution=null,unsubscribeBackground=null;
-    var landscapeGeometry=null,vectorScene=null,proceduralScene=null,scrollRange=1;
+    var landscapeGeometry=null,vectorGeometry=null,vectorScene=null,proceduralScene=null,scrollRange=1;
     function nativeVector(entry){
+      vectorGeometry=null;
       if(proceduralScene){proceduralScene.destroy();proceduralScene=null;}
       if(window.LissProceduralScenes){proceduralScene=window.LissProceduralScenes.create(entry);vectorScene=proceduralScene.element;landscapeWindow.replaceChildren(vectorScene);return;}
       var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 1600 1000');svg.setAttribute('preserveAspectRatio','xMidYMid slice');svg.setAttribute('aria-hidden','true');svg.setAttribute('class','community-vector-scene');svg.dataset.vectorStyle=entry.style||'mist';
@@ -39,11 +40,11 @@
     function stop(){if(frame)cancelAnimationFrame(frame);frame=0;lastTime=0;}
     function paused(){return html.dataset.roomMotion==='paused';}
     function held(){return pressed||editing||selection||modal||!activeWindow;}
-    function blocked(){return closed||document.hidden||forced.matches||reduce.matches||paused()||held();}
+    function savingData(){return !!(reducedData.matches||(backgrounds&&backgrounds.read&&backgrounds.read().dataSaver)||(navigator.connection&&navigator.connection.saveData));}
+    function blocked(){return closed||document.hidden||forced.matches||reduce.matches||savingData()||paused()||held();}
     function schedule(){if(!closed&&!document.hidden&&!frame)frame=requestAnimationFrame(paint);}
     function syncProceduralMotion(){
-      var saving=!!(reducedData.matches||(backgrounds&&backgrounds.read&&backgrounds.read().dataSaver)||(navigator.connection&&navigator.connection.saveData));
-      var running=!!proceduralScene&&!blocked()&&!saving,state=running?'running':'paused';
+      var running=!!proceduralScene&&!blocked(),state=running?'running':'paused';
       if(wrapper.dataset.sceneMotion!==state)wrapper.dataset.sceneMotion=state;
       if(proceduralScene&&proceduralScene.setMotion)proceduralScene.setMotion(running);
     }
@@ -69,7 +70,7 @@
         if(closed||serial!==landscapeSerial)return;
         pendingResolution=null;
         if(!image){landscapeImage=null;landscapeGeometry=null;landscapeResolution=null;landscapeStatus='unavailable';appliedEntry={id:'mist',kind:'vector',style:'mist'};nativeVector(appliedEntry);wrapper.dataset.sceneArt='vector';ensureScene(false);}
-        else{if(proceduralScene){proceduralScene.destroy();proceduralScene=null;}landscapeImage=image;vectorScene=null;landscapeResolution=resolved;landscapeStatus='ready';appliedEntry=entry;image.className='community-landscape-image';image.alt='';image.setAttribute('aria-hidden','true');landscapeWindow.replaceChildren(image);wrapper.dataset.sceneArt='image';ensureScene(true);}
+        else{if(proceduralScene){proceduralScene.destroy();proceduralScene=null;}landscapeImage=image;vectorScene=null;vectorGeometry=null;landscapeResolution=resolved;landscapeStatus='ready';appliedEntry=entry;image.className='community-landscape-image';image.alt='';image.setAttribute('aria-hidden','true');landscapeWindow.replaceChildren(image);wrapper.dataset.sceneArt='image';ensureScene(true);}
         sizeSignature='';dirtySize=dirty=true;syncProceduralMotion();schedule();
       });
     }
@@ -86,18 +87,24 @@
     }
     function gate(){
       if(closed)return;
-      readLocks();wrapper.dataset.atmosphereState=document.hidden?'hidden':forced.matches?'contrast':reduce.matches?'reduced':paused()?'paused':held()?'held':'ready';
+      readLocks();wrapper.dataset.atmosphereState=document.hidden?'hidden':forced.matches?'contrast':reduce.matches?'reduced':savingData()?'saving':paused()?'paused':held()?'held':'ready';
       syncProceduralMotion();
       if(document.hidden||forced.matches){freeze();return;}
       if(reduce.matches){current=[0,0,0];target=current.slice();scene=[0,0,50,40,0];sceneTarget=scene.slice();dirty=true;schedule();return;}
-      if(paused()||held()){freeze();if(dirty||dirtySize)schedule();return;}
+      if(savingData()||paused()||held()){freeze();if(dirty||dirtySize)schedule();return;}
       target[0]=fine.matches?pointer[0]:0;target[1]=fine.matches?pointer[1]:0;target[2]=scrollPosition();if(selectedChoice.scroll)scrollPixelTarget=Math.max(0,window.scrollY||0);schedule();
     }
     function resize(){
       dirtySize=false;
       var bounds=wrapper.getBoundingClientRect();width=Math.max(1,bounds.width);height=Math.max(1,bounds.height);mobile=width<700;
       light=html.dataset.theme==='light';scrollRange=Math.max(1,document.documentElement.scrollHeight-height);if(!blocked())target[2]=scrollPosition();
-      if(proceduralScene)proceduralScene.resize(width,height,light);
+      if(proceduralScene)vectorGeometry=proceduralScene.resize(width,height,light);
+      else if(vectorScene){
+        // A missing optional drawing factory still leaves the quiet fallback
+        // with a bounded field, rather than an undersized moving viewport.
+        vectorGeometry={width:width+160,height:height*1.42+160,overscan:80,travel:height*.42,scrollRate:.045};
+        vectorScene.style.width=vectorGeometry.width+'px';vectorScene.style.height=vectorGeometry.height+'px';vectorScene.style.left=vectorScene.style.top='-80px';vectorScene.style.right=vectorScene.style.bottom='auto';vectorScene.setAttribute('viewBox','0 0 1600 1420');
+      }
       landscapeGeometry=null;
       if(landscapeImage){
         var CW=width+padding*2,CH=height+padding*2,IW=landscapeImage.naturalWidth,IH=landscapeImage.naturalHeight,scale=Math.max(CW/IW,CH/IH),fullW=IW*scale,fullH=IH*scale;
@@ -110,13 +117,16 @@
       dirty=true;
     }
     function drawNative(){
-      var coarse=fine.matches?1:.45,dx=current[0]*5*coarse-scene[1]*.24,dy=current[1]*5*.65*coarse-current[2]*13+scene[0]*.24-scene[4]*2;
+      var coarse=fine.matches?1:.45,dx=current[0]*5*coarse-scene[1]*.24,dy=current[1]*5*.65*coarse+scene[0]*.24-scene[4]*2;
       // A long picture no longer sweeps its entire height over one document.
       // Fifty-five picture pixels per 1000 CSS scroll pixels is a slow, bounded
       // counter-camera; changing article length does not change that speed.
       var travel=landscapeGeometry?Math.min(landscapeGeometry.travel,Math.max(0,scrollPixels)*.055):0;
-      if(landscapeImage&&landscapeGeometry)landscapeImage.style.transform='translate3d('+dx.toFixed(2)+'px,'+(dy-travel).toFixed(2)+'px,0)';
-      else if(vectorScene)vectorScene.style.transform='translate3d('+dx.toFixed(2)+'px,'+dy.toFixed(2)+'px,0) scale(1.08)';
+      if(landscapeImage&&landscapeGeometry)landscapeImage.style.transform='translate3d('+dx.toFixed(2)+'px,'+(dy-current[2]*13-travel).toFixed(2)+'px,0)';
+      // A small, native-resolution drawing field uses the same absolute-scroll
+      // principle. It never loops or resets at the document's lower edge, and
+      // its explicit overscan leaves room for both the camera and local leaves.
+      else if(vectorScene){var vectorTravel=vectorGeometry?Math.min(vectorGeometry.travel,Math.max(0,scrollPixels)*vectorGeometry.scrollRate):0;vectorScene.style.transform='translate3d('+dx.toFixed(2)+'px,'+(dy-vectorTravel).toFixed(2)+'px,0)';}
       nativeFrames++;dirty=false;
     }
     function paint(now){
@@ -159,10 +169,10 @@
     if(window.ResizeObserver){resizeObserver=new ResizeObserver(invalidate);resizeObserver.observe(wrapper);resizeObserver.observe(body);}
     nativeVector({style:'mist'});wrapper.dataset.sceneArt='vector';if(backgrounds)unsubscribeBackground=backgrounds.subscribe(function(choice){applyBackground(choice);});applyBackground(selectedChoice);
     readLocks();if(!reduce.matches&&!paused())current[2]=target[2]=scrollPosition();gate();window.dispatchEvent(new Event('liss:spatial-request'));
-    inspectState=function(){return{renderer:wrapper.dataset.sceneRenderer,nativeFrames:nativeFrames,sceneFrames:0,composites:0,framePending:!!frame,state:wrapper.dataset.atmosphereState,width:width,height:height,scene:scene.slice(),camera:current.slice(),crystal:null,samplingEnabled:false,backgroundCompositePixels:0,compositeColorBytes:0,compositor:{enabled:false,hdr:false},procedural:proceduralScene?proceduralScene.inspect():null,landscape:{id:selectedChoice.id,appliedId:appliedEntry.id,state:landscapeStatus,ready:!!landscapeImage,width:landscapeImage?landscapeImage.naturalWidth:0,height:landscapeImage?landscapeImage.naturalHeight:0,resolution:landscapeResolution,nativeLayer:!!landscapeImage,travel:landscapeGeometry?landscapeGeometry.travel:0,scrollOffset:landscapeGeometry?Math.min(landscapeGeometry.travel,Math.max(0,scrollPixels)*.055):0,scrollRate:.055,progress:current[2],scrollRange:scrollRange,alpha:1,geometryAlpha:0,decodedImageBytes:landscapeImage?landscapeImage.naturalWidth*landscapeImage.naturalHeight*4:0}};};
+    inspectState=function(){var procedural=proceduralScene?proceduralScene.inspect():null;if(procedural)procedural.scrollCamera={mode:'absolute-bounded',scrollOffset:vectorGeometry?Math.min(vectorGeometry.travel,Math.max(0,scrollPixels)*vectorGeometry.scrollRate):0,scrollRate:vectorGeometry?vectorGeometry.scrollRate:0,enabled:!!selectedChoice.scroll};return{renderer:wrapper.dataset.sceneRenderer,nativeFrames:nativeFrames,sceneFrames:0,composites:0,framePending:!!frame,state:wrapper.dataset.atmosphereState,width:width,height:height,scene:scene.slice(),camera:current.slice(),crystal:null,samplingEnabled:false,backgroundCompositePixels:0,compositeColorBytes:0,compositor:{enabled:false,hdr:false},procedural:procedural,landscape:{id:selectedChoice.id,appliedId:appliedEntry.id,state:landscapeStatus,ready:!!landscapeImage,width:landscapeImage?landscapeImage.naturalWidth:0,height:landscapeImage?landscapeImage.naturalHeight:0,resolution:landscapeResolution,nativeLayer:!!landscapeImage,travel:landscapeGeometry?landscapeGeometry.travel:0,scrollOffset:landscapeGeometry?Math.min(landscapeGeometry.travel,Math.max(0,scrollPixels)*.055):0,scrollRate:.055,progress:current[2],scrollRange:scrollRange,alpha:1,geometryAlpha:0,decodedImageBytes:landscapeImage?landscapeImage.naturalWidth*landscapeImage.naturalHeight*4:0}};};
     dispose=function(){
       if(closed)return;closed=true;stop();abort.abort();stateObserver.disconnect();dialogObserver.disconnect();
-      landscapeSerial++;if(unsubscribeBackground)unsubscribeBackground();if(proceduralScene)proceduralScene.destroy();proceduralScene=null;landscapeWindow.replaceChildren();landscapeImage=null;landscapeGeometry=null;vectorScene=null;
+      landscapeSerial++;if(unsubscribeBackground)unsubscribeBackground();if(proceduralScene)proceduralScene.destroy();proceduralScene=null;landscapeWindow.replaceChildren();landscapeImage=null;landscapeGeometry=null;vectorGeometry=null;vectorScene=null;
       if(resizeObserver)resizeObserver.disconnect();if(releaseTimer)clearTimeout(releaseTimer);
       wrapper.remove();if(!hadClass)body.classList.remove('has-atmosphere');inspectState=null;
     };

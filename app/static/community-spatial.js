@@ -9,7 +9,7 @@
   var interactive = 'input,textarea,select,[contenteditable="true"],.CodeMirror,.editor-toolbar';
   var fullscreenSelector = '.editor-toolbar.fullscreen,.CodeMirror-fullscreen,.editor-preview-active-side';
   var names = ['--depth-rx','--depth-ry','--depth-x','--depth-y','--depth-z',
-    '--depth-scroll-rx','--depth-scroll-y','--depth-scroll-z','--depth-light-x','--depth-light-y','--depth-scroll-progress'];
+    '--depth-scroll-rx','--depth-scroll-y','--depth-scroll-z','--depth-light-x','--depth-light-y','--depth-scroll-progress','--workspace-rx','--workspace-ry'];
   var roomNames = ['--room-x','--room-y','--room-rx','--room-ry'];
   var profiles = {
     edition:[5.76,11.04,16,10,18,.96], reply:[4.32,7.36,10,7,12,.64], image:[6.48,12.88,18,10,16,.64],
@@ -107,7 +107,7 @@
         bounds:null,rest:[0,0],nested:!!host.parentElement.closest('[data-depth-host]'),inside:false,entering:false,
         relayExcluded:!!host.closest('[data-appearance-preview]'),
         skipEntry:!!fromCache&&entered.has(host),animation:null,savedStyles:snapshot(host,depth?names:roomNames),restores:[],written:{},
-        current:[0,0,0,0,0,0,0,0,50,50,.5],x:0,y:0};
+        current:[0,0,0,0,0,0,0,0,50,50,.5,0,0],x:0,y:0};
       ['data-depth-visible','data-depth-active','data-depth-held','data-depth-focus','data-depth-selecting','data-depth-fullscreen','data-depth-hover']
         .forEach(function(name){scene.restores.push(remember(host,name));});
       scenes.add(scene);byHost.set(host,scene);
@@ -254,6 +254,9 @@
           50+x*22,50+y*18,(progress+1)*.5];
         if(scene.header)values=[-y*8,x*12,x*16,y*10,0,0,0,0,50,50,.5];
         if(reduce.matches||scene.fullscreen)values=[0,0,0,0,0,0,0,0,50,50,.5];
+        // The writing plane stays face-on. Only its separate physical cradle
+        // responds to the pointer; focused inputs never acquire a moving camera.
+        if(!scene.header)values.push(scene.kind==='workspace'&&!reduce.matches&&!scene.fullscreen?-y*3:0,scene.kind==='workspace'&&!reduce.matches&&!scene.fullscreen?x*4.5:0);
         var unsettled=false;
         values.forEach(function(value,index){
           var difference=value-scene.current[index];
@@ -266,7 +269,7 @@
             if(scene.written[roomNames[index]]!==next){scene.host.style.setProperty(roomNames[index],next);scene.written[roomNames[index]]=next;}
           });
         }else{
-          scene.current.forEach(function(value,index){write(scene,index,value,index===0||index===1||index===5?'deg':index===8||index===9?'%':index===10?'':'px');});
+          scene.current.forEach(function(value,index){write(scene,index,value,index===0||index===1||index===5||index>=11?'deg':index===8||index===9?'%':index===10?'':'px');});
         }
         if(unsettled&&enabled)continueFrame=true;
       });
@@ -286,7 +289,7 @@
       var control=node&&node.nodeType===1?node.closest('a,button,summary,label'):null;
       // A picture remains an exploratory surface. Only short text controls
       // hold their current pose; images freeze on actual pointerdown instead.
-      if(control&&(control.matches('.community-image-trigger,.post-cover')||control.closest('.depth-image-host')||control.querySelector('img')))control=null;
+      if(control&&(control.matches('[data-depth-host],.composer>summary,.community-image-trigger,.post-cover')||control.closest('.depth-image-host')||control.querySelector('img')))control=null;
       if(control===hoveredControl)return;
       hoveredControl=control;scenes.forEach(function(scene){scene.hoverControl=false;});
       if(control&&control.isConnected)ancestors(control,function(scene){scene.hoverControl=true;stopArrival(scene,false);});

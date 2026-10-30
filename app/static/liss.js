@@ -33,21 +33,7 @@
     image.addEventListener('error', fallback);
     if (image.complete && !image.naturalWidth) fallback();
   });
-  function openWriting() {
-    if (location.hash !== '#write') return;
-    var composer = document.getElementById('write');
-    if (!composer) return;
-    composer.open = true;
-    var input = composer.querySelector('textarea');
-    if (input) input.focus({ preventScroll: true });
-    composer.scrollIntoView({ block: 'start' });
-    document.dispatchEvent(new Event('liss:write'));
-  }
-  openWriting();
-  window.addEventListener('hashchange', openWriting);
-  document.querySelectorAll('a[href$="#write"]').forEach(function (link) {
-    link.addEventListener('click', function () { if (location.hash === '#write') openWriting(); });
-  });
+  // community-navigation owns anchor scrolling and the deferred writing focus.
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape') document.querySelectorAll('.account-menu[open]').forEach(function (menu) { menu.open = false; menu.querySelector('summary').focus(); });
   });

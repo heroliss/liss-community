@@ -7,9 +7,11 @@ body.community-room { position:relative; isolation:isolate; --atmosphere-ink:#6d
 .community-landscape-image { position:absolute;display:block;max-width:none!important;object-fit:fill;pointer-events:none;will-change:transform;opacity:1;filter:none;mix-blend-mode:normal; }
 .community-vector-scene { position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;will-change:transform; }
 .community-vector-scene[data-vector-style=mist] .community-vector-lines { display:none; }
-.community-procedural-scene { inset:-80px;width:calc(100% + 160px);height:calc(100% + 160px);--scene-opacity:1; }
+.community-procedural-scene { inset:-80px;width:calc(100% + 160px);height:calc(142% + 160px);--scene-opacity:1; }
 .community-procedural-scene[data-scene-theme=light] { --scene-opacity:.76; }
 .procedural-vector-art,.procedural-ribbons { display:block;width:100%;height:100%;opacity:var(--scene-opacity); }
+/* Extend the drawing space instead of stretching its strokes into a panorama. */
+.procedural-vector-art :is(path,line,polyline,circle,ellipse) { vector-effect:non-scaling-stroke; }
 .procedural-shape { display:block;position:absolute;pointer-events:none; }
 .community-procedural-scene[data-vector-style=mist] .procedural-shape { width:76%;height:92%;border-radius:50%;background:radial-gradient(ellipse,color-mix(in srgb,var(--scene-a) 15%,transparent),transparent 68%);left:65%;top:-39%; }
 .community-procedural-scene[data-vector-style=mist] .procedural-shape-1 { left:-39%;top:40%;background:radial-gradient(ellipse,color-mix(in srgb,var(--scene-b) 12%,transparent),transparent 67%); }
@@ -131,7 +133,8 @@ body.community-room { position:relative; isolation:isolate; --atmosphere-ink:#6d
   animation:scene-v26-stars 17s ease-in-out infinite alternate paused;
 }
 .procedural-orbit-satellites {
-  transform-box:view-box;transform-origin:78.125% 47%;
+  /* The orbit centre is still (1250,470) in the extended 1600x1420 world. */
+  transform-box:view-box;transform-origin:78.125% 33.09859155%;
   animation:scene-v26-orbit 240s linear infinite paused;
 }
 .community-procedural-scene[data-vector-style=spectrum] .procedural-shape {

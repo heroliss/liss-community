@@ -1,0 +1,82 @@
+/* Conversation is the subject of the sculpture; latest posts live in the feed.
+   The room camera owns every object, so the back object shares its perspective. */
+html { scroll-behavior:smooth; }
+:root[data-room-motion=paused] { scroll-behavior:auto; }
+.community-room :is(#main-content,#article-feed,#write,#comments,[id^=comment-]) { scroll-margin-top:12px; }
+.community-room .conversation-atelier { min-height:470px;perspective:1300px; }
+.community-room .atelier-world { inset:0 0 36px;transform:translate3d(var(--room-x),var(--room-y),0) rotateX(calc(4deg + var(--room-rx)*.55)) rotateY(calc(-7deg + var(--room-ry)*.65)); }
+.atelier-world>* { position:absolute;transform-style:preserve-3d;pointer-events:none; }
+.atelier-ground { left:8%;right:-3%;bottom:-4%;height:31%;border-radius:50%;background:radial-gradient(ellipse,#030b1670,transparent 68%);transform:translateZ(-105px) rotateX(63deg); }
+.atelier-track { width:88%;height:75%;left:8%;top:18%;border:1px solid #a7d9d136;border-right:0;border-radius:50%;transform:translateZ(-72px) rotateY(-27deg) rotateX(48deg) rotateZ(-16deg);box-shadow:0 2px 0 #071a2e55,inset 0 1px 0 #d6f7ec20; }
+.atelier-bubble { width:73%;height:252px;left:3%;top:29%;border-radius:65px 65px 65px 15px; }
+.atelier-bubble::before { content:'';position:absolute;inset:3px -3px -8px 4px;border-radius:inherit;background:linear-gradient(125deg,#9dc7c545,#17344190 65%,#07121cbb);transform:translateZ(-17px);box-shadow:12px 26px 36px -17px #010713b3; }
+.atelier-bubble::after { content:'';position:absolute;width:41px;height:40px;left:22px;bottom:-17px;border-radius:0 0 3px 15px;background:linear-gradient(135deg,#9dc7c51c,#304f5f77);border-left:1px solid #d2f5ec40;border-bottom:1px solid #294756a3;transform:translateZ(-6px) skewY(-25deg) rotateZ(-10deg);box-shadow:6px 10px 0 -2px #152f3e7a,11px 18px 20px -11px #010a178c; }
+.atelier-glass-face { position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:34px 36px;border-radius:inherit;background:linear-gradient(135deg,#d2f8e324,#a0d5d90c 52%,#46707d24);border:1px solid #e1fff44d;box-shadow:inset 2px 2px 3px #eafff536,inset -2px -2px 4px #0a172c55,6px 12px 15px -10px #0008;backdrop-filter:blur(14px) saturate(1.12);-webkit-backdrop-filter:blur(14px) saturate(1.12); }
+.bubble-thought { transform:translateZ(62px) rotateY(-12deg) rotateZ(-5deg); }
+.bubble-thought .atelier-glass-face { border-radius:65px 65px 65px 15px; }
+.atelier-kicker { font-size:12px;color:var(--accent);margin-bottom:23px; }
+.atelier-glass-face strong { display:block;font-size:clamp(28px,3.1vw,43px);font-weight:550;letter-spacing:-.045em;line-height:1.3;color:var(--text);text-shadow:3px 7px 6px #0107168c; }
+.atelier-ink { display:flex;gap:13px;margin-top:30px; }
+.atelier-ink i { width:13px;height:13px;border-radius:50%;background:var(--accent);box-shadow:3px 6px 0 #1f4a4b99,5px 10px 7px -3px #0008,inset 1px 1px 1px #edfff780; }
+.atelier-ink i:nth-child(2) { opacity:.72; }.atelier-ink i:nth-child(3) { opacity:.4; }
+.bubble-reply { width:57%;height:172px;left:41%;top:5%;border-radius:46px 15px 46px 46px;transform:translateZ(-34px) rotateY(15deg) rotateZ(10deg); }
+.bubble-reply::before { transform:translateZ(-13px);background:linear-gradient(120deg,#9bb9d961,#3a516f80,#102539b3); }
+.bubble-reply::after { left:auto;right:24px;width:28px;height:29px;bottom:-12px;transform:translateZ(-5px) skewY(25deg) rotateZ(10deg);background:#758ebc30; }
+.bubble-reply .atelier-glass-face { padding:26px 29px;background:linear-gradient(135deg,#b6d7fa29,#87a9d714 63%,#41506f38); }
+.atelier-voice { font-size:clamp(17px,1.55vw,23px);letter-spacing:.03em;color:#dfecf5;text-shadow:3px 6px 6px #07122088; }
+.atelier-reply-lines { display:grid;gap:13px;margin-top:22px; }.atelier-reply-lines i { height:5px;width:83%;border-radius:5px;background:#b2c8e844;box-shadow:2px 4px 0 #0f2d3d4d; }.atelier-reply-lines i+i { width:59%; }
+.atelier-connection { width:138px;height:40px;left:55%;top:53%;border-top:1px solid #c5e7e57d;border-radius:50%;transform:translateZ(3px) rotateZ(-22deg); }
+.atelier-connection i { position:absolute;left:19%;top:-4px;width:7px;height:7px;border-radius:50%;background:#d2ebdf;box-shadow:3px 5px 6px #0007; }.atelier-connection i+i { left:54%;width:5px;height:5px; }.atelier-connection i+i+i { left:81%;width:3px;height:3px; }
+.atelier-prism { width:24px;height:98px;left:2%;top:10%;border-radius:9px;background:linear-gradient(100deg,#d1f3ea65,#597c8726 45%,#132b444d);border-left:2px solid #d7f9ef70;box-shadow:6px 13px 0 -3px #15313f88,12px 24px 23px -10px #0008;transform:translateZ(-22px) rotateZ(-25deg) rotateY(-35deg); }
+.atelier-prism.prism-two { left:auto;right:0;top:auto;bottom:2%;height:73px;width:16px;transform:translateZ(30px) rotateZ(29deg) rotateY(28deg); }
+.atelier-note { left:44%;bottom:-2%;font-size:15px;letter-spacing:.05em;color:var(--accent);transform:translateZ(31px) rotateY(-9deg) rotateZ(-5deg);text-shadow:3px 6px 5px #0009; }
+.atelier-caption { position:absolute;bottom:-18px;left:12%;font-size:12px;letter-spacing:.06em;color:var(--muted);margin:0; }
+body.community-room:has(>.community-atmosphere[data-scene-art=image]) :is(.atelier-caption,.atelier-note) { color:#eff9f6;text-shadow:1px 3px 4px #071828b3; }
+/* The invitation is a shallow hinged glass lid, separate from the writing bed. */
+.community-room details.composer { perspective:1400px;overflow:visible;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;border:0;box-shadow:none;border-radius:25px 43px 25px 13px; }
+.community-room details.composer>summary { position:relative;z-index:1;transform-style:preserve-3d;min-height:106px;padding:26px 31px;border:0;border-radius:25px 43px 25px 13px;background:transparent;box-shadow:none;transform:translateZ(7px) rotateX(calc(1.2deg + var(--room-rx,0deg)*.2)) rotateY(calc(-2deg + var(--room-ry,0deg)*.3));transition:transform .55s cubic-bezier(.16,1,.3,1); }
+.community-room details.composer>summary::before { content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(125deg,#b7e7e219,#2c666b0d 65%,#7399a217);border:1px solid #c4ede330;backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);transform:translateZ(-2px);box-shadow:inset 1px 1px 0 #e3fff533,9px 21px 27px -19px #010a17ad;pointer-events:none; }
+.community-room details.composer>summary::after { content:'';position:absolute;inset:5px -2px -7px 3px;border-radius:inherit;background:linear-gradient(120deg,#8cbbbb27,#0e26375e);transform:translateZ(-14px);box-shadow:7px 15px 19px -12px #010a16b3;pointer-events:none; }
+.community-room details.composer>summary>* { position:relative;transform:translateZ(13px); }
+.community-room details.composer>summary>.icon { transform:translateZ(24px) rotateZ(-8deg);filter:drop-shadow(3px 6px 3px #0005); }
+.community-room details.composer>summary>span:not(.avatar) { font-size:17px;text-shadow:2px 4px 4px #010a1666; }
+.community-room details.composer>summary small { display:block;margin-top:6px;font-size:12px; }
+.community-room details.composer[open] { background:transparent; }
+.community-room details.composer[open]>summary { transform:translateZ(11px) rotateX(.4deg) rotateY(-.6deg); }
+.community-room .composer-content { position:relative;padding-top:30px; }
+/* A gimbal below the glass writing plane moves; the actual editor never tilts. */
+.community-room .depth-workpad { --workspace-rx:0deg;--workspace-ry:0deg;--depth-camera:1600px; }
+.community-room .depth-workpad>.workspace-chassis { position:absolute;inset:22px -11px -14px -10px;transform-style:preserve-3d;pointer-events:none;perspective:1600px; }
+.community-room .depth-workpad .workspace-chassis-back { position:absolute;inset:0;border-radius:27px 13px 22px 14px;border:1px solid #b5e0d947;background:linear-gradient(130deg,#99c9cd25,#16384914 55%,#1d404c40);transform:translateZ(-30px) rotateX(calc(2.5deg + var(--workspace-rx))) rotateY(calc(-3deg + var(--workspace-ry)));transform-origin:50% 62%;box-shadow:inset 2px 2px 0 #d8f9e82b,14px 28px 34px -20px #010a17bc; }
+.community-room .depth-workpad .workspace-chassis-side { position:absolute;top:10px;bottom:9px;right:-5px;width:18px;background:linear-gradient(90deg,#6b9ca02b,#10293990);border-radius:4px 15px 12px 2px;transform:translateZ(-18px) rotateY(54deg); }
+.community-room .depth-workpad .workspace-chassis-lip { position:absolute;left:8px;right:5px;bottom:-8px;height:17px;border-radius:0 0 13px 9px;background:linear-gradient(180deg,#9cc8c14d,#1738448c);transform:translateZ(-16px) rotateX(54deg);box-shadow:7px 14px 17px -10px #010a16b3; }
+.community-room .depth-workpad>.depth-scroll>.depth-arrival>.depth-surface { transform:none!important; }
+.community-room .depth-workpad>.depth-scroll>.depth-arrival>.depth-surface::before,.community-room .depth-workpad>.depth-scroll>.depth-arrival>.depth-surface::after { content:none; }
+.community-room .writing-workspace { position:relative;box-shadow:inset 2px 3px 6px #010b173d,4px 9px 13px -10px #0008; }
+.community-room .editor-toolbar:not(.fullscreen) { position:relative;box-shadow:0 3px 0 #13313b47,3px 7px 12px -10px #010a1799,inset 1px 1px 0 #d5f6e32e; }
+.community-room details.composer:has(.CodeMirror-fullscreen,.editor-toolbar.fullscreen,.editor-preview-active-side) { perspective:none!important;transform:none!important;transform-style:flat!important;contain:none!important;filter:none!important;backdrop-filter:none!important;isolation:auto!important; }
+.community-room :is(.CodeMirror-fullscreen,.editor-preview-side.editor-preview-active-side) { background:var(--input)!important; }
+.community-room .editor-toolbar.fullscreen { background:var(--surface);box-shadow:0 2px 6px #010a1733; }
+.community-room .writing-label { position:relative;text-shadow:2px 4px 4px #0004; }
+.community-room .works-gallery>.depth-scroll>.depth-arrival>.depth-surface { padding-top:8px; }
+.community-room .works-gallery .works-gallery-copy { transform:translateZ(26px); }
+.community-room .works-gallery .works-gallery-copy strong { text-shadow:3px 7px 6px #0007; }
+.community-room .works-gallery .works-gallery-plinth { box-shadow:5px 9px 0 #193745c2,12px 23px 25px -14px #010a17bc; }
+.community-room .works-gallery .works-gallery-arch { box-shadow:inset 2px 2px 0 #c7ede31c,4px 10px 0 -6px #1537447a; }
+:root[data-theme=light] .atelier-ground { background:radial-gradient(ellipse,#28516636,transparent 69%); }
+:root[data-theme=light] .atelier-glass-face { background:linear-gradient(125deg,#f4fffbc9,#e2f2f39e 64%,#ccdfeba1);border-color:#fff9;box-shadow:inset 2px 2px 2px #fff9,inset -2px -2px 3px #64939b24,6px 13px 17px -11px #1b40536b; }
+:root[data-theme=light] .bubble-reply .atelier-glass-face { background:linear-gradient(135deg,#e4eefbd6,#c9d9e6b8); }
+:root[data-theme=light] .atelier-voice { color:#33576d;text-shadow:1px 2px 2px #fff5; }
+:root[data-theme=light] .atelier-glass-face strong { text-shadow:0 1px 0 #fffc,2px 4px 4px #3e6c7b26; }
+:root[data-theme=light] .atelier-note { text-shadow:1px 3px 3px #315c7633; }
+:root[data-theme=light] .atelier-reply-lines i { background:#7090b461; }
+:root[data-theme=light] .community-room details.composer>summary::before { background:linear-gradient(135deg,#f7fffae8,#e9f6f2c7);border-color:#fafffcb3;box-shadow:inset 1px 1px 0 #ffff,7px 17px 23px -17px #254f6557; }
+:root[data-theme=light] .community-room details.composer>summary::after { background:#98b7b557;box-shadow:6px 12px 16px -12px #24455766; }
+:root[data-theme=light] .community-room details.composer>summary>span:not(.avatar),:root[data-theme=light] .community-room .writing-label { color:var(--text);text-shadow:none; }
+:root[data-theme=light] .community-room .workspace-chassis-back { background:linear-gradient(135deg,#c9e0dd70,#e6f6f15c 55%,#9dbbc866);border-color:#f7fffbb3;box-shadow:inset 1px 1px 0 #ffff,11px 23px 29px -20px #264c6466; }
+:root[data-theme=light] .community-room .works-gallery .works-gallery-copy strong { text-shadow:1px 3px 4px #3a667329; }
+@media(min-width:1580px) { .community-room .conversation-atelier { min-height:490px; }.atelier-bubble { height:270px; }.bubble-reply { height:185px; } }
+@media(max-width:1000px) { .community-room .conversation-atelier { min-height:420px; }.atelier-bubble { height:220px; }.bubble-reply { height:155px; }.atelier-glass-face { padding:28px 27px; }.atelier-glass-face strong { font-size:30px; }.atelier-note { left:35%; } }
+@media(max-width:600px) { .community-room .conversation-atelier { min-height:310px;margin:28px 0 15px; }.community-room .atelier-world { inset:0 7px 30px 0; }.atelier-bubble { width:74%;height:175px;top:29%;left:2%;border-radius:43px 43px 43px 10px; }.bubble-thought .atelier-glass-face { border-radius:43px 43px 43px 10px; }.bubble-reply { width:58%;height:124px;left:39%;top:4%;border-radius:32px 11px 32px 32px; }.atelier-glass-face { padding:22px 24px; }.bubble-reply .atelier-glass-face { padding:20px 21px; }.atelier-glass-face strong { font-size:29px; }.atelier-kicker { font-size:11px;margin-bottom:16px; }.atelier-ink { margin-top:21px;gap:11px; }.atelier-ink i { width:10px;height:10px; }.atelier-voice { font-size:16px; }.atelier-reply-lines { margin-top:18px;gap:9px; }.atelier-reply-lines i { height:4px; }.atelier-prism { width:17px;height:66px; }.atelier-note { font-size:12px;left:39%;bottom:-3%; }.atelier-caption { font-size:11px;bottom:-9px;left:9%; }.atelier-connection { width:96px;left:57%; }.community-room details.composer>summary { min-height:102px;padding:24px 21px; }.community-room details.composer>summary>span:not(.avatar) { font-size:15px; }.community-room .composer-content { padding-top:22px; }.community-room .depth-workpad>.workspace-chassis { inset-inline:-4px; } }
+@media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; }.community-room .atelier-world { transform:none; }.community-room details.composer>summary { transform:none;transition:none; }.community-room .depth-workpad .workspace-chassis-back { transform:translateZ(-30px); } }
+@media(forced-colors:active) { .conversation-atelier { display:none; }.community-room details.composer>summary { outline:1px solid CanvasText; }.community-room details.composer>summary::before,.community-room details.composer>summary::after,.workspace-chassis { display:none; } }

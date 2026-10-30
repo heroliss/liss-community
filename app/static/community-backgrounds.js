@@ -93,7 +93,7 @@
         note.textContent=origin+' · 本次载入 '+r.width+' × '+r.height+'，约 '+Math.round(r.bytes/1024)+' KB。';
       }
       scroll.disabled=reduce.matches;
-      motionNote.textContent=reduce.matches?'已遵循系统的减少动态设置。':e.kind==='vector'?(dataSaver()?'节省数据时画面保持静止，不下载背景图片。':'光色与线条缓慢流动，可用页头暂停键定格。'):e.tall?'长卷仅以页面约 5.5% 的速度移动，关闭后保持原位。':'照片保留原色，只作轻微位移。';
+      motionNote.textContent=reduce.matches?'已遵循系统的减少动态设置。':e.kind==='vector'?(dataSaver()?'节省数据时画面保持静止，不下载背景图片。':'绘图以页面约 4.5% 的速度缓慢展开；关闭跟随滚动可保持原位，页头暂停键可定格所有动态。'):e.tall?'长卷仅以页面约 5.5% 的速度移动，关闭后保持原位。':'照片保留原色，只作轻微位移。';
       if(credit){credit.hidden=!e.credit;credit.textContent=e.credit||'';if(e.creditUrl)credit.href=e.creditUrl;else credit.removeAttribute('href');}
     }
     function closeDialog(){if(typeof dialog.close==='function')dialog.close();else{dialog.removeAttribute('open');if(opener&&opener.isConnected)opener.focus({preventScroll:true});}}

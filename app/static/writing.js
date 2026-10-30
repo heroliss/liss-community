@@ -105,7 +105,6 @@
       form.addEventListener('submit', function () { editor.codemirror.save(); });
       function refresh() {
         editor.codemirror.refresh();
-        if (location.hash === '#write') editor.codemirror.focus();
       }
       var composer = field.closest('details');
       if (composer) composer.addEventListener('toggle', function () { if (composer.open) refresh(); });
@@ -116,6 +115,13 @@
         syncToolbarHeight();
       });
       document.addEventListener('liss:write', refresh);
+      document.addEventListener('liss:write-focus', function (event) {
+        if (event.detail && event.detail.target && !event.detail.target.contains(form)) return;
+        // Focus the real editor input without asking CodeMirror to scroll the
+        // document a second time during/after the native eased anchor motion.
+        editor.codemirror.getInputField().focus({ preventScroll: true });
+        event.preventDefault();
+      });
       if (!composer || composer.open) refresh();
     } catch (error) {
       // A failed enhancement must leave the native, server-backed form usable.

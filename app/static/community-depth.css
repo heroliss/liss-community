@@ -4,16 +4,16 @@ html { scrollbar-gutter: stable; }
 .community-room {
   --depth-paper: color-mix(in srgb,var(--surface) 85%,var(--room-warm));
   --depth-edge: color-mix(in srgb,var(--line) 66%,var(--room-warm));
-  --depth-shadow: #02090899;
-  --depth-contact: #0208076b;
+  --depth-shadow: #01060bc2;
+  --depth-contact: #01060b99;
   --depth-glint: color-mix(in srgb,var(--room-warm) 48%,var(--text));
   --depth-ease: cubic-bezier(.16,1,.3,1);
 }
 [data-theme=light] .community-room {
   --depth-paper: color-mix(in srgb,var(--surface) 94%,var(--room-warm));
   --depth-edge: color-mix(in srgb,var(--line) 76%,var(--room-warm));
-  --depth-shadow: #243b2b29;
-  --depth-contact: #243b2b20;
+  --depth-shadow: #173b4f40;
+  --depth-contact: #173b4f33;
   --depth-glint: color-mix(in srgb,var(--surface) 78%,white);
 }
 .community-room [data-depth-host] {
@@ -63,13 +63,13 @@ html { scrollbar-gutter: stable; }
 .community-room [data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface {
   padding: 28px clamp(20px,2.5vw,34px) 25px; border-radius: 5px 21px 11px 3px;
   background: radial-gradient(ellipse at var(--depth-light-x,35%) var(--depth-light-y,20%),color-mix(in srgb,var(--room-warm) 7%,transparent),transparent 68%),linear-gradient(125deg,color-mix(in srgb,var(--surface) 95%,var(--room-warm)),var(--surface) 57%,color-mix(in srgb,var(--surface) 86%,var(--bg)));
-  box-shadow: 12px 23px 32px -25px var(--depth-shadow),2px 4px 7px -5px var(--depth-contact);
+  box-shadow: 3px 5px 7px -3px var(--depth-contact),18px 29px 35px -18px var(--depth-shadow);
 }
 .community-room [data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface::before {
   content: ''; width: 11px; top: 8px; bottom: 9px; left: 0;
   background: linear-gradient(90deg,color-mix(in srgb,var(--line) 80%,var(--bg)),var(--depth-edge) 74%,var(--depth-paper));
   transform-origin: left center; transform: rotateY(-66deg); border-radius: 8px 0 0 8px;
-  box-shadow: -4px 6px 9px -7px var(--depth-contact);
+  box-shadow: 4px 6px 9px -5px var(--depth-contact);
 }
 .community-room [data-depth-kind=edition] > .depth-scroll > .depth-arrival > .depth-surface::after {
   content: ''; height: 5px; left: 10px; right: 18px; bottom: 0;
@@ -94,7 +94,7 @@ html { scrollbar-gutter: stable; }
   content: ''; top: 71px; left: -24px; width: 18px; height: min(640px,38%); border-radius: 85% 0 0 85%;
   background: linear-gradient(180deg,transparent,color-mix(in srgb,var(--surface) 90%,var(--room-warm)) 21%,color-mix(in srgb,var(--line) 56%,transparent) 64%,transparent);
   transform: translateZ(-12px) rotateY(-47deg); transform-origin: right center;
-  box-shadow: -8px 16px 26px -17px var(--depth-contact);
+  box-shadow: 8px 16px 26px -13px var(--depth-contact);
 }
 .community-room [data-depth-kind=reader] > .depth-scroll > .depth-arrival > .depth-surface::after {
   content: ''; right: -26px; top: 205px; width: 22px; height: min(430px,28%); border-radius: 0 85% 85% 0;
@@ -125,7 +125,7 @@ html { scrollbar-gutter: stable; }
   display: grid; grid-template-columns: 36px minmax(0,1fr); gap: 18px; align-items: start;
   padding: 25px 23px 27px 16px; border-radius: 5px 15px 21px 4px;
   background: radial-gradient(ellipse at var(--depth-light-x,30%) var(--depth-light-y,20%),color-mix(in srgb,var(--depth-speaker) 6%,transparent),transparent 68%),linear-gradient(112deg,color-mix(in srgb,var(--surface) 76%,var(--bg)),color-mix(in srgb,var(--bg) 95%,var(--depth-speaker)));
-  box-shadow: 9px 17px 28px -23px var(--depth-shadow),2px 3px 6px -5px var(--depth-contact);
+  box-shadow: 3px 5px 6px -3px var(--depth-contact),14px 23px 28px -16px var(--depth-shadow);
   transform: translate3d(var(--depth-x,0px),var(--depth-y,0px),calc(var(--depth-z,0px) + var(--reply-lift))) rotateX(calc(var(--depth-rest-rx) + var(--depth-rx,0deg))) rotateY(calc(var(--depth-rest-ry) + var(--depth-ry,0deg))) rotateZ(var(--depth-rest-rz));
 }
 .community-room .comments:has(> [data-depth-kind=reply]) { position: relative; }

@@ -11,17 +11,23 @@
   <div class="studio-introduction"><h1>创作途中，<br><span>聊聊。</span></h1><p class="site-configured-tagline">{{ (site_settings|default({})).get('tagline', '记录日常，分享发现，和有趣的人聊一聊。') }}</p>
     <div class="studio-entry-actions"><a class="button" href="{{ url_for('main.index') ~ '#write' if current_user.is_authenticated else (url_for('public_demo.entry') if config.get('PUBLIC_DEMO') else url_for('auth.register')) }}">写下你的想法 {{ ui.icon('edit') }}</a><a class="quiet-link" href="#article-feed">先听听大家在聊什么 {{ ui.icon('chevron') }}</a></div>
   </div>
-  <div class="studio-conversation-model" data-room-scene aria-label="最近的想法">
-    <div class="studio-model-world"><span class="studio-model-dais" aria-hidden="true"></span><span class="crystal-model-orbit" aria-hidden="true"></span>
-    {% for post in posts[:3] %}{% set preview = post|post_preview %}{% set thought_theme = display_post_appearance(post) %}<a class="studio-thought studio-thought-{{ loop.index }}" data-depth-host data-depth-kind="crystal" data-material="{{ ui.card_material(post.id,thought_theme.material) }}" data-post-theme-card data-theme-color="{{ thought_theme.color }}"{% if thought_theme.color %} style="--appearance-hue:{{ thought_theme.hue }};--appearance-saturation:{{ thought_theme.saturation }}%;--appearance-accent:hsl({{ thought_theme.hue }} {{ thought_theme.saturation }}% 70%);"{% endif %} href="{{ url_for('main.post', id=post.id) }}">{% call depth.layers(material=true) %}<span class="studio-thought-speaker">{{ ui.avatar(post.author, 'avatar-small') }}<span>{{ ui.author_name(post.author) }}</span></span><strong>{{ preview.title|truncate(28, true, '…') }}</strong><span class="studio-thought-open">继续这段想法 {{ ui.icon('arrow') }}</span>{% endcall %}</a>{% endfor %}
+  <div class="studio-conversation-model conversation-atelier" data-room-scene role="img" aria-label="两片立体玻璃对话框在不同深度相遇，表达一个想法与另一种视角的交流">
+    <div class="studio-model-world atelier-world" aria-hidden="true">
+      <span class="atelier-ground"></span><span class="atelier-track"></span>
+      <span class="atelier-prism prism-one"></span><span class="atelier-prism prism-two"></span>
+      <div class="atelier-bubble bubble-reply"><span class="atelier-glass-face"><span class="atelier-voice">另一种视角</span><span class="atelier-reply-lines"><i></i><i></i></span></span></div>
+      <div class="atelier-bubble bubble-thought"><span class="atelier-glass-face"><span class="atelier-kicker">从这里开始</span><strong>一个想法。</strong><span class="atelier-ink"><i></i><i></i><i></i></span></span></div>
+      <span class="atelier-connection"><i></i><i></i><i></i></span>
+      <span class="atelier-note">接上下一句。</span>
     </div>
+    <p class="atelier-caption">不同的视角，在这里相遇。</p>
   </div>
 </header>
 <div class="community-layout studio-layout crystal-promenade">
 <div class="crystal-promenade-object" aria-hidden="true"><span></span><span></span></div>
 <div class="feed-column">
   {% if current_user.can(Permission.WRITE_ARTICLES) and (not current_user.is_visitor|default(false) or guest_posting_open) %}
-  <details class="composer" id="write"{% if form.errors %} open{% endif %}>
+  <details class="composer" id="write" data-room-scene{% if form.errors %} open{% endif %}>
     <summary>{{ ui.avatar(current_user, 'avatar-small') }}<span>今天有什么想分享？<small>打开你的写作台</small></span>{{ ui.icon('edit') }}</summary>
     <div class="composer-content">{{ forms.render_form(form, '发布文章', 'writing-form') }}</div>
   </details>
