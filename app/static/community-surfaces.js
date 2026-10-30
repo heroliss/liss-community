@@ -9,7 +9,7 @@
   var scriptURL = document.currentScript && document.currentScript.src;
   var textureURL = new URL('textures/material-v22/normal-roughness.png', scriptURL || document.baseURI).href;
   var lifetime = new AbortController(), dispose = null;
-  var metrics = { contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
+  var metrics = { version: 'crystal-v23', encoding: 'srgb8-sdr', dither: 'stable-object-space', contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
   var inspectState = function () { return Object.assign({}, metrics); };
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
   var vertex = [
@@ -34,6 +34,9 @@
     ' return normalize(vec3(y.x,cx*y.y-sx*y.z,sx*y.y+cx*y.z));',
     '}',
     'vec3 fresnel(float cosine,vec3 f0){return f0+(1.-f0)*pow(1.-cosine,5.);}',
+    // Object-space, not time-based grain: it breaks 8-bit contouring without
+    // sparkling when the pointer or camera is at rest. This remains SDR.
+    'float dither(vec2 p){return fract(52.9829189*fract(dot(floor(p),vec2(.06711056,.00583715))))-.5;}',
     'vec3 specular(vec3 N,vec3 V,vec3 L,float rough,vec3 f0,bool anisotropic){',
     ' vec3 H=normalize(V+L);float nv=max(dot(N,V),.02),nl=max(dot(N,L),.02),nh=max(dot(N,H),.001);',
     ' float alpha=max(.035,rough*rough),distribution;',
@@ -49,7 +52,7 @@
     ' vec2 uv=vUv;vec2 tile=vec2(mod(uKind,2.),step(1.5,uKind));',
     ' vec2 micro=fract(uv*uSize/(uKind>1.5&&uKind<2.5?155.:190.));',
     ' vec4 data=texture2D(uMap,tile*.5+vec2(.0059)+micro*.4882);',
-    ' vec2 detail=data.rg*2.-1.;float strength=uKind<.5?.20:uKind<1.5?.48:uKind<2.5?.85:.70;',
+    ' vec2 detail=data.rg*2.-1.;float strength=uKind<.5?.115:uKind<1.5?.48:uKind<2.5?.85:.70;',
     ' vec2 edgeDistance=min(uv,1.-uv)*uSize;',
     ' float bevel=1.-smoothstep(0.,uKind<.5?9.:uKind<1.5?15.:uKind<2.5?3.:7.,min(edgeDistance.x,edgeDistance.y));',
     ' vec2 bevelNormal=vec2(0.);',
@@ -66,11 +69,21 @@
     ' float softbox=exp(-sq((R.x-uLight.x*.32)/.66)-sq((R.y-uLight.y*.18-.32)/.22));',
     ' vec3 color;float opacity;',
     ' if(uKind<.5){',
-    '  vec3 S=specular(N,V,L,max(.10,rough),vec3(.04),false);',
+    '  vec3 S=specular(N,V,L,max(.075,rough*.82),vec3(.04),false);',
     '  float energy=dot(S,vec3(.2126,.7152,.0722));',
     '  float grazing=.04+.96*pow(1.-nv,5.);',
-    '  color=mix(vec3(.68,.82,.91),uAccent,uAccentMix>.1?.35:.20)+reflectionTint*softbox*.22;',
-    '  opacity=clamp(.018+grazing*.28+energy*.12+softbox*.095,0.,.24);',
+    // Two large studio windows reflect across a low-absorption optical face.
+    // Their reflection moves with the actual 3D normal rather than a mouse
+    // gradient painted directly over the article. Bevels catch a stronger rim.
+    '  float windowA=exp(-sq((R.x+R.y*.24-uLight.x*.28+.26)/.12)-sq((R.y-.06)/.82));',
+    '  float windowB=exp(-sq((R.x-R.y*.17-uLight.x*.18-.43)/.065)-sq((R.y+.14)/.98));',
+    '  float reflected=softbox*.045+windowA*.10+windowB*.07;',
+    '  float rim=bevel*(.105+grazing*.42+windowA*.20+windowB*.16);',
+    '  vec3 cool=mix(vec3(.82,.94,1.),uAccent,uAccentMix>.1?.16:.035);',
+    '  vec3 warm=vec3(1.,.965,.875);',
+    '  color=mix(cool,warm,clamp(windowB*.40+bevel*.09,0.,.40))+reflectionTint*softbox*.09;',
+    '  float faceReflection=clamp(.009+grazing*.19+min(energy,.5)*.06+reflected,0.,.135);',
+    '  opacity=clamp(faceReflection+rim,0.,.38);',
     ' }else if(uKind<1.5){',
     '  vec3 S=specular(N,V,L,max(.25,rough),vec3(.045),false);',
     '  color=base*(.58+nl*.45)*(data.a*.32+.72)+S*reflectionTint*.42+reflectionTint*softbox*.20;',
@@ -98,6 +111,8 @@
     '  }else energy*=min(1.,mix(.16,uReadingLimit,readPool)/max(luminance,.0001));',
     '  color=displayRGB(energy);',
     ' }',
+    ' color=clamp(color+vec3(dither(uv*uSize)*.85/255.),0.,1.);',
+    ' if(uKind<.5)opacity=clamp(opacity+dither(uv*uSize+vec2(37.,113.))*.40/255.,0.,1.);',
     ' gl_FragColor=vec4(color,opacity);',
     '}'
   ].join('\n');
@@ -117,7 +132,7 @@
     var parserCanvas = document.createElement('canvas'); parserCanvas.width = parserCanvas.height = 1;
     var parser = parserCanvas.getContext('2d', { willReadFrequently: true });
     var kinds = ['glass','ceramic','paper','metal'];
-    var selector = '[data-material]:is([data-depth-kind="edition"],[data-depth-kind="reply"],[data-depth-kind="reader"])';
+    var selector = '[data-material]:is([data-depth-kind="edition"],[data-depth-kind="reply"],[data-depth-kind="reader"],[data-depth-kind="ledge"],[data-depth-kind="workspace"],[data-depth-kind="identity"],[data-depth-kind="crystal"])';
     function locked() { return pressed || editing || selecting || modal || !windowActive; }
     function blocked() { return reduce.matches || html.dataset.roomMotion === 'paused' || locked(); }
     function stop() { if (frame) cancelAnimationFrame(frame); frame = 0; }

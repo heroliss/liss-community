@@ -2,7 +2,7 @@
 import re
 
 MATERIAL_CHOICES = (
-    ('auto', '自动安排'), ('glass', '磨砂玻璃'), ('ceramic', '温润釉面'),
+    ('auto', '随站点 · 晶透玻璃'), ('glass', '晶透磨砂玻璃'), ('ceramic', '温润釉面'),
     ('paper', '纸册'), ('metal', '石墨金属'),
 )
 MATERIAL_KEYS = frozenset(value for value, _ in MATERIAL_CHOICES)
@@ -16,6 +16,7 @@ THEME_ROLE_SPECS = {
               'input': (99, 6), 'line': (74, 9), 'muted': (34, 8), 'subtle': (39, 8)},
 }
 THEME_READING_INK = {'dark': '#e9edec', 'light': '#24282a'}
+DISPLAY_PALETTE = ('#88c8b3', '#7ab8dd', '#b4a0dd', '#ddb17f', '#d69db3', '#86bbc3')
 
 
 def normalize_color(value):
@@ -103,6 +104,30 @@ def color_theme(value):
 def page_theme(post=None):
     color = post_appearance(post)['color'] if post is not None else ''
     return dict(color_theme(color), post_id=post.id if post is not None else None)
+
+
+def automatic_post_color(post):
+    identifier = getattr(post, 'id', 0)
+    identifier = identifier if isinstance(identifier, int) else 0
+    author = getattr(post, 'author_id', 0)
+    author = author if isinstance(author, int) else 0
+    seed = (identifier * 2654435761 + author * 2246822519) & 0xffffffff
+    seed ^= seed >> 16
+    return DISPLAY_PALETTE[seed % len(DISPLAY_PALETTE)]
+
+
+def display_post_appearance(post):
+    """A stable display tint never writes or replaces the author's settings."""
+    look = post_appearance(post)
+    color = look['color'] or automatic_post_color(post)
+    hue, saturation = _color_hs(color)
+    return dict(look, color=color, hue=hue, saturation=saturation)
+
+
+def display_page_theme(post=None):
+    color = display_post_appearance(post)['color'] if post is not None else ''
+    return dict(color_theme(color), post_id=post.id if post is not None else None,
+                automatic_color=automatic_post_color(post) if post is not None else '')
 
 
 def apply_post_appearance(post, color, material):

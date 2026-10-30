@@ -11,7 +11,7 @@ from werkzeug.utils import safe_join
 from . import db
 from .main.forms import PostForm
 from .models import Permission, Post
-from .post_appearance import post_appearance, page_theme
+from .post_appearance import post_appearance, page_theme, display_post_appearance, display_page_theme
 
 community = Blueprint('community', __name__)
 
@@ -107,7 +107,9 @@ def project_context():
     from .transactional_mail import email_accounts_enabled
     return {'project_catalog': PROJECTS, 'canonical_project_slug': canonical_project_slug,
             'email_accounts_enabled': email_accounts_enabled, 'post_appearance': post_appearance,
-            'page_theme': page_theme(getattr(g, 'page_theme_post', None))}
+            'page_theme': page_theme(getattr(g, 'page_theme_post', None)),
+            'display_post_appearance': display_post_appearance,
+            'display_page_theme': display_page_theme(getattr(g, 'page_theme_post', None))}
 
 
 @community.get('/writing-guide/')

@@ -12,12 +12,13 @@
     <div class="studio-entry-actions"><a class="button" href="{{ url_for('main.index') ~ '#write' if current_user.is_authenticated else (url_for('public_demo.entry') if config.get('PUBLIC_DEMO') else url_for('auth.register')) }}">写下你的想法 {{ ui.icon('edit') }}</a><a class="quiet-link" href="#article-feed">先听听大家在聊什么 {{ ui.icon('chevron') }}</a></div>
   </div>
   <div class="studio-conversation-model" data-room-scene aria-label="最近的想法">
-    <div class="studio-model-world"><span class="studio-model-dais" aria-hidden="true"></span><span class="studio-model-loop" aria-hidden="true"></span>
-    {% for post in posts[:3] %}{% set preview = post|post_preview %}{% set thought_theme = post_appearance(post) %}<a class="studio-thought studio-thought-{{ loop.index }}" data-post-theme-card data-theme-color="{{ thought_theme.color }}"{% if thought_theme.color %} style="--appearance-hue:{{ thought_theme.hue }};--appearance-saturation:{{ thought_theme.saturation }}%;--appearance-accent:hsl({{ thought_theme.hue }} {{ thought_theme.saturation }}% 70%);"{% endif %} href="{{ url_for('main.post', id=post.id) }}"><span class="studio-thought-speaker">{{ ui.avatar(post.author, 'avatar-small') }}<span>{{ ui.author_name(post.author) }}</span></span><strong>{{ preview.title|truncate(28, true, '…') }}</strong><span class="studio-thought-open">继续这段想法 {{ ui.icon('arrow') }}</span></a>{% endfor %}
+    <div class="studio-model-world"><span class="studio-model-dais" aria-hidden="true"></span><span class="crystal-model-orbit" aria-hidden="true"></span>
+    {% for post in posts[:3] %}{% set preview = post|post_preview %}{% set thought_theme = display_post_appearance(post) %}<a class="studio-thought studio-thought-{{ loop.index }}" data-depth-host data-depth-kind="crystal" data-material="glass" data-post-theme-card data-theme-color="{{ thought_theme.color }}"{% if thought_theme.color %} style="--appearance-hue:{{ thought_theme.hue }};--appearance-saturation:{{ thought_theme.saturation }}%;--appearance-accent:hsl({{ thought_theme.hue }} {{ thought_theme.saturation }}% 70%);"{% endif %} href="{{ url_for('main.post', id=post.id) }}">{% call depth.layers(material=true) %}<span class="studio-thought-speaker">{{ ui.avatar(post.author, 'avatar-small') }}<span>{{ ui.author_name(post.author) }}</span></span><strong>{{ preview.title|truncate(28, true, '…') }}</strong><span class="studio-thought-open">继续这段想法 {{ ui.icon('arrow') }}</span>{% endcall %}</a>{% endfor %}
     </div>
   </div>
 </header>
-<div class="community-layout studio-layout">
+<div class="community-layout studio-layout crystal-promenade">
+<div class="crystal-promenade-object" aria-hidden="true"><span></span><span></span></div>
 <div class="feed-column">
   {% if current_user.can(Permission.WRITE_ARTICLES) and (not current_user.is_visitor|default(false) or guest_posting_open) %}
   <details class="composer" id="write"{% if form.errors %} open{% endif %}>
@@ -31,7 +32,7 @@
   {% if pagination %}{{ macros.pagination_widget(pagination, 'main.index') }}{% endif %}
 </div>
 <aside class="community-aside studio-aside" aria-label="关于与个人入口">
-  <section class="studio-console" data-depth-host data-depth-kind="ledge">{% call depth.layers() %}
+  <section class="studio-console" data-depth-host data-depth-kind="ledge" data-material="glass">{% call depth.layers(material=true) %}
     <span class="studio-console-vent" aria-hidden="true"></span>
     <div class="studio-console-intro"><h2>这里留了<br>一个位置。</h2><p>{{ (site_settings|default({})).get('welcome', 'LISS 欢迎认真记录，也欢迎随手分享。一个问题、一段经历、一点新发现，都值得留下。') }}</p></div>
     {% if current_user.is_authenticated %}<div class="studio-id"><a class="aside-person" href="{{ url_for('main.user', username=current_user.username) }}">{{ ui.avatar(current_user) }}<span><strong>{{ ui.author_name(current_user) }}</strong>{{ ui.identity_badge(current_user) }}</span></a><p>{{ current_user.about_me or '你的下一段记录，就从这里开始。' }}</p><a class="quiet-link" href="{{ url_for('main.user', username=current_user.username) }}">我的主页 {{ ui.icon('arrow') }}</a>{% if current_user.is_visitor|default(false) and registration_open %}<a class="identity-upgrade" href="{{ url_for('auth.register') }}">设置账号，保留这个身份 {{ ui.icon('lock') }}</a>{% endif %}</div>
@@ -39,7 +40,7 @@
     <div class="studio-console-note"><span aria-hidden="true">{{ ui.icon('comment') }}</span><p>友善表达，尊重不同的声音。<br>让每一段对话，都有继续的余地。</p></div>
     {% if site_owner|default(none) %}<a class="studio-host" href="{{ url_for('main.user', username=site_owner.username) }}">认识站点作者 {{ ui.avatar(site_owner, 'avatar-small') }}{{ ui.icon('arrow') }}</a>{% endif %}
   {% endcall %}</section>
-  <a class="studio-works-door" href="{{ url_for('community.portfolio', path='projects/') }}"><span class="studio-door-art" aria-hidden="true"><i></i><i></i><i></i></span><span class="studio-door-copy"><strong>话题之外，<br>还有作品。</strong><span>游戏、工具、AI 与交互实验</span><b>探索全部作品 {{ ui.icon('arrow') }}</b></span></a>
+  <a class="studio-works-door" data-depth-host data-depth-kind="crystal" data-material="glass" href="{{ url_for('community.portfolio', path='projects/') }}">{% call depth.layers(material=true) %}<span class="studio-door-art" aria-hidden="true"><i></i><i></i><i></i></span><span class="studio-door-copy"><strong>话题之外，<br>还有作品。</strong><span>游戏、工具、AI 与交互实验</span><b>探索全部作品 {{ ui.icon('arrow') }}</b></span>{% endcall %}</a>
 </aside>
 </div>
 {% endblock %}

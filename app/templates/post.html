@@ -5,7 +5,8 @@
 {% import "_depth.html" as depth with context %}
 {% block title %}{{ super() }}{{ posts[0].body.split('\n')[0].lstrip('#').strip()|truncate(60, true, '…') }}{% endblock %}
 {% block page_content %}
-<div class="reading-column identity-reading" data-depth-reading>
+<div class="reading-column identity-reading crystal-reading" data-depth-reading>
+<div class="crystal-reading-object" aria-hidden="true"><span class="crystal-folio-wing"></span><span class="crystal-folio-spine"></span><span class="crystal-reading-plinth"></span></div>
 <nav class="reader-navigation" aria-label="文章与讨论"><a class="back-link" href="{{ url_for('main.index') }}">{{ ui.icon('back') }}全部文章</a><a class="reader-discussion-link" href="#comments">{{ posts[0].visible_comment_count }} 条评论 {{ ui.icon('comment') }}</a></nav>
 <div class="reader-article">{% include '_posts.html' %}</div>
 <section class="discussion" aria-labelledby="comments"><header class="discussion-heading"><div><h2 id="comments">讨论</h2></div><span>{{ posts[0].visible_comment_count }} 条评论</span></header>

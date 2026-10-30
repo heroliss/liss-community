@@ -1,11 +1,29 @@
-/* A quiet, layered atelier behind the actual conversation. Geometry is baked
-   into three transparent depth plates; pointer frames only composite them. */
+/* A shared crystal room behind the conversation. Real perspective geometry
+   feeds the same compositor that the card bevels sample. The baked plates
+   remain a soft fallback when WebGL is unavailable. */
 (function () {
   'use strict';
   var key = '__lissCommunityAtmosphere';
   if (window[key] && typeof window[key].destroy === 'function') window[key].destroy();
-  var lifetime = new AbortController(), dispose = null;
+  var lifetime = new AbortController(), dispose = null, inspectState = null;
+  var landscapeLoad = null, landscapeStatus = 'unrequested';
+  var landscapeUrl = new URL('scenes/crystal-archipelago-v23.webp',document.currentScript && document.currentScript.src || new URL('/static/community-atmosphere.js',location.href).href).href;
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+  function loadLandscape() {
+    if (landscapeLoad) return landscapeLoad;
+    if (typeof Image !== 'function') return null;
+    landscapeStatus = 'loading';
+    landscapeLoad = new Promise(function(resolve) {
+      var image = new Image(); image.decoding = 'async';
+      image.onload = function () {
+        var decoded = typeof image.decode === 'function' ? image.decode() : Promise.resolve();
+        decoded.then(function(){landscapeStatus='ready';resolve(image);},function(){landscapeStatus='unavailable';resolve(null);});
+      };
+      image.onerror = function(){landscapeStatus='unavailable';resolve(null);};
+      image.src = landscapeUrl;
+    });
+    return landscapeLoad;
+  }
   function mount() {
     if (dispose) dispose();
     if (!document.body || !document.body.classList.contains('community-room')) return;
@@ -25,8 +43,16 @@
       var piece = document.createElement('span'); piece.className = 'atmosphere-near-' + name; near.appendChild(piece);
     });
     wrapper.appendChild(near); body.insertBefore(wrapper, body.firstChild);
-    var context = canvas.getContext('2d', { alpha: true });
+    var context;
+    try { context = canvas.getContext('2d', { alpha: true, colorSpace: 'srgb', colorType: 'float16' }); }
+    catch (precisionError) { context = canvas.getContext('2d', { alpha: true }); }
+    if (!context) context = canvas.getContext('2d', { alpha: true });
     if (!context) { wrapper.remove(); return; }
+    var compositorAttributes = (typeof context.getContextAttributes === 'function' ? context.getContextAttributes() : {}) || {};
+    var compositorInfo = {colorSpace:compositorAttributes.colorSpace || 'srgb',colorType:compositorAttributes.colorType || 'unorm8',toneMapping:(compositorAttributes.toneMapping || {}).mode || 'standard',hdr:false};
+    compositorInfo.highPrecision = compositorInfo.colorType === 'float16';
+    var crystal = window.LissCrystalScene && window.LissCrystalScene.create();
+    wrapper.dataset.sceneRenderer = crystal ? 'crystal-perspective' : 'canvas-perspective-fallback';
     var hadClass = body.classList.contains('has-atmosphere'); body.classList.add('has-atmosphere');
     var frame = 0, lastTime = 0, lastDraw = 0, closed = false, dirty = true, dirtySize = true;
     var width = 1, height = 1, dpr = 1, padding = 100, mobile = false, light = false, plates = [];
@@ -41,7 +67,19 @@
     var lastOptics = 0, opticScanQueued = false;
     var activeWindow = true, pressed = false, editing = false, selection = false, modal = false;
     var releaseTimer = 0, resizeObserver = null;
-    var tones, sizeSignature = '';
+    var tones, sizeSignature = '', composites = 0, landscapeImage = null;
+    var ditherTile = document.createElement('canvas'); ditherTile.width = ditherTile.height = 128;
+    var ditherContext = ditherTile.getContext('2d'), ditherPattern = null;
+    if (ditherContext) {
+      var noise = ditherContext.createImageData(128,128);
+      var grainSeed=0x79b936ef;
+      for(var pixel=0;pixel<128*128;pixel++) {
+        grainSeed^=grainSeed<<13;grainSeed^=grainSeed>>>17;grainSeed^=grainSeed<<5;
+        var tone = grainSeed & 1 ? 255 : 0, offset=pixel*4;
+        noise.data[offset]=noise.data[offset+1]=noise.data[offset+2]=tone;noise.data[offset+3]=2;
+      }
+      ditherContext.putImageData(noise,0,0);ditherPattern=context.createPattern(ditherTile,'repeat');
+    }
     function alpha(color, opacity) { return 'rgba(' + color.join(',') + ',' + opacity + ')'; }
     function hueColor(hue,saturation,lightness) {
       var h=((hue%360)+360)%360/360,s=clamp(saturation,0,100)/100,l=lightness/100;
@@ -108,10 +146,13 @@
     }
     function sampleOptics(items) {
       items.forEach(function (item) {
-        var optic = item.optic, scale = Math.min(.8, 1000 / item.width, 900 / item.height);
+        // Only the narrow bevel uses this image. Native CSS keeps the glass
+        // outline sharp; a half-scale, bounded field is sufficient for the
+        // low-frequency room that is compressed through its 6–8px edge.
+        var optic = item.optic, scale = Math.min(.55, 640 / item.width, 512 / item.height);
         // Small perspective changes must not reallocate the pixel buffer.
-        var w = Math.max(1, Math.min(1000, Math.ceil(item.width * scale / 64) * 64));
-        var h = Math.max(1, Math.min(900, Math.ceil(item.height * scale / 64) * 64));
+        var w = Math.max(1, Math.min(640, Math.ceil(item.width * scale / 64) * 64));
+        var h = Math.max(1, Math.min(512, Math.ceil(item.height * scale / 64) * 64));
         if (optic.canvas.width !== w) optic.canvas.width = w;
         if (optic.canvas.height !== h) optic.canvas.height = h;
         var ctx = optic.context, edge = mobile ? 6 : 8;
@@ -235,6 +276,33 @@
       if (!ctx) return null;
       ctx.setTransform(dpr, 0, 0, dpr, padding * dpr, padding * dpr);
       var strength = mobile ? .68 : 1;
+      if (layer === 0 && landscapeImage) {
+        // Decode once, bake once per size/theme: the image is the actual far
+        // room and is included in every same-origin glass-bevel sample. The
+        // padded cover crop gives the camera room to move without empty edges.
+        var coverW=width+padding*2,coverH=height+padding*2;
+        var imageW=landscapeImage.naturalWidth,imageH=landscapeImage.naturalHeight;
+        var coverScale=Math.max(coverW/imageW,coverH/imageH),sourceW=coverW/coverScale,sourceH=coverH/coverScale;
+        var sourceX=Math.max(0,(imageW-sourceW)*(mobile ? .88 : .57)),sourceY=Math.max(0,(imageH-sourceH)*.46);
+        ctx.globalAlpha=light ? .60 : .91;
+        ctx.drawImage(landscapeImage,sourceX,sourceY,sourceW,sourceH,-padding,-padding,coverW,coverH);
+        ctx.globalAlpha=1;
+        var scrim=ctx.createLinearGradient(0,-padding,0,height+padding);
+        scrim.addColorStop(0,light?'rgba(222,234,234,.18)':'rgba(4,13,22,.16)');
+        scrim.addColorStop(.48,light?'rgba(222,234,234,.06)':'rgba(4,13,22,.07)');
+        scrim.addColorStop(1,light?'rgba(222,234,234,.11)':'rgba(4,13,22,.18)');
+        ctx.fillStyle=scrim;ctx.fillRect(-padding,-padding,coverW,coverH);
+        return plate;
+      }
+      if (crystal || landscapeImage) {
+        // Light volumes sit behind the room's shared geometry. No second set
+        // of flat ribbons competes with the physical curved glass walls.
+        if (layer === 0) {
+          glow(ctx,width*.91,height*.15,width*.45,tones.mint,light ? .035 : .065,1.2);
+          glow(ctx,width*.04,height*.68,width*.39,tones.blue,light ? .025 : .045,1.25);
+        }
+        return plate;
+      }
       if (layer === 0) {
         glow(ctx, width * .91, height * .21, width * .46, tones.mint, (light ? .07 : .14) * strength, 1.2);
         glow(ctx, width * .04, height * .65, width * .38, tones.blue, (light ? .045 : .085) * strength, 1.25);
@@ -278,8 +346,15 @@
       // Bound the main composite plus all three overscan plates together.
       // These soft distant surfaces may render below CSS-pixel resolution on
       // large displays; text and foreground DOM retain native sharpness.
-      var pixelArea = width * height + 3 * (width + padding * 2) * (height + padding * 2);
-      dpr = Math.min(window.devicePixelRatio || 1, mobile ? 1.25 : 1.5, Math.sqrt(16000000 / pixelArea));
+      var plateCount=crystal || landscapeImage ? 1 : 3;
+      var pixelArea = width * height + plateCount * (width + padding * 2) * (height + padding * 2);
+      var colorBytesAtOne = width * height * (compositorInfo.highPrecision ? 8 : 4) + plateCount * (width + padding * 2) * (height + padding * 2) * 4;
+      // Background geometry is low frequency; its pixels need not match the
+      // native DOM text or borders. Bound the float16 final canvas itself,
+      // not just the combined overscan allocation. Phone CSS pixels remain
+      // one-to-one at normal 390×844 dimensions.
+      var finalPixelBudget = mobile ? 400000 : 1000000;
+      dpr = Math.min(window.devicePixelRatio || 1,mobile ? 1 : .8,Math.sqrt(finalPixelBudget / (width * height)),Math.sqrt(16000000 / pixelArea),Math.sqrt(48000000 / colorBytesAtOne));
       light = html.dataset.theme === 'light';
       var themed=body.hasAttribute('data-community-theme'),computed=getComputedStyle(body);
       var selectedHue=parseFloat(computed.getPropertyValue('--community-hue')),selectedSat=parseFloat(computed.getPropertyValue('--community-saturation'));
@@ -291,9 +366,10 @@
         { mint: [118, 187, 155], blue: [115, 157, 181], warm: [208, 177, 122] };
       if(themed)tones={mint:hueColor(selectedHue,selectedSat,light?43:64),blue:hueColor(selectedHue+16,selectedSat*.65,light?47:67),warm:hueColor(selectedHue-12,selectedSat*.5,light?49:70)};
       canvas.width = Math.max(1, Math.floor(width * dpr)); canvas.height = Math.max(1, Math.floor(height * dpr));
+      if (crystal) crystal.resize(width,height,mobile);
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
       plates.forEach(function (plate) { if (plate) plate.width = plate.height = 1; });
-      plates = [bake(0), bake(1), bake(2)]; dirty = true;
+      plates = plateCount===1 ? [bake(0)] : [bake(0), bake(1), bake(2)]; dirty = true;
     }
     function draw() {
       context.clearRect(0, 0, width, height);
@@ -307,6 +383,16 @@
         context.rotate(current[0] * .0013 * (index + 1) - scene[1] * .00016 * (index + 1));
         context.drawImage(plate, -width * .5 - padding, -height * .5 - padding, width + padding * 2, height + padding * 2); context.restore();
       });
+      if (crystal && crystal.render({x:current[0],y:current[1],scroll:current[2],rx:scene[0],ry:scene[1],tint:tones.blue,light:light})) {
+        // The complete art direction is one coherent landscape. Geometry now
+        // acts as a transparent supporting room, not another dark scenic layer.
+        context.save();context.globalAlpha=landscapeImage ? .30 : 1;
+        context.drawImage(crystal.canvas,0,0,width,height);context.restore();
+      }
+      // A cached 2/255 alpha white-noise tile dithers the final 8-bit
+      // composite as well as shader ramps. It is screen-stable, never animated.
+      if(ditherPattern){context.fillStyle=ditherPattern;context.fillRect(0,0,width,height);}
+      composites++;
       wrapper.style.setProperty('--atmosphere-x', (current[0] * 22).toFixed(2) + 'px');
       wrapper.style.setProperty('--atmosphere-y', (current[1] * 15 - current[2] * 27).toFixed(2) + 'px');
       wrapper.style.setProperty('--atmosphere-tilt-x', (-current[1] * 2.5).toFixed(2) + 'deg');
@@ -342,8 +428,8 @@
         });
       }
       // Cap only expensive full-canvas composites, not the input controller.
-      if (dirty || !lastDraw || now - lastDraw >= 1000 / 60 || !unsettled) {
-        var sampleNow = opticsDirty || !lastOptics || now - lastOptics >= 1000 / 30 || !unsettled;
+      if (dirty || !lastDraw || now - lastDraw >= 1000 / (crystal ? 30 : 60) || !unsettled) {
+        var sampleNow = opticsDirty || !lastOptics || now - lastOptics >= 1000 / 15 || !unsettled;
         var opticBoxes = sampleNow ? readOptics() : [];
         draw(); lastDraw = now;
         if (sampleNow) { sampleOptics(opticBoxes); lastOptics = now; }
@@ -413,8 +499,15 @@
     var opticMutationObserver = new MutationObserver(queueOpticScan);
     opticMutationObserver.observe(body, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-material'] });
     scanOptics();
+    var landscape = loadLandscape();
+    if(landscape)landscape.then(function(image){
+      if(closed || !image)return;
+      landscapeImage=image;wrapper.dataset.sceneArt='crystal-archipelago';
+      sizeSignature='';dirtySize=true;dirty=true;schedule();
+    });
     readLocks(); if (!reduce.matches && !paused()) current[2] = target[2] = scrollPosition() * (fine.matches ? 1 : .45); gate();
     window.dispatchEvent(new Event('liss:spatial-request'));
+    inspectState = function () { var platePixels=plates.reduce(function(n,p){return n+(p?p.width*p.height:0);},0),mainPixels=canvas.width*canvas.height;return {renderer:wrapper.dataset.sceneRenderer,composites:composites,framePending:!!frame,state:wrapper.dataset.atmosphereState,width:width,height:height,scene:scene.slice(),camera:current.slice(),crystal:crystal?crystal.inspect():null,landscape:{state:landscapeStatus,ready:!!landscapeImage,width:landscapeImage?landscapeImage.naturalWidth:0,height:landscapeImage?landscapeImage.naturalHeight:0,crop:mobile?'right-mineral':'balanced',alpha:light ? .60 : .91,geometryAlpha:landscapeImage ? .30 : 1},compositor:compositorInfo,finalPixels:mainPixels,finalPixelBudget:mobile?400000:1000000,backgroundCompositePixels:mainPixels+platePixels,compositeColorBudget:48000000,compositeColorBytes:mainPixels*(compositorInfo.highPrecision?8:4)+platePixels*4,opticSamples:optics.filter(function(o){return o.visible;}).length,opticSampleHz:15,opticPixelLimit:640*512}; };
     dispose = function () {
       if (closed) return; closed = true; stop(); abort.abort(); stateObserver.disconnect(); dialogObserver.disconnect();
       if (resizeObserver) resizeObserver.disconnect(); if (releaseTimer) clearTimeout(releaseTimer);
@@ -422,11 +515,14 @@
       optics.forEach(function (optic) { optic.canvas.width = optic.canvas.height = 1; optic.canvas.remove(); }); optics = [];
       savedSceneProperties.forEach(function (entry) { if (entry[1]) body.style.setProperty(entry[0],entry[1],entry[2]); else body.style.removeProperty(entry[0]); });
       plates.forEach(function (plate) { if (plate) plate.width = plate.height = 1; }); plates = [];
+      if (crystal) crystal.destroy();
+      ditherTile.width=ditherTile.height=1;
       canvas.width = canvas.height = 1; wrapper.remove(); if (!hadClass) body.classList.remove('has-atmosphere');
+      inspectState = null;
     };
   }
   window.addEventListener('pagehide', function () { if (dispose) dispose(); }, { signal: lifetime.signal });
   window.addEventListener('pageshow', function (event) { if (event.persisted) mount(); }, { signal: lifetime.signal });
-  window[key] = { destroy: function () { if (dispose) dispose(); lifetime.abort(); delete window[key]; } };
+  window[key] = { inspect: function () { return inspectState ? inspectState() : {mounted:false}; }, destroy: function () { if (dispose) dispose(); lifetime.abort(); delete window[key]; } };
   mount();
 })();

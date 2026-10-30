@@ -12,9 +12,9 @@
     '--depth-scroll-rx','--depth-scroll-y','--depth-scroll-z','--depth-light-x','--depth-light-y','--depth-scroll-progress'];
   var roomNames = ['--room-x','--room-y','--room-rx','--room-ry'];
   var profiles = {
-    edition:[8,12,16,10,18,1.2], reply:[6,8,10,7,12,.8], image:[9,14,18,10,16,.8],
+    edition:[6,12,16,10,18,1.2], reply:[4.5,8,10,7,12,.8], image:[6.75,14,18,10,16,.8],
     reader:[0,0,0,0,0,0], workspace:[0,0,0,0,0,0],
-    identity:[7,10,14,9,12,.85], ledge:[8,12,13,9,14,.6]
+    identity:[5.25,10,14,9,12,.85], ledge:[6,12,13,9,14,.6], crystal:[6.75,14,17,12,22,.9]
   };
   function clamp(value,min,max) { return Math.max(min,Math.min(max,value)); }
   function snapshot(node,properties) {
@@ -202,7 +202,7 @@
     function relaySurfaces(){
       var poses=[],signature=[!blocked()];
       scenes.forEach(function(scene){
-        if(!scene.visible||scene.header||scene.fullscreen||!['edition','reply','reader'].includes(scene.kind))return;
+        if(!scene.visible||scene.header||scene.fullscreen||!['edition','reply','reader','ledge','workspace','identity','crystal'].includes(scene.kind))return;
         var c=scene.current,pose={host:scene.host,rx:Number((scene.rest[0]+c[0]+c[5]).toFixed(2)),ry:Number((scene.rest[1]+c[1]).toFixed(2)),lightX:Number(c[8].toFixed(2)),lightY:Number(c[9].toFixed(2)),held:blocked()||held(scene)||scene.focused};
         poses.push(pose);signature.push([scene.surfaceId,pose.rx,pose.ry,pose.lightX,pose.lightY,pose.held]);
       });

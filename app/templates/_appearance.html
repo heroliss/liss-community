@@ -2,7 +2,7 @@
 {% macro controls(form) %}
 {% set color = form.appearance_color.data or '' %}
 {% set material = form.appearance_material.data or 'auto' %}
-<details class="post-appearance" data-appearance-editor{% if form.appearance_color.errors or form.appearance_material.errors %} open{% endif %}>
+<details class="post-appearance" data-appearance-editor data-appearance-auto-color="{{ (display_page_theme|default({})).get('automatic_color','') }}"{% if form.appearance_color.errors or form.appearance_material.errors %} open{% endif %}>
   <summary><span>文章外观</span><span class="appearance-current" data-appearance-status>配色与材质</span></summary>
   <div class="appearance-layout">
     <div class="appearance-controls">
@@ -26,7 +26,7 @@
       <div class="appearance-sample" data-depth-host data-depth-kind="edition" data-pose="2" data-material="glass" data-appearance-preview>
       {% call depth.layers(material=true) %}<span class="appearance-sample-label">外观预览</span><h3 data-appearance-title>你的下一篇文章</h3><p data-appearance-excerpt>一点发现，一个故事，或还在酝酿的想法。</p><span class="appearance-sample-foot">发布后，仍可随时调整。</span>{% endcall %}
       </div>
-      <p class="appearance-sample-note">自动材质由网站搭配，预览以玻璃示意。</p>
+      <p class="appearance-sample-note">默认使用晶透玻璃；其他材质为你的文章增添一点不同。</p>
     </div>
   </div>
 </details>

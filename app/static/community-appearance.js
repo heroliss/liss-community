@@ -20,10 +20,11 @@
       var material = radio ? radio.value : 'auto';
       preview.dataset.material = material === 'auto' ? 'glass' : material;
       if (color !== null) {
-        preview.dataset.themeColor = color;
-        theme.tint(preview,color,'draft');
+        var displayColor = color || theme.normalize(root.dataset.appearanceAutoColor || '') || '';
+        preview.dataset.themeColor = displayColor;
+        theme.tint(preview,displayColor,'draft');
         if (color) picker.value = color;
-        if (activate && visible()) theme.preview(color,root);
+        if (activate && visible()) theme.preview(displayColor,root);
       } else theme.tint(preview,preview.dataset.themeColor || '','draft');
       swatches.forEach(function (s) { s.setAttribute('aria-pressed',String(s.dataset.appearanceSwatch === color)); });
       status.textContent = (color === null ? '色值待校验' : color ? '整页实时配色' : '自动配色')+' · '+(radio ? radio.parentElement.lastElementChild.textContent : '自动安排');
