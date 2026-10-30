@@ -98,3 +98,59 @@ def migrate_owner_schema(database):
         for name, definition in pending:
             connection.execute(f'ALTER TABLE users ADD COLUMN {name} {definition}')
         connection.commit()
+
+
+def migrate_material_catalog(database):
+    """Widen the known material check once, retaining data and a safety snapshot.
+
+    create_all cannot alter an existing CHECK. Public-demo stores do not use an
+    Alembic revision marker, so preparation performs the same narrow upgrade.
+    """
+    database = Path(database)
+    if not database.is_file():
+        return
+    import sqlalchemy as sa
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+
+    old_tokens = {'auto', 'glass', 'ceramic', 'paper', 'metal'}
+    new_tokens = old_tokens | {'leather', 'cork', 'slate'}
+    check_sql = "card_material IN ('auto','glass','ceramic','paper','metal','leather','cork','slate')"
+    engine = sa.create_engine(sa.URL.create('sqlite', database=str(database)))
+    try:
+        with engine.connect() as connection:
+            inspector = sa.inspect(connection)
+            if 'post_appearances' not in inspector.get_table_names():
+                return  # The current model creates the missing table below.
+            checks = inspector.get_check_constraints('post_appearances')
+            current = next((item['sqltext'] for item in checks
+                            if item['name'] == 'ck_post_appearance_material'), None)
+            known_shape = re.fullmatch(r"\s*card_material\s+IN\s*\(\s*'[a-z]+'(?:\s*,\s*'[a-z]+')*\s*\)\s*", current or '', re.I)
+            tokens = set(re.findall(r"'([^']*)'", current or '')) if known_shape else set()
+            if tokens == new_tokens:
+                return
+            if tokens != old_tokens:
+                raise RuntimeError('Unrecognized post material constraint; keep the database and inspect its schema before upgrading.')
+            backup_database(database, database.parent / ('before-material-catalog-'
+                + time.strftime('%Y%m%d-%H%M%S') + '-' + secrets.token_hex(3) + '.sqlite'))
+            # Explicit SQLite transaction covers the table recreation, including
+            # DDL, so a failed copy can roll back without leaving partial tables.
+            connection.exec_driver_sql('BEGIN IMMEDIATE')
+            operations = Operations(MigrationContext.configure(connection))
+            try:
+                table = sa.Table('post_appearances', sa.MetaData(), autoload_with=connection)
+                # Match the declared owning relationship even when SQLite's
+                # reflection omits CASCADE from an inline legacy foreign key.
+                for foreign_key in table.foreign_key_constraints:
+                    if ([column.name for column in foreign_key.columns] == ['post_id']
+                            and [element.target_fullname for element in foreign_key.elements] == ['posts.id']):
+                        foreign_key.ondelete = 'CASCADE'
+                with operations.batch_alter_table('post_appearances', copy_from=table) as batch:
+                    batch.drop_constraint('ck_post_appearance_material', type_='check')
+                    batch.create_check_constraint('ck_post_appearance_material', check_sql)
+                connection.commit()
+            except Exception:
+                connection.rollback()
+                raise
+    finally:
+        engine.dispose()

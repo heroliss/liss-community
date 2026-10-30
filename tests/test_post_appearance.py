@@ -487,7 +487,9 @@ class AppearanceMigrationTests(unittest.TestCase):
         config = AlembicConfig()
         config.set_main_option('script_location', str(Path(__file__).resolve().parents[1] / 'migrations'))
         scripts = ScriptDirectory.from_config(config)
-        self.assertEqual(scripts.get_heads(), ['20261030_post_appearance'])
+        self.assertEqual(scripts.get_heads(), ['20261031_material_catalog'])
+        self.assertEqual(scripts.get_revision('20261031_material_catalog').down_revision,
+                         '20261030_post_appearance')
         self.assertEqual(scripts.get_revision('20261030_post_appearance').down_revision,
                          '20261024_owner_identity')
 

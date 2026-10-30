@@ -1,0 +1,132 @@
+/* Three tactile companions to the room's cast glass. All texture/edge detail
+   belongs to inert shell leaves, below readable text, never its 3D ancestor.
+   The GPU uses the same object-space grain; these faces survive loading,
+   reduced motion, disabled WebGL and context loss without changing identity. */
+/* Reply and light-mode fallback selectors used to override opacity:0. A GPU
+   face already owns its single key light; do not paint a second white veil. */
+.community-room [data-material][data-surface-renderer=webgl] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-sheen { display:none; }
+:root:not([data-theme=light]) .community-room :is([data-material=leather],[data-material=cork],[data-material=slate]) {
+  --muted:#c6d5d0;--subtle:#b4c7c1;
+  --accent:color-mix(in srgb,var(--appearance-accent,#a9d7c5) 80%,#f4faf6);
+}
+.community-room :is([data-material=leather],[data-material=cork],[data-material=slate])[data-theme-color] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::before { background:none; }
+.community-room [data-material=leather] {
+  --material-thickness:11px;--material-radius:27px 35px 25px 29px;
+  --material-base:#492d20;--material-back:#261b15;--material-edge:#7a533b;
+  --material-side-mid:#38251c;--material-side-dark:#1d1512;
+  --tactile-grain-light:#dec3a514;--tactile-grain-dark:#110a0621;
+  --leather-stitch:#b9997161;--leather-recess:#130d0a70;
+}
+.community-room [data-material=cork] {
+  --material-thickness:14px;--material-radius:13px 22px 15px 19px;
+  --material-base:#534126;--material-back:#2e281b;--material-edge:#89744f;
+  --material-side-mid:#58472f;--material-side-dark:#30291d;
+  --tactile-grain-light:#e3c48b12;--tactile-grain-dark:#160e0615;
+}
+.community-room [data-material=slate] {
+  --material-thickness:8px;--material-radius:3px 10px 4px 8px;
+  --material-base:#2c3944;--material-back:#17212c;--material-edge:#71818a;
+  --material-side-mid:#35434c;--material-side-dark:#17202c;
+  --tactile-grain-light:#b8cbd81b;--tactile-grain-dark:#07131e21;
+}
+
+/* A padded cover with a compressed perimeter, not a second rear silhouette.
+   Stitching follows a recessed, inset seam and is kept off the text plane. */
+.community-room [data-material=leather] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  background:radial-gradient(ellipse at 18% 10%,var(--tactile-grain-light) 0 19%,transparent 25%) 0 0/7px 6px,
+    radial-gradient(ellipse at 68% 67%,var(--tactile-grain-dark) 0 22%,transparent 34%) 0 0/9px 8px,
+    var(--surface-pigment,var(--material-base));
+  box-shadow:inset 3px 4px 7px #c8ac8124,inset -3px -5px 8px #150d0a73;
+}
+.community-room [data-material=leather] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::before {
+  content:"";position:absolute;inset:11px;border:1px dashed var(--leather-stitch);border-radius:21px 28px 20px 23px;
+  transform:translateZ(.45px);pointer-events:none;backface-visibility:hidden;
+  box-shadow:0 1px 0 var(--leather-recess),inset 0 1px 1px var(--leather-recess);
+}
+.community-room [data-material=leather] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim {
+  padding:1px;opacity:.40;background:linear-gradient(135deg,#dec6a84d,transparent 39% 100%);
+}
+.community-room [data-material=leather] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back {
+  background:linear-gradient(130deg,var(--material-edge),var(--material-back) 61%);
+}
+.community-room [data-material=leather] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before,
+.community-room [data-material=leather] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after { top:25px;bottom:25px; }
+.community-room [data-material=leather] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before,
+.community-room [data-material=leather] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after { left:26px;right:26px; }
+
+/* Small, offset faceted chips replace the former broad dark cloudy ellipses.
+   Its cut edge exposes a coarser warm aggregate and has no polished sheen. */
+.community-room [data-material=cork] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  background:radial-gradient(ellipse at 23% 35%,var(--tactile-grain-dark) 0 5%,transparent 12%) 1px 4px/17px 13px,
+    conic-gradient(from 22deg at 57% 48%,var(--tactile-grain-light) 0 70deg,transparent 77deg 190deg,var(--tactile-grain-dark) 198deg 272deg,transparent 280deg) 0 0/11px 9px,
+    conic-gradient(from 71deg at 42% 63%,transparent 0 80deg,var(--tactile-grain-light) 87deg 157deg,transparent 164deg 278deg,var(--tactile-grain-dark) 286deg) 3px 2px/9px 7px,
+    var(--surface-pigment,var(--material-base));
+  box-shadow:inset 1px 2px 1px #e3c68d3d,inset -1px -2px 2px #20180e70;
+}
+.community-room [data-material=cork] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim {
+  padding:1px;opacity:.38;background:linear-gradient(135deg,#d5bd8d70,transparent 41% 100%);
+}
+.community-room [data-material=cork] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-sheen { display:none; }
+.community-room [data-material=cork] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after {
+  background:radial-gradient(ellipse at 16% 34%,#c7aa7b75 0 16%,transparent 23%) 0 0/13px 7px,
+    radial-gradient(ellipse at 68% 61%,#1d150b70 0 14%,transparent 22%) 4px 2px/19px 9px,
+    linear-gradient(180deg,var(--material-edge),var(--material-back));
+}
+.community-room [data-material=cork] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before,
+.community-room [data-material=cork] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after { top:18px;bottom:18px; }
+.community-room [data-material=cork] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before,
+.community-room [data-material=cork] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after { left:18px;right:19px; }
+
+/* Slate's silhouette is cut only on noninteractive physical leaves. Text,
+   images, focus outlines and all preserve-3d ancestors keep their full bounds. */
+.community-room [data-material=slate] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > :is(.material-base,.material-back,.material-coating,.material-rim) {
+  clip-path:polygon(0 11px,11px 0,calc(100% - 16px) 0,100% 16px,100% calc(100% - 8px),calc(100% - 8px) 100%,9px 100%,0 calc(100% - 9px));
+}
+.community-room [data-material=slate] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  background:repeating-linear-gradient(174deg,transparent 0 9px,var(--tactile-grain-light) 10px,transparent 12px 23px,var(--tactile-grain-dark) 24px,transparent 27px 43px),
+    radial-gradient(ellipse at 31% 22%,var(--tactile-grain-light) 0 9%,transparent 19%) 0 0/13px 17px,
+    var(--surface-pigment,var(--material-base));
+  box-shadow:inset 1px 2px 1px #c2d0d75c,inset -1px -2px 1px #101923a8;
+}
+.community-room [data-material=slate] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim {
+  padding:1px;opacity:.60;background:linear-gradient(135deg,#d4e0e278,transparent 38% 100%);
+}
+.community-room [data-material=slate] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after {
+  background:repeating-linear-gradient(180deg,var(--material-edge) 0 1px,var(--material-side-mid) 1px 2px,var(--material-back) 2px 3.5px);
+}
+.community-room [data-material=slate] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before,
+.community-room [data-material=slate] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after { top:19px;bottom:13px;border-radius:0; }
+.community-room [data-material=slate] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before,
+.community-room [data-material=slate] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after { left:14px;right:19px; }
+
+/* Both modes retain the same material identity. Pigment is mirrored from the
+   shader's reading budget; small fallback texture differences stay bounded. */
+[data-theme=light] .community-room [data-material=leather] {
+  --material-base:#c4a28a;--material-back:#9c8069;--material-edge:#aa8a6b;
+  --material-side-mid:#ac8e78;--material-side-dark:#826854;
+  --tactile-grain-light:#fff1d22b;--tactile-grain-dark:#4c2f1915;
+  --leather-stitch:#78573369;--leather-recess:#4c2f1926;
+}
+[data-theme=light] .community-room [data-material=cork] {
+  --material-base:#d6be93;--material-back:#a28a63;--material-edge:#bea175;
+  --material-side-mid:#b5996c;--material-side-dark:#8d7759;
+  --tactile-grain-light:#fff3cc29;--tactile-grain-dark:#5c391c18;
+}
+[data-theme=light] .community-room [data-material=slate] {
+  --material-base:#b1bbc0;--material-back:#87959e;--material-edge:#a6b4ba;
+  --material-side-mid:#9eaeb7;--material-side-dark:#70848f;
+  --tactile-grain-light:#ffffff3b;--tactile-grain-dark:#233c5119;
+}
+[data-theme=light] .community-room [data-material=leather] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { box-shadow:inset 3px 4px 7px #fff2d24d,inset -3px -5px 8px #593c252a; }
+[data-theme=light] .community-room [data-material=cork] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { box-shadow:inset 1px 2px 1px #ffefc978,inset -1px -2px 2px #65503738; }
+[data-theme=light] .community-room [data-material=slate] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { box-shadow:inset 1px 2px 1px #f0f5f7c7,inset -1px -2px 1px #536b7b66; }
+
+@media(max-width:600px) {
+  .community-room [data-material=leather] { --material-thickness:8px;--material-radius:22px 28px 21px 23px; }
+  .community-room [data-material=leather] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell::before { inset:9px;border-radius:16px 22px 15px 17px; }
+  .community-room [data-material=cork] { --material-thickness:10px; }
+  .community-room [data-material=slate] { --material-thickness:6px; }
+}
+@media(forced-colors:active) {
+  .community-room :is([data-material=leather],[data-material=cork],[data-material=slate]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell { display:none; }
+}

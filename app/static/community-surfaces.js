@@ -9,7 +9,7 @@
   var scriptURL = document.currentScript && document.currentScript.src;
   var textureURL = new URL('textures/material-v22/normal-roughness.png', scriptURL || document.baseURI).href;
   var lifetime = new AbortController(), dispose = null;
-  var metrics = { version: 'room-material-v28c', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'narrow-rounded-chamfer', transmission: 'native-backdrop', edgeSampling: false, antialias: 'analytic-rounded-coverage', lighting: 'upper-left-area-key+ambient', pigment: 'shared-css-gpu', materialContrast: 'intrinsic-grain-in-reading-budget', contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
+  var metrics = { version: 'room-material-v29', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'narrow-rounded-chamfer', transmission: 'native-backdrop', edgeSampling: false, antialias: 'analytic-rounded-coverage', lighting: 'upper-left-area-key+ambient', pigment: 'shared-css-gpu', materialContrast: 'intrinsic-grain-in-reading-budget', materialKinds: 7, atlasSources: 4, contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
   var inspectState = function () { return Object.assign({}, metrics); };
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
   var vertex = [
@@ -39,6 +39,10 @@
     // Object-space, not time-based grain: it breaks 8-bit contouring without
     // sparkling when the pointer or camera is at rest. This remains SDR.
     'float dither(vec2 p){return fract(52.9829189*fract(dot(floor(p),vec2(.06711056,.00583715))))-.5;}',
+    // Stable, band-limited cells. New materials reuse the existing four map
+    // tiles; two cheap object-space noise fields need no texture or frame loop.
+    'float hash21(vec2 p){vec3 q=fract(vec3(p.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}',
+    'float noise21(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash21(i),hash21(i+vec2(1.,0.)),f.x),mix(hash21(i+vec2(0.,1.)),hash21(i+vec2(1.,1.)),f.x),f.y);}',
     'vec3 specular(vec3 N,vec3 V,vec3 L,float rough,vec3 f0,bool anisotropic){',
     ' vec3 H=normalize(V+L);float nv=max(dot(N,V),.02),nl=max(dot(N,L),.02),nh=max(dot(N,H),.001);',
     ' float alpha=max(.035,rough*rough),distribution;',
@@ -51,12 +55,17 @@
     ' return distribution*geometry*fresnel(max(dot(V,H),0.),f0)/max(4.*nv*nl,.001);',
     '}',
     'void main(){',
-    ' vec2 uv=vUv;vec2 tile=vec2(mod(uKind,2.),step(1.5,uKind));',
-    ' vec2 micro=fract(uv*uSize/(uKind>1.5&&uKind<2.5?155.:190.));',
+    // IDs 4/5/6 are leather/cork/slate. Explicit tile remapping prevents a
+    // new material from sampling beyond the existing 2x2 normal atlas.
+    ' vec2 uv=vUv;float atlasKind=uKind<3.5?uKind:uKind<4.5?1.:uKind<5.5?2.:3.;',
+    ' vec2 tile=vec2(mod(atlasKind,2.),step(1.5,atlasKind));',
+    ' vec2 micro=fract(uv*uSize/(atlasKind>1.5&&atlasKind<2.5?155.:190.));',
     ' vec4 data=texture2D(uMap,tile*.5+vec2(.0059)+micro*.4882);',
-    ' vec2 detail=data.rg*2.-1.;float strength=uKind<.5?.115:uKind<1.5?.48:uKind<2.5?.78:.72;',
+    ' vec2 physical=uv*min(uSize,uTileSize*1.5);float coarse=.5,fineGrain=.5,strata=0.;',
+    ' if(uKind>3.5){coarse=noise21(physical/12.);fineGrain=noise21(physical/3.6+vec2(19.7,4.9));strata=sin(physical.y*.108+sin(physical.x*.018)*1.35);}',
+    ' vec2 detail=data.rg*2.-1.;float strength=uKind<.5?.115:uKind<1.5?.48:uKind<2.5?.78:uKind<3.5?.72:uKind<4.5?.88:uKind<5.5?.54:.66;',
     ' vec2 edgeDistance=min(uv,1.-uv)*uSize;',
-    ' float bevelWidth=uKind<.5?3.5:uKind<1.5?12.:uKind<2.5?1.5:6.;',
+    ' float bevelWidth=uKind<.5?3.5:uKind<1.5?12.:uKind<2.5?1.5:uKind<3.5?6.:uKind<4.5?9.:uKind<5.5?3.:4.;',
     ' vec2 edgeWeight=1.-smoothstep(vec2(0.),vec2(bevelWidth),edgeDistance);',
     ' float bevel=max(edgeWeight.x,edgeWeight.y);',
     ' vec2 bevelNormal=vec2((uv.x<.5?-1.:1.)*edgeWeight.x,(uv.y<.5?1.:-1.)*edgeWeight.y);',
@@ -64,6 +73,9 @@
     ' float normalDepth=uKind<.5?.42:.26;',
     ' float paperFold=uv.x-.81+uv.y*.06;',
     ' vec2 formNormal=uKind>1.5&&uKind<2.5?vec2(-.20*exp(-sq(paperFold/.022))*sign(paperFold),.035*sin(uv.x*PI)):uKind>.5&&uKind<1.5?vec2((uv.x-.5)*.16,(.5-uv.y)*.12):vec2(0.);',
+    ' if(uKind>3.5&&uKind<4.5)formNormal=vec2((uv.x-.5)*.11,(.5-uv.y)*.09)+vec2(coarse-.5,fineGrain-.5)*.12;',
+    ' if(uKind>4.5&&uKind<5.5)formNormal=vec2(fineGrain-.5,coarse-.5)*.075;',
+    ' if(uKind>5.5)formNormal=vec2(strata*.025,strata*.11+(coarse-.5)*.07);',
     ' vec3 N=rotateNormal(normalize(vec3(detail.x*strength+bevelNormal.x*bevel*normalDepth+formNormal.x,detail.y*strength+bevelNormal.y*bevel*normalDepth+formNormal.y,1.)));',
     ' vec2 p=vec2((uv.x-.5)*clamp(uSize.x/uSize.y,.35,2.8),.5-uv.y);',
     // A room-space key stays above/left as the card and its normal rotate.
@@ -114,7 +126,7 @@
     '  float foldShade=1.-.13*exp(-sq(paperFold/.013))+.075*exp(-sq((paperFold+.017)/.018));',
     '  color=base*(.57+diffuse*.54)*(.76+data.a*.34+fibres*.10)*foldShade;opacity=1.;',
     '  intrinsic=clamp((data.a-.81)*2.8+.5+fibres*.18,0.,1.);',
-    ' }else{',
+    ' }else if(uKind<3.5){',
     '  vec3 S=specular(N,V,L,rough,mix(vec3(.48,.57,.64),uAccent,.20),true);',
     // Anodised metal has an elongated, directional reflection. Its machining
     // bands are deliberately broader than a subpixel line at atlas resolution.
@@ -122,6 +134,38 @@
     '  float brush=.96+.04*sin(uv.y*min(uSize.y,uTileSize.y)*1.35+data.a*2.);',
     '  color=base*(.47+nl*.55)*(.83+data.a*.25)*brush+S*.38+reflectionTint*ribbon*.13;',
     '  intrinsic=clamp((data.a-.81)*3.5+.5+(brush-.96)*4.,0.,1.);',
+    '  opacity=1.;',
+    ' }else if(uKind<4.5){',
+    // Leather: shallow pebble recesses keep their contrast at every pose;
+    // a broad, low-energy grazing response replaces a painted white stripe.
+    '  float pebble=clamp(.20+coarse*.48+fineGrain*.40,0.,1.);',
+    '  float pore=smoothstep(.23,.60,fineGrain);',
+    '  vec3 S=specular(N,V,L,clamp(.56+rough*.24,.56,.84),vec3(.035),false);',
+    '  color=base*(.64+nl*.48)*(.69+pebble*.38)+S*reflectionTint*.13+reflectionTint*softbox*.013;',
+    '  intrinsic=clamp(.12+pebble*.73+pore*.12+(data.a-.81)*1.3,0.,1.);',
+    '  opacity=1.;',
+    ' }else if(uKind<5.5){',
+    // Cork is pressed angular fragments, not connected dark cloud noise. A
+    // small skewed cell field breaks up the warm flecks, while rare pores and
+    // shallow normals keep the surface dry and quiet underneath reading ink.
+    '  vec2 chipUV=vec2(physical.x+physical.y*.31,physical.y*.92)/5.6+vec2(coarse-.5,fineGrain-.5)*.26;',
+    '  vec2 chipCell=floor(chipUV),chipLocal=fract(chipUV);',
+    '  float chipSeed=hash21(chipCell+vec2(7.1,13.7));',
+    '  float facet=smoothstep(-.06,.06,chipLocal.y-chipLocal.x*(.70+chipSeed*.40)-.12);',
+    '  float chip=clamp(.14+chipSeed*.74+(facet-.5)*.10+(fineGrain-.5)*.10,0.,1.);',
+    '  float pore=1.-smoothstep(.055,.145,fineGrain);',
+    '  color=base*(.74+nl*.35)*(.82+chip*.18-pore*.045)*(vec3(1.025,1.,.945)+vec3(.035,-.008,-.03)*(chip-.5));',
+    '  color+=specular(N,V,L,.92,vec3(.018),false)*reflectionTint*.035;',
+    '  intrinsic=clamp(.28+chip*.47-pore*.06+(data.a-.81)*.55,0.,1.);',
+    '  opacity=1.;',
+    ' }else{',
+    // Slate: quiet wavy cleavage strata and scattered mica, with a hard
+    // bevel. Specular is tight and sparse instead of metal's full ribbon.
+    '  float layers=.5+.5*strata;',
+    '  float mica=smoothstep(.72,.88,fineGrain);',
+    '  vec3 S=specular(N,V,L,clamp(.69+rough*.18,.69,.88),vec3(.055),false);',
+    '  color=base*(.58+nl*.56)*(.76+layers*.17+coarse*.13)+S*reflectionTint*(.10+mica*.15);',
+    '  intrinsic=clamp(.17+layers*.32+coarse*.36+mica*.14+(data.a-.81)*1.6,0.,1.);',
     '  opacity=1.;',
     ' }',
     ' if(uKind>.5){',
@@ -138,7 +182,7 @@
     '   energy=mix(energy*min(1.,targetLight/max(luminance,.0001)),vec3(1.),clamp((targetLight-luminance)/max(1.-luminance,.0001),0.,1.));',
     '  }else{',
     '   float ceiling=mix(.16,uReadingLimit,readPool);',
-    '   float textureStrength=uKind<1.5?.16:uKind<2.5?.30:.24;',
+    '   float textureStrength=uKind<1.5?.16:uKind<2.5?.30:uKind<3.5?.24:uKind<4.5?.39:uKind<5.5?.33:.36;',
     '   float exposure=luminance/(luminance+ceiling*.7);',
     '   float targetLight=ceiling*(.62+.30*exposure)*(1.-textureStrength+textureStrength*intrinsic);',
     '   energy*=targetLight/max(luminance,.0001);',
@@ -174,7 +218,7 @@
     var io = null, ro = null, mutationObserver = null, stateObserver = null;
     var parserCanvas = document.createElement('canvas'); parserCanvas.width = parserCanvas.height = 1;
     var parser = parserCanvas.getContext('2d', { willReadFrequently: true });
-    var kinds = ['glass','ceramic','paper','metal'];
+    var kinds = ['glass','ceramic','paper','metal','leather','cork','slate'];
     var selector = '[data-material]:is([data-depth-kind="edition"],[data-depth-kind="reply"],[data-depth-kind="reader"],[data-depth-kind="ledge"],[data-depth-kind="workspace"],[data-depth-kind="identity"],[data-depth-kind="crystal"])';
     function locked() { return pressed || editing || selecting || modal || !windowActive; }
     function blocked() { return reduce.matches || html.dataset.roomMotion === 'paused' || locked(); }
@@ -274,13 +318,13 @@
         if (!scene.visible || (!metadataDirty && !scene.metadata)) return;
         var style = getComputedStyle(scene.host), faceStyle=getComputedStyle(scene.surface), kind = Math.max(0,kinds.indexOf(scene.host.dataset.material));
         scene.radii=['border-top-left-radius','border-top-right-radius','border-bottom-right-radius','border-bottom-left-radius'].map(function(name){var value=parseFloat(faceStyle.getPropertyValue(name));return Number.isFinite(value)?Math.max(0,value):14;});
-        var palette = lightMode ? [[.78,.86,.91],[.72,.84,.66],[.87,.79,.61],[.63,.72,.81]] : [[.12,.20,.28],[.10,.25,.17],[.25,.21,.13],[.16,.22,.30]];
+        var palette = lightMode ? [[.78,.86,.91],[.72,.84,.66],[.87,.79,.61],[.63,.72,.81],[.77,.67,.57],[.85,.75,.57],[.69,.73,.77]] : [[.12,.20,.28],[.10,.25,.17],[.25,.21,.13],[.16,.22,.30],[.29,.17,.12],[.34,.26,.14],[.17,.21,.25]];
         scene.kind = kind; scene.base = parseColor(style.getPropertyValue('--material-base'),palette[kind]);scene.world=worldNormal(scene.host);
         var custom = !!scene.host.dataset.themeColor;
         // A draft/page hue must not recolor another author's unthemed post.
         var ownAccent=parseColor(style.getPropertyValue('--accent'),[.64,.87,.72]);
         scene.accent = custom ? parseColor(style.getPropertyValue('--appearance-accent'),ownAccent) : ownAccent;
-        scene.accentMix = custom ? (kind === 0 ? .24 : kind === 1 ? .09 : kind === 2 ? .06 : .12) : .018;
+        scene.accentMix = custom ? [ .24,.09,.06,.12,.075,.045,.07 ][kind] : .018;
         var foreground=['--text','--muted','--subtle','--accent'].map(function(name){
           return luminance(parseColor(style.getPropertyValue(name),lightMode?[.30,.35,.32]:[.67,.70,.68]));
         });

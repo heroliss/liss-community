@@ -29,6 +29,9 @@
 .material-chip-ceramic { background:linear-gradient(140deg,#638c7e,#233e37); }
 .material-chip-paper { background:linear-gradient(100deg,#d1c9ad,#6d705b); }
 .material-chip-metal { background:linear-gradient(120deg,#4d6670,#1c2c38 48%,#708793); }
+.material-chip-leather { background:repeating-radial-gradient(ellipse at 28% 32%,#b98d6038 0 1px,#0000 1.4px 3px),linear-gradient(135deg,#866346,#382b26); border:1px dashed #d7b58a90; border-radius:6px; }
+.material-chip-cork { background:radial-gradient(ellipse at 22% 25%,#765330 0 1.2px,#0000 1.5px),radial-gradient(ellipse at 70% 74%,#eed1a5 0 1px,#0000 1.3px),#ad8757; background-size:7px 6px,9px 8px,auto; border-radius:3px 5px 3px 4px; }
+.material-chip-slate { background:repeating-linear-gradient(160deg,#ffffff12 0 1px,#0000 1px 5px),linear-gradient(135deg,#6c777a,#323c41); border-radius:2px 5px 2px 3px; box-shadow:2px 3px 0 #263034,3px 5px 5px #0005; }
 .material-chip-auto { background:conic-gradient(#80bfa1,#76b8cf,#a59bd8,#80bfa1); opacity:.7; }
 .appearance-sample-area { min-width:0; display:flex; flex-direction:column; justify-content:center; padding:15px 12px 0; }
 .community-room [data-material][data-depth-kind=edition][data-appearance-preview] { width:100%; margin:10px 0 24px; --depth-rest-rx:5deg; --depth-rest-ry:-7deg; --depth-rest-rz:-1deg; --material-inset:0px; }

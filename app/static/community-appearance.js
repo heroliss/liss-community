@@ -17,7 +17,7 @@
     // POST validation, existing posts and browser-restored drafts keep their values.
     if (root.dataset.appearanceNew === 'true' && !root.dataset.appearanceSeeded && !hex.value.trim() && initialMaterial === 'auto' && !(body && body.value.trim())) {
       var palette = ['#80bfa1','#76b8cf','#a59bd8','#d6a37e','#cf91a8','#bdc8b8','#92b8bc','#b4b883','#ba9eb4','#9baed0','#c5ad86','#8fb4a7'];
-      var materials = ['glass','glass','glass','ceramic','paper','metal'];
+      var materials = ['glass','glass','glass','glass','glass','glass','ceramic','paper','metal','leather','cork','slate'];
       function sample(length) {
         if (window.crypto && window.crypto.getRandomValues) {
           var values = new Uint32Array(1); window.crypto.getRandomValues(values);
@@ -40,7 +40,7 @@
       var color = theme.normalize(hex.value), radio = root.querySelector('[name=appearance_material]:checked');
       var material = radio ? radio.value : 'auto';
       var automaticMaterial = root.dataset.appearanceAutoMaterial;
-      if (['glass','ceramic','paper','metal'].indexOf(automaticMaterial) === -1) automaticMaterial = 'glass';
+      if (['glass','ceramic','paper','metal','leather','cork','slate'].indexOf(automaticMaterial) === -1) automaticMaterial = 'glass';
       preview.dataset.material = material === 'auto' ? automaticMaterial : material;
       if (color !== null) {
         var displayColor = color || theme.normalize(root.dataset.appearanceAutoColor || '') || '';
