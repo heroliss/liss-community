@@ -1,10 +1,11 @@
-/* Conversation is the subject of the sculpture; latest posts live in the feed.
-   The room camera owns every object, so the back object shares its perspective. */
+/* A small shared camera keeps the sculpture together. Each decorative bubble
+   amplifies that already-damped pointer pose with its own movement, without a
+   second animation driver or per-frame layout reads. */
 html { scroll-behavior:smooth; }
 :root[data-room-motion=paused] { scroll-behavior:auto; }
 .community-room :is(#main-content,#article-feed,#write,#comments,[id^=comment-]) { scroll-margin-top:12px; }
 .community-room .conversation-atelier { min-height:470px;perspective:1300px; }
-.community-room .atelier-world { inset:0 0 36px;transform:translate3d(var(--room-x),var(--room-y),0) rotateX(calc(4deg + var(--room-rx)*.55)) rotateY(calc(-7deg + var(--room-ry)*.65)); }
+.community-room .atelier-world { inset:0 0 36px;transform:translate3d(var(--room-x),var(--room-y),0) rotateX(calc(4deg + var(--room-rx)*.3)) rotateY(calc(-7deg + var(--room-ry)*.4)); }
 .atelier-world>* { position:absolute;transform-style:preserve-3d;pointer-events:none; }
 .atelier-ground { left:8%;right:-3%;bottom:-4%;height:31%;border-radius:50%;background:radial-gradient(ellipse,#030b1670,transparent 68%);transform:translateZ(-105px) rotateX(63deg); }
 .atelier-track { width:88%;height:75%;left:8%;top:18%;border:1px solid #a7d9d136;border-right:0;border-radius:50%;transform:translateZ(-72px) rotateY(-27deg) rotateX(48deg) rotateZ(-16deg);box-shadow:0 2px 0 #071a2e55,inset 0 1px 0 #d6f7ec20; }
@@ -12,14 +13,14 @@ html { scroll-behavior:smooth; }
 .atelier-bubble::before { content:'';position:absolute;inset:3px -3px -8px 4px;border-radius:inherit;background:linear-gradient(125deg,#9dc7c545,#17344190 65%,#07121cbb);transform:translateZ(-17px);box-shadow:12px 26px 36px -17px #010713b3; }
 .atelier-bubble::after { content:'';position:absolute;width:41px;height:40px;left:22px;bottom:-17px;border-radius:0 0 3px 15px;background:linear-gradient(135deg,#9dc7c51c,#304f5f77);border-left:1px solid #d2f5ec40;border-bottom:1px solid #294756a3;transform:translateZ(-6px) skewY(-25deg) rotateZ(-10deg);box-shadow:6px 10px 0 -2px #152f3e7a,11px 18px 20px -11px #010a178c; }
 .atelier-glass-face { position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:34px 36px;border-radius:inherit;background:linear-gradient(135deg,#d2f8e324,#a0d5d90c 52%,#46707d24);border:1px solid #e1fff44d;box-shadow:inset 2px 2px 3px #eafff536,inset -2px -2px 4px #0a172c55,6px 12px 15px -10px #0008;backdrop-filter:blur(14px) saturate(1.12);-webkit-backdrop-filter:blur(14px) saturate(1.12); }
-.bubble-thought { transform:translateZ(62px) rotateY(-12deg) rotateZ(-5deg); }
+.bubble-thought { transform:translate3d(calc(var(--room-x,0px)*.45),calc(var(--room-y,0px)*.4),calc(62px + var(--room-x,0px)*1.4)) rotateX(calc(var(--room-rx,0deg)*2.8)) rotateY(calc(-12deg + var(--room-ry,0deg)*2.5)) rotateZ(calc(-5deg + var(--room-ry,0deg)*.35)); }
 .bubble-thought .atelier-glass-face { border-radius:65px 65px 65px 15px; }
 .atelier-kicker { font-size:12px;color:var(--accent);margin-bottom:23px; }
 .atelier-glass-face strong { display:block;font-size:clamp(28px,3.1vw,43px);font-weight:550;letter-spacing:-.045em;line-height:1.3;color:var(--text);text-shadow:3px 7px 6px #0107168c; }
 .atelier-ink { display:flex;gap:13px;margin-top:30px; }
 .atelier-ink i { width:13px;height:13px;border-radius:50%;background:var(--accent);box-shadow:3px 6px 0 #1f4a4b99,5px 10px 7px -3px #0008,inset 1px 1px 1px #edfff780; }
 .atelier-ink i:nth-child(2) { opacity:.72; }.atelier-ink i:nth-child(3) { opacity:.4; }
-.bubble-reply { width:57%;height:172px;left:41%;top:5%;border-radius:46px 15px 46px 46px;transform:translateZ(-34px) rotateY(15deg) rotateZ(10deg); }
+.bubble-reply { width:57%;height:172px;left:41%;top:5%;border-radius:46px 15px 46px 46px;transform:translate3d(calc(var(--room-x,0px)*-.3),calc(var(--room-y,0px)*-.3),calc(-34px - var(--room-x,0px))) rotateX(calc(var(--room-rx,0deg)*2.1)) rotateY(calc(15deg + var(--room-ry,0deg)*1.8)) rotateZ(calc(10deg - var(--room-ry,0deg)*.2)); }
 .bubble-reply::before { transform:translateZ(-13px);background:linear-gradient(120deg,#9bb9d961,#3a516f80,#102539b3); }
 .bubble-reply::after { left:auto;right:24px;width:28px;height:29px;bottom:-12px;transform:translateZ(-5px) skewY(25deg) rotateZ(10deg);background:#758ebc30; }
 .bubble-reply .atelier-glass-face { padding:26px 29px;background:linear-gradient(135deg,#b6d7fa29,#87a9d714 63%,#41506f38); }
@@ -77,4 +78,5 @@ body.community-room:has(>.community-atmosphere[data-scene-art=image]) :is(.ateli
 @media(max-width:1000px) { .community-room .conversation-atelier { min-height:420px; }.atelier-bubble { height:220px; }.bubble-reply { height:155px; }.atelier-glass-face { padding:28px 27px; }.atelier-glass-face strong { font-size:30px; }.atelier-note { left:35%; } }
 @media(max-width:600px) { .community-room .conversation-atelier { min-height:310px;margin:28px 0 15px; }.community-room .atelier-world { inset:0 7px 30px 0; }.atelier-bubble { width:74%;height:175px;top:29%;left:2%;border-radius:43px 43px 43px 10px; }.bubble-thought .atelier-glass-face { border-radius:43px 43px 43px 10px; }.bubble-reply { width:58%;height:124px;left:39%;top:4%;border-radius:32px 11px 32px 32px; }.atelier-glass-face { padding:22px 24px; }.bubble-reply .atelier-glass-face { padding:20px 21px; }.atelier-glass-face strong { font-size:29px; }.atelier-kicker { font-size:11px;margin-bottom:16px; }.atelier-ink { margin-top:21px;gap:11px; }.atelier-ink i { width:10px;height:10px; }.atelier-voice { font-size:16px; }.atelier-reply-lines { margin-top:18px;gap:9px; }.atelier-reply-lines i { height:4px; }.atelier-note { font-size:12px;left:39%;bottom:-3%; }.atelier-caption { font-size:11px;bottom:-9px;left:9%; }.atelier-connection { width:96px;left:57%; }.community-room details.composer>summary { min-height:102px;padding:24px 21px; }.community-room details.composer>summary>span:not(.avatar) { font-size:15px; }.community-room .composer-content { padding-top:22px; }.community-room .depth-workpad>.workspace-chassis { inset-inline:-4px; } }
 @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; }.community-room .atelier-world { transform:none; }.community-room details.composer>summary { transform:none;transition:none; }.community-room .depth-workpad .workspace-chassis-back { transform:translateZ(-30px); } }
+@media(prefers-reduced-motion:reduce) { .bubble-thought { transform:translateZ(62px) rotateY(-12deg) rotateZ(-5deg); }.bubble-reply { transform:translateZ(-34px) rotateY(15deg) rotateZ(10deg); } }
 @media(forced-colors:active) { .conversation-atelier { display:none; }.community-room details.composer>summary { outline:1px solid CanvasText; }.community-room details.composer>summary::before,.community-room details.composer>summary::after,.workspace-chassis { display:none; } }
