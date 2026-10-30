@@ -8,7 +8,7 @@
 {% block title %}{{ super() }}文章{% endblock %}
 {% block page_content %}
 <header class="studio-entry">
-  <div class="studio-introduction"><h1>创作途中，<br><span>聊聊。</span></h1><p class="site-configured-tagline">{{ (site_settings|default({})).get('tagline', '记录日常，分享发现，和有趣的人聊一聊。') }}</p>
+  <div class="studio-introduction"><h1>有些话，<br><span>想聊聊。</span></h1><p class="site-configured-tagline">{{ (site_settings|default({})).get('tagline', '记录日常，分享发现，和有趣的人聊一聊。') }}</p>
     <div class="studio-entry-actions"><a class="button" href="{{ url_for('main.index') ~ '#write' if current_user.is_authenticated else (url_for('public_demo.entry') if config.get('PUBLIC_DEMO') else url_for('auth.register')) }}">写下你的想法 {{ ui.icon('edit') }}</a><a class="quiet-link" href="#article-feed">先听听大家在聊什么 {{ ui.icon('chevron') }}</a></div>
   </div>
   <div class="studio-conversation-model conversation-atelier" data-room-scene role="img" aria-label="两片立体玻璃对话框在不同深度相遇，表达一个想法与另一种视角的交流">
