@@ -12,13 +12,17 @@
     <div class="studio-entry-actions"><a class="button" href="{{ url_for('main.index') ~ '#write' if current_user.is_authenticated else (url_for('public_demo.entry') if config.get('PUBLIC_DEMO') else url_for('auth.register')) }}">写下你的想法 {{ ui.icon('edit') }}</a><a class="quiet-link" href="#article-feed">先听听大家在聊什么 {{ ui.icon('chevron') }}</a></div>
   </div>
   <div class="studio-conversation-model conversation-atelier" data-room-scene role="img" aria-label="两片立体玻璃对话框在不同深度相遇，表达一个想法与另一种视角的交流">
-    <div class="studio-model-world atelier-world" aria-hidden="true">
+    <div class="atelier-backdrop" aria-hidden="true">
       <span class="atelier-ground"></span><span class="atelier-track"></span>
-      <div class="atelier-bubble bubble-reply"><span class="atelier-glass-face"><span class="atelier-voice">另一种视角</span><span class="atelier-reply-lines"><i></i><i></i></span></span></div>
-      <div class="atelier-bubble bubble-thought"><span class="atelier-glass-face"><span class="atelier-kicker">从这里开始</span><strong>一个想法。</strong><span class="atelier-ink"><i></i><i></i><i></i></span></span></div>
       <span class="atelier-connection"><i></i><i></i><i></i></span>
-      <span class="atelier-note">接上下一句。</span>
     </div>
+    <div class="studio-model-world atelier-world" aria-hidden="true">
+      <div class="atelier-dialogue-pair">
+        <div class="atelier-bubble bubble-reply"><span class="atelier-glass-face"><span class="atelier-voice">另一种视角</span><span class="atelier-reply-lines"><i></i><i></i></span></span></div>
+        <div class="atelier-bubble bubble-thought"><span class="atelier-glass-face"><span class="atelier-kicker">从这里开始</span><strong>一个想法。</strong><span class="atelier-ink"><i></i><i></i><i></i></span></span></div>
+      </div>
+    </div>
+    <span class="atelier-note" aria-hidden="true">接上下一句。</span>
     <p class="atelier-caption">不同的视角，在这里相遇。</p>
   </div>
 </header>
