@@ -1,5 +1,6 @@
 {% extends "bootstrap/base.html" %}
 {% import "_ui.html" as ui with context %}
+{% import "_backgrounds.html" as backgrounds with context %}
 {% set registration_open = (site_settings|default({})).get('registration_open', true) %}
 {% set guest_posting_open = (site_settings|default({})).get('guest_posting_open', true) %}
 {% block html_attribs %} lang="zh-CN" data-theme="dark"{% endblock %}
@@ -18,15 +19,18 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='community-room.css') }}?v=20261030-17">
 <link rel="stylesheet" href="{{ url_for('static', filename='community-identity.css') }}?v=20261030-17">
 <link rel="stylesheet" href="{{ url_for('static', filename='community-spatial.css') }}?v=20261030-19b">
-<link rel="stylesheet" href="{{ url_for('static', filename='community-depth.css') }}?v=20261030-23a">
-<link rel="stylesheet" href="{{ url_for('static', filename='community-atmosphere.css') }}?v=20261030-23a">
-<link rel="stylesheet" href="{{ url_for('static', filename='community-materials.css') }}?v=20261030-23a">
-<link rel="stylesheet" href="{{ url_for('static', filename='community-appearance.css') }}?v=20261030-23a">
-<link rel="stylesheet" href="{{ url_for('static', filename='community-theme.css') }}?v=20261030-23a">
-<link rel="stylesheet" href="{{ url_for('static', filename='community-studio.css') }}?v=20261030-23a">
-<link rel="stylesheet" href="{{ url_for('static', filename='community-portals.css') }}?v=20261030-23a">
-<link rel="stylesheet" href="{{ url_for('static', filename='community-crystal.css') }}?v=20261030-23a">
-<script src="{{ url_for('static', filename='community-transitions.js') }}?v=20261030-23a" blocking="render"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='community-depth.css') }}?v=20261030-24b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-atmosphere.css') }}?v=20261030-24b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-materials.css') }}?v=20261030-24b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-appearance.css') }}?v=20261030-24b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-theme.css') }}?v=20261030-24b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-studio.css') }}?v=20261030-24b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-portals.css') }}?v=20261030-24b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-crystal.css') }}?v=20261030-24b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-backgrounds.css') }}?v=20261030-24b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-experience.css') }}?v=20261030-24b">
+<link rel="stylesheet" href="{{ url_for('static', filename='community-avatar.css') }}?v=20261030-24b">
+<script src="{{ url_for('static', filename='community-transitions.js') }}?v=20261030-24b" blocking="render"></script>
 {% endblock %}
 {% block navbar %}
 <a class="skip-link" href="#main-content">跳到正文</a>
@@ -35,7 +39,10 @@
   <a class="wordmark{% if public_site_name != 'Liss Community' %} site-custom-wordmark{% endif %}" href="{{ url_for('main.index') }}" aria-label="{{ public_site_name }} 首页" title="{{ public_site_name }}">{% if public_site_name == 'Liss Community' %}LISS{% else %}<span class="site-wordmark-text">{{ public_site_name }}</span>{% endif %}<span class="brand-dot" aria-hidden="true"></span><small class="brand-community">Community</small></a>
   <a class="nav-feed{% if request.endpoint in ['main.index','main.show_all','main.show_followed'] %} is-active{% endif %}" href="{{ url_for('main.index') }}">文章</a>
   <a class="nav-works" href="{{ url_for('community.portfolio') }}">作品</a>
+  {% set place_name = {'main.post':'阅读与讨论','main.edit':'写作台','main.user':'作者主页','main.edit_profile':'个人资料','auth.register':'创建账号'}.get(request.endpoint) %}{% if place_name %}<span class="nav-context">{{ place_name }}</span>{% endif %}
   <div class="nav-actions">
+    {{ backgrounds.controls() }}
+    <button class="room-motion-toggle" type="button" data-room-motion-toggle aria-pressed="false" hidden title="暂停或恢复动效">{{ ui.icon('pause') }}<span class="sr-only" data-room-motion-label>暂停动效</span></button>
     <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-label="切换为浅色主题" title="切换主题">{{ ui.icon('sun', 'theme-sun') }}{{ ui.icon('moon', 'theme-moon') }}</button>
     {% if current_user.is_authenticated %}
     {% if not current_user.is_visitor|default(false) or guest_posting_open %}<a class="button button-small nav-write" href="{{ url_for('main.index') }}#write" aria-label="写文章">{{ ui.icon('edit') }}<span>写文章</span></a>{% endif %}
@@ -64,26 +71,28 @@
   {% if config.get('PUBLIC_DEMO') and current_user.is_authenticated and current_user.is_registered and current_user.email and not current_user.confirmed %}<div class="email-status" role="status"><p>邮箱尚未确认。你仍可以继续写作和交流。</p><a href="{{ url_for('auth.unconfirmed') }}">确认邮箱 {{ ui.icon('arrow') }}</a></div>{% endif %}
   {% block page_content %}{% endblock %}
 </main>
-<footer class="site-footer page-shell"><a href="{{ url_for('main.index') }}" class="footer-brand site-name-brand">{{ (site_settings|default({})).get('site_name', 'Liss Community') }}</a><p class="site-configured-tagline">{{ (site_settings|default({})).get('tagline', '记录想法，分享发现，让对话继续。') }}</p><a href="{{ url_for('community.writing_guide') }}" class="footer-top">发文指南</a><a href="{{ url_for('community.portfolio') }}" class="footer-top">探索作品 {{ ui.icon('arrow') }}</a><a href="#main-content" class="footer-top">回到顶部 {{ ui.icon('up') }}</a><button class="room-motion-toggle" type="button" data-room-motion-toggle aria-pressed="false" hidden>{{ ui.icon('pause') }}<span data-room-motion-label>暂停动效</span></button></footer>
+<footer class="site-footer"><div class="footer-inner page-shell"><div class="footer-introduction"><a href="{{ url_for('main.index') }}" class="footer-brand site-name-brand">{{ (site_settings|default({})).get('site_name', 'Liss Community') }}</a><p class="site-configured-tagline">{{ (site_settings|default({})).get('tagline', '记录想法，分享发现，让对话继续。') }}</p></div><nav class="footer-links" aria-label="更多入口"><a href="{{ url_for('community.writing_guide') }}" class="footer-top">发文指南</a><a href="{{ url_for('community.portfolio') }}" class="footer-top">探索作品 {{ ui.icon('arrow') }}</a><a href="#main-content" class="footer-top">回到顶部 {{ ui.icon('up') }}</a></nav><div class="footer-preferences"><span>让阅读更自在</span><button type="button" class="quiet-link" data-background-open hidden>更换背景</button><button class="room-motion-toggle" type="button" data-room-motion-toggle aria-pressed="false" hidden>{{ ui.icon('pause') }}<span data-room-motion-label>暂停动效</span></button></div></div></footer>
 {% endblock %}
 {% block scripts %}
 {{ super() }}
 {{ moment.include_moment() }}
 {{ moment.locale("zh-cn") }}
 <script src="{{ url_for('static', filename='liss.js') }}?v=20261025-1" defer></script>
-<script src="{{ url_for('static', filename='community-theme.js') }}?v=20261030-23a" defer></script>
+<script src="{{ url_for('static', filename='community-theme.js') }}?v=20261030-24b" defer></script>
 <script src="{{ url_for('static', filename='community-room.js') }}?v=20261030-19b" defer></script>
-<script src="{{ url_for('static', filename='community-spatial.js') }}?v=20261030-23a" defer></script>
+<script src="{{ url_for('static', filename='community-spatial.js') }}?v=20261030-24b" defer></script>
 <script src="{{ url_for('static', filename='community-gallery.js') }}?v=20261030-19b" defer></script>
-<script src="{{ url_for('static', filename='community-crystal-scene.js') }}?v=20261030-23a" defer></script>
-<script src="{{ url_for('static', filename='community-atmosphere.js') }}?v=20261030-23a" defer></script>
-<script src="{{ url_for('static', filename='community-surfaces.js') }}?v=20261030-23a" defer></script>
-<script src="{{ url_for('static', filename='community-portals.js') }}?v=20261030-23a" defer></script>
-<script src="{{ url_for('static', filename='community-crystal.js') }}?v=20261030-23a" defer></script>
+<script src="{{ url_for('static', filename='community-crystal-scene.js') }}?v=20261030-24b" defer></script>
+<script src="{{ url_for('static', filename='community-backgrounds.js') }}?v=20261030-24b" defer></script>
+<script src="{{ url_for('static', filename='community-atmosphere.js') }}?v=20261030-24b" defer></script>
+<script src="{{ url_for('static', filename='community-surfaces.js') }}?v=20261030-24b" defer></script>
+<script src="{{ url_for('static', filename='community-portals.js') }}?v=20261030-24b" defer></script>
+<script src="{{ url_for('static', filename='community-crystal.js') }}?v=20261030-24b" defer></script>
+<script src="{{ url_for('static', filename='community-experience.js') }}?v=20261030-24b" defer></script>
 {% if request.endpoint in ['main.index', 'main.edit', 'community.project_talk'] and current_user.is_authenticated %}
 <script src="{{ url_for('static', filename='vendor/dompurify-3.4.17/purify.min.js') }}" defer></script>
 <script src="{{ url_for('static', filename='vendor/easymde-2.21.0/easymde.min.js') }}" defer></script>
 <script src="{{ url_for('static', filename='writing.js') }}?v=20261024-2" defer></script>
-<script src="{{ url_for('static', filename='community-appearance.js') }}?v=20261030-23a" defer></script>
+<script src="{{ url_for('static', filename='community-appearance.js') }}?v=20261030-24b" defer></script>
 {% endif %}
 {% endblock %}

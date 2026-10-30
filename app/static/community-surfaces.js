@@ -1,7 +1,7 @@
 /* A single shared WebGL micro-surface atlas. DOM text keeps its own 3D plane.
    Normal/roughness maps + Cook-Torrance/GGX lighting are real shader inputs;
-   the CSS backdrop and the atmosphere sampler provide approximate glass
-   transmission/refraction. This is not a full scene ray tracer. */
+   one native CSS backdrop supplies the glass face; separate CSS side planes
+   supply thickness. No background bitmap is sampled through the edge. */
 (function () {
   'use strict';
   var KEY = '__lissCommunitySurfaces';
@@ -9,7 +9,7 @@
   var scriptURL = document.currentScript && document.currentScript.src;
   var textureURL = new URL('textures/material-v22/normal-roughness.png', scriptURL || document.baseURI).href;
   var lifetime = new AbortController(), dispose = null;
-  var metrics = { version: 'crystal-v23', encoding: 'srgb8-sdr', dither: 'stable-object-space', contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
+  var metrics = { version: 'native-optical-v24b', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'narrow-rounded-chamfer', transmission: 'native-backdrop', edgeSampling: false, contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
   var inspectState = function () { return Object.assign({}, metrics); };
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
   var vertex = [
@@ -54,10 +54,13 @@
     ' vec4 data=texture2D(uMap,tile*.5+vec2(.0059)+micro*.4882);',
     ' vec2 detail=data.rg*2.-1.;float strength=uKind<.5?.115:uKind<1.5?.48:uKind<2.5?.85:.70;',
     ' vec2 edgeDistance=min(uv,1.-uv)*uSize;',
-    ' float bevel=1.-smoothstep(0.,uKind<.5?9.:uKind<1.5?15.:uKind<2.5?3.:7.,min(edgeDistance.x,edgeDistance.y));',
-    ' vec2 bevelNormal=vec2(0.);',
-    ' if(edgeDistance.x<edgeDistance.y)bevelNormal.x=(uv.x<.5?-1.:1.);else bevelNormal.y=(uv.y<.5?1.:-1.);',
-    ' vec3 N=rotateNormal(normalize(vec3(detail.x*strength+bevelNormal.x*bevel*.26,detail.y*strength+bevelNormal.y*bevel*.26,1.)));',
+    ' float bevelWidth=uKind<.5?3.5:uKind<1.5?15.:uKind<2.5?3.:7.;',
+    ' vec2 edgeWeight=1.-smoothstep(vec2(0.),vec2(bevelWidth),edgeDistance);',
+    ' float bevel=max(edgeWeight.x,edgeWeight.y);',
+    ' vec2 bevelNormal=vec2((uv.x<.5?-1.:1.)*edgeWeight.x,(uv.y<.5?1.:-1.)*edgeWeight.y);',
+    ' float bevelLength=length(bevelNormal);bevelNormal=bevelLength>.0001?bevelNormal/bevelLength:vec2(0.);',
+    ' float normalDepth=uKind<.5?.42:.26;',
+    ' vec3 N=rotateNormal(normalize(vec3(detail.x*strength+bevelNormal.x*bevel*normalDepth,detail.y*strength+bevelNormal.y*bevel*normalDepth,1.)));',
     ' vec2 p=vec2((uv.x-.5)*clamp(uSize.x/uSize.y,.35,2.8),.5-uv.y);',
     ' vec3 V=normalize(vec3(-p,2.8));vec3 L=normalize(vec3(uLight.x*1.9-p.x,uLight.y*1.35+.8-p.y,1.9));',
     ' float nl=max(dot(N,L),0.),nv=max(dot(N,V),.01);',
@@ -78,12 +81,13 @@
     '  float windowA=exp(-sq((R.x+R.y*.24-uLight.x*.28+.26)/.12)-sq((R.y-.06)/.82));',
     '  float windowB=exp(-sq((R.x-R.y*.17-uLight.x*.18-.43)/.065)-sq((R.y+.14)/.98));',
     '  float reflected=softbox*.045+windowA*.10+windowB*.07;',
-    '  float rim=bevel*(.105+grazing*.42+windowA*.20+windowB*.16);',
+    '  float innerInterface=exp(-sq((min(edgeDistance.x,edgeDistance.y)-bevelWidth*.72)/.6));',
+    '  float rim=bevel*(.018+grazing*.58+windowA*.27+windowB*.21)+innerInterface*(.008+windowA*.05+windowB*.04);',
     '  vec3 cool=mix(vec3(.82,.94,1.),uAccent,uAccentMix>.1?.16:.035);',
     '  vec3 warm=vec3(1.,.965,.875);',
     '  color=mix(cool,warm,clamp(windowB*.40+bevel*.09,0.,.40))+reflectionTint*softbox*.09;',
     '  float faceReflection=clamp(.009+grazing*.19+min(energy,.5)*.06+reflected,0.,.135);',
-    '  opacity=clamp(faceReflection+rim,0.,.38);',
+    '  opacity=clamp(faceReflection+rim,0.,.44);',
     ' }else if(uKind<1.5){',
     '  vec3 S=specular(N,V,L,max(.25,rough),vec3(.045),false);',
     '  color=base*(.58+nl*.45)*(data.a*.32+.72)+S*reflectionTint*.42+reflectionTint*softbox*.20;',

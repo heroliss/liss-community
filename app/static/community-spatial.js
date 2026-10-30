@@ -12,9 +12,9 @@
     '--depth-scroll-rx','--depth-scroll-y','--depth-scroll-z','--depth-light-x','--depth-light-y','--depth-scroll-progress'];
   var roomNames = ['--room-x','--room-y','--room-rx','--room-ry'];
   var profiles = {
-    edition:[6,12,16,10,18,1.2], reply:[4.5,8,10,7,12,.8], image:[6.75,14,18,10,16,.8],
+    edition:[4.8,9.6,16,10,18,.96], reply:[3.6,6.4,10,7,12,.64], image:[5.4,11.2,18,10,16,.64],
     reader:[0,0,0,0,0,0], workspace:[0,0,0,0,0,0],
-    identity:[5.25,10,14,9,12,.85], ledge:[6,12,13,9,14,.6], crystal:[6.75,14,17,12,22,.9]
+    identity:[4.2,8,14,9,12,.68], ledge:[4.8,9.6,13,9,14,.48], crystal:[5.4,11.2,17,12,22,.72]
   };
   function clamp(value,min,max) { return Math.max(min,Math.min(max,value)); }
   function snapshot(node,properties) {

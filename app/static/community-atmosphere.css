@@ -3,21 +3,17 @@ body.community-room { position:relative; isolation:isolate; --atmosphere-ink:#6d
 .community-room::before { content:'';position:fixed;inset:0;z-index:-2;pointer-events:none;background:radial-gradient(ellipse at 12% 26%,#32566835,transparent 56%),radial-gradient(ellipse at 88% 61%,#69837524,transparent 58%),var(--bg); }
 .community-room::after { content:none; }
 .community-atmosphere { position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden; }
-.community-atmosphere-canvas { display:block;width:100%;height:100%; }
-/* In the real perspective room, geometry is already drawn with its own
-   foreground wing and glass floor. The old CSS oval must not lie over it. */
-.community-atmosphere[data-scene-renderer=crystal-perspective] .community-atmosphere-near { display:none; }
-.community-atmosphere-near { position:absolute;inset:-6%;perspective:1500px;transform-style:preserve-3d;pointer-events:none;transform:translate3d(calc(var(--atmosphere-x,0px)*.45 + var(--scene-pan-x,0px)),calc(var(--atmosphere-y,0px)*.35 + var(--scene-pan-y,0px)),0); }
-.community-atmosphere-near > span { display:block;position:absolute;pointer-events:none;backface-visibility:hidden; }
-.atmosphere-near-rail { left:-7%;right:-7%;bottom:-69%;height:112%;border-radius:50%;background:radial-gradient(ellipse at 50% 30%,color-mix(in srgb,var(--accent) 7%,transparent),transparent 65%);border:clamp(18px,3vw,54px) solid color-mix(in srgb,var(--line) 24%,transparent);box-shadow:inset 8px 18px 26px #020a0e38,0 20px 30px #01070b24;transform:translateZ(20px) rotateX(calc(64deg + var(--scene-support-rx,0deg))) rotateY(calc(-6deg + var(--scene-support-ry,0deg))) rotateZ(-9deg); }
-.atmosphere-near-prism { right:-15%;top:-18%;height:140%;width:28%;border-radius:48% 6% 13% 50%;background:linear-gradient(105deg,transparent,color-mix(in srgb,var(--accent) 5%,transparent) 40%,color-mix(in srgb,var(--accent) 8%,transparent) 53%,transparent 65%);transform:translateZ(-140px) rotateY(calc(-32deg + var(--atmosphere-tilt-y,0deg))) rotateZ(8deg); }
-.atmosphere-near-caustic { width:100%;height:60%;left:-15%;top:10%;border-radius:50%;background:radial-gradient(ellipse at 50% 40%,color-mix(in srgb,var(--accent) 7%,transparent),transparent 65%);transform:translate3d(var(--scene-pan-x,0px),var(--scene-pan-y,0px),40px) rotateX(52deg) rotateZ(-21deg);filter:blur(22px); }
+.community-landscape-window { position:absolute;inset:0;overflow:hidden;pointer-events:none; }
+.community-landscape-image { position:absolute;display:block;max-width:none!important;object-fit:fill;pointer-events:none;will-change:transform; }
+.community-vector-scene { position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;will-change:transform; }
+.community-vector-scene[data-vector-style=mist] .community-vector-lines { display:none; }
+.community-landscape-scrim { position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,#040d1629,#040d1612 48%,#040d162e);display:none; }
+.community-atmosphere[data-scene-art=image] .community-landscape-scrim { display:block; }
+.community-room-geometry-canvas { position:absolute;inset:0;width:100%;height:100%;opacity:.30;pointer-events:none; }
+[data-theme=light] .community-landscape-scrim { background:linear-gradient(180deg,#deeaea2e,#deeaea0f 48%,#deeaea1c); }
 .community-room .site-header { background:color-mix(in srgb,var(--bg) 92%,var(--surface));box-shadow:0 12px 25px -24px #000b; }
 .community-room .site-header::after,.community-room .community-aside::before,.community-room .feed-toolbar::before,.community-room .feed-toolbar::after,.community-room .site-footer::before,.community-room .discussion::before { content:none; }
 [data-theme=light] .community-room::before { background:radial-gradient(ellipse at 12% 26%,#72a2ab22,transparent 58%),radial-gradient(ellipse at 88% 61%,#c5ae8126,transparent 62%),var(--bg); }
 [data-theme=light] .community-atmosphere { opacity:.8; }
-[data-theme=light] .atmosphere-near-rail { box-shadow:inset 7px 16px 25px #4d796c12,0 12px 18px #49665312; }
-@media(max-width:700px) { .atmosphere-near-rail { border-width:20px;bottom:-65%; }.atmosphere-near-prism { right:-35%;width:45%;opacity:.6; }.atmosphere-near-caustic { filter:none; } }
-@media(prefers-reduced-motion:reduce) { .community-atmosphere-near { transform:none; } }
 @media(forced-colors:active) { .community-atmosphere,.community-room::before { display:none!important; }body.community-room { background:Canvas;color:CanvasText; }.community-room .site-header { background:Canvas;box-shadow:none; } }
 @media print { .community-atmosphere,.community-room::before { display:none!important; } }

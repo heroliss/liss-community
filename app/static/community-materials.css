@@ -73,51 +73,72 @@
   transform: translate3d(calc((var(--depth-light-x,50%) - 50%) * .32),calc((var(--depth-light-y,50%) - 50%) * .12),1px);
 }
 
-/* Low-absorption cast glass: the studio transmits through the whole optical
-   face, and broad environment windows reflect across it. A sampled scene strip
-   bends through its thicker edge; no continuous white outline is painted on.
-   This is an optical approximation, not a physical ray-traced material. */
+/* Cast glass: one native frosted face, a narrow polished chamfer, and four
+   actual sloped side planes meeting the rear plate. No edge bitmap is sampled
+   or replayed: browser backdrop composition stays in step with native scroll.
+   The absorption/reflections are art-directed, not ray-traced refraction. */
 .community-room [data-material=glass] {
-  --material-thickness: 22px; --material-radius: 18px 31px 22px 14px;
+  --material-thickness: 24px; --material-radius: 18px 31px 22px 14px;
+  /* 80deg drafted walls: depth / sin(80deg), outward draft = depth * cot(80deg). */
+  --material-side-span: calc(var(--material-thickness) * 1.0154);
+  --material-draft: calc(var(--material-thickness) * .1763);
   --material-edge: #60919b; --material-back: #102a3208; --material-base: #152b369c;
 }
 .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
   background: url('textures/material-v22/glass-albedo.png'),linear-gradient(135deg,#4a778064,#11273094 58%,#41617461);
-  box-shadow: inset 3px 3px 8px #d9f8f118,inset -3px -3px 8px #04151d24;
+  box-shadow: inset 0 1px 0 #d9f8f11f,inset -1px -1px 0 #04151d42;
 }
 .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::after {
   content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   background: radial-gradient(ellipse at 43% 48%,#04141b2b 0%,#04141b16 42%,transparent 78%);
 }
 .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim {
-  padding: 1.5px;
-  background: radial-gradient(ellipse at var(--depth-light-x,32%) 0%,color-mix(in srgb,var(--material-specular,#e1f9f4) 66%,transparent) 0%,color-mix(in srgb,var(--material-specular,#aadbe2) 18%,transparent) 23%,transparent 50%),linear-gradient(90deg,transparent 53%,color-mix(in srgb,var(--material-edge-tint,#8ddee2) 27%,transparent) 68%,#f1d9a640 75%,transparent 86%);
-  background-size: 100% 100%,100% 7px; background-position: 0 0,0 100%; background-repeat: no-repeat;
+  padding: 1px;
+  background: radial-gradient(ellipse at var(--depth-light-x,32%) 0%,color-mix(in srgb,var(--material-specular,#e1f9f4) 73%,transparent) 0%,color-mix(in srgb,var(--material-specular,#aadbe2) 20%,transparent) 15%,transparent 39%),linear-gradient(90deg,transparent 56%,color-mix(in srgb,var(--material-edge-tint,#8ddee2) 36%,transparent) 68%,#f1d9a652 74%,transparent 83%);
+  background-size: 100% 100%,100% 3px; background-position: 0 0,0 100%; background-repeat: no-repeat;
 }
 .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-refraction {
-  display: block; padding: 5.5px; transform: translateZ(.35px); overflow: hidden;
-  background: radial-gradient(ellipse at left top,#8be7df24 0%,#efffe513 15%,transparent 51%),linear-gradient(90deg,transparent 51%,#88d4e433 66%,#e2c69a2b 77%,transparent 89%);
-  background-size: 100% 100%,100% 11px; background-position: 0 0,0 100%; background-repeat: no-repeat;
-  -webkit-mask: linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor; mask: linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); mask-composite: exclude;
+  display: none;
 }
-.community-room .material-optic-sample { position: absolute; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; opacity: .92; filter: saturate(1.18) contrast(1.08); }
+.community-room .material-optic-sample { display: none; filter: none; }
 .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-sheen { background: linear-gradient(115deg,transparent 5%,#c6f5eb09 23%,#edfff125 29%,transparent 35% 65%,#b9dcf516 69%,transparent 74%); }
 .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before,
-.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after { opacity: .66; }
-.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back { box-shadow: 17px 32px 44px -22px #010c1480,5px 11px 18px -9px #010d174d; }
-.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after { opacity: .78; }
+.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after {
+  width: var(--material-side-span); opacity: .92;
+  background: radial-gradient(ellipse at 50% var(--depth-light-y,35%),color-mix(in srgb,var(--material-specular,var(--material-light)) 48%,transparent),transparent 64%),linear-gradient(90deg,#041019d9,color-mix(in srgb,var(--material-edge-tint,var(--material-edge)) 70%,#10252f) 34%,#15323fca 70%,#041019b3);
+}
+.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before {
+  left: calc(var(--material-side-span) * -1); transform: rotateY(-80deg);
+  box-shadow: inset -1px 0 0 #d7faf47a,inset 2px 0 1px #04111b9e;
+}
+.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after {
+  right: calc(var(--material-side-span) * -1); transform: rotateY(80deg);
+  box-shadow: inset 1px 0 0 #d7faf470,inset -2px 0 1px #04111b9e;
+}
+.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back {
+  inset: calc(var(--material-draft) * -1);
+  background: linear-gradient(135deg,#bce2e90c,#06131d12 65%,#8cbac70a);
+  box-shadow: 0 2px 3px #0109106b,2px 6px 8px -3px #010a1466,12px 24px 32px -19px #010c1480;
+}
+.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before,
+.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after {
+  height: var(--material-side-span); opacity: .9;
+  background: linear-gradient(180deg,#b5e3e159,#193844c4 23%,#06131cde 72%,#4b778369);
+}
+.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before {
+  top: calc(var(--material-side-span) * -1); transform: rotateX(80deg);
+  box-shadow: inset 0 -1px 0 #d7faf47a,inset 0 2px 1px #04111b80;
+}
+.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after {
+  bottom: calc(var(--material-side-span) * -1); transform: rotateX(-80deg);
+  box-shadow: inset 0 1px 0 #d7faf459,inset 0 -2px 1px #04111b9e;
+}
 .community-room [data-material=glass] .comment-date { color: var(--muted); }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back { background: #102c3405; }
   .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
     background: linear-gradient(135deg,#76b2bb19,#102b351c 58%,#79a8c314);
-    -webkit-backdrop-filter: blur(13px) saturate(1.13) brightness(1.02);
-    backdrop-filter: blur(13px) saturate(1.13) brightness(1.02);
-  }
-  .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-refraction {
-    -webkit-backdrop-filter: blur(.5px) saturate(1.35) contrast(1.16);
-    backdrop-filter: blur(.5px) saturate(1.35) contrast(1.16);
+    -webkit-backdrop-filter: blur(9px) saturate(1.10) brightness(1.02);
+    backdrop-filter: blur(9px) saturate(1.10) brightness(1.02);
   }
 }
 
@@ -186,10 +207,10 @@
 
 [data-theme=light] .community-room [data-material] { --material-shadow: #19372c3d; --material-contact: #19372c29; --material-light: #fcfff3; }
 [data-theme=light] .community-room [data-material=glass] { --material-edge: #95babe; --material-back: #d5eae905; }
-[data-theme=light] .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { background: linear-gradient(135deg,#ffffff26,#e5f4ee30 70%,#dfeef41f); -webkit-backdrop-filter: blur(13px) saturate(1.08); backdrop-filter: blur(13px) saturate(1.08); box-shadow: inset 3px 3px 8px #ffffff5c,inset -3px -3px 8px #397c8612; }
+[data-theme=light] .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { background: linear-gradient(135deg,#ffffff26,#e5f4ee30 70%,#dfeef41f); -webkit-backdrop-filter: blur(9px) saturate(1.08); backdrop-filter: blur(9px) saturate(1.08); box-shadow: inset 0 1px 0 #ffffff70,inset -1px -1px 0 #397c8633; }
 [data-theme=light] .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::after { background: radial-gradient(ellipse at 43% 48%,#f5faf126 0%,#f5faf113 43%,transparent 79%); }
-[data-theme=light] .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim { background: radial-gradient(ellipse at var(--depth-light-x,32%) 0%,#ffffffba,transparent 43%),linear-gradient(90deg,transparent 55%,#91c2c54d 70%,#e5cd9866 77%,transparent 88%); background-size:100% 100%,100% 7px;background-position:0 0,0 100%;background-repeat:no-repeat; }
-[data-theme=light] .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back { box-shadow:17px 32px 44px -22px #235c702e,5px 11px 18px -9px #174c5b24; }
+[data-theme=light] .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim { background: radial-gradient(ellipse at var(--depth-light-x,32%) 0%,#ffffffc2,transparent 36%),linear-gradient(90deg,transparent 57%,#91c2c552 70%,#e5cd9873 75%,transparent 84%); background-size:100% 100%,100% 3px;background-position:0 0,0 100%;background-repeat:no-repeat; }
+[data-theme=light] .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-back { background:linear-gradient(135deg,#f4ffff14,#3764760a 65%,#d4edf014);box-shadow:0 2px 3px #17415138,2px 6px 8px -3px #17415133,12px 24px 32px -19px #235c7047; }
 [data-theme=light] .community-room [data-material=ceramic] { --material-edge: #9daf97; --material-back: #d0dec8; }
 [data-theme=light] .community-room [data-material=ceramic] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { background: url('textures/material-v22/ceramic-albedo.png'),radial-gradient(ellipse at 18% -18%,#fffff9c2,transparent 65%),linear-gradient(145deg,#d8e8ce,#edf4e3 64%,#c9ddc0); box-shadow: inset 3px 5px 12px #fff9,inset -3px -5px 11px #57745022; }
 [data-theme=light] .community-room [data-material=paper] { --material-edge: #aeb89a; --material-back: #d1d9bd; }
@@ -207,8 +228,7 @@
 @media (max-width:600px) {
   .community-room [data-material][data-depth-kind=edition] { --material-thickness: 12px; }
   .community-room [data-material][data-depth-kind=reply] { --material-thickness: 6px; }
-  .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { -webkit-backdrop-filter: blur(9px) saturate(1.10) brightness(1.02); backdrop-filter: blur(9px) saturate(1.10) brightness(1.02); }
-  .community-room [data-material] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-refraction { padding: 3.5px; }
+  .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { -webkit-backdrop-filter: blur(6px) saturate(1.10) brightness(1.02); backdrop-filter: blur(6px) saturate(1.10) brightness(1.02); }
   .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim { padding: 1px; }
   .community-room .room-fold.has-spatial-model .spatial-leaf--main::after { -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
