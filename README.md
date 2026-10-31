@@ -12,9 +12,9 @@
 
 ## 作品与交流
 
-当前新版位于 `design/community-reading-room`，[v35 双视图文章流与阅读室页脚](docs/community-v35.md)加入可记住选择的卡片/紧凑列表切换，保留立体材质，并重新整理页脚导航与身份入口。[v34 紧凑评论与原地交流](docs/community-v34.md)继续提供原地回复、按目标隔离的评论草稿、两步引用连线、多词搜索、作者与项目筛选及私人提醒管理。源码分支完成不代表正式站已更新；本地预览、自动检查和正式部署分别验收。当前入口及发布限制见[检查与发布指南](docs/testing-and-release.md)。
+新版已在正式站发布，源码由 `main` 和 `design/community-reading-room` 保留。[v35 双视图文章流与阅读室页脚](docs/community-v35.md)加入可记住选择的卡片/紧凑列表切换，保留立体材质，并重新整理页脚导航与身份入口。[v34 紧凑评论与原地交流](docs/community-v34.md)继续提供原地回复、按目标隔离的评论草稿、两步引用连线、多词搜索、作者与项目筛选及私人提醒管理。部署检查和已知验证边界见[检查与发布指南](docs/testing-and-release.md)。
 
-[v40 评论层次与镜面、水面](docs/community-v40.md)把桌面引用放入独立右栏，定向回复保持一级缩进，长引用最多显示两行；回复框收到匹配的成功回执后自动收起，请求期间继续输入的文字保留。服务端和异步回复统一按从旧到新排列，新回复追加到底部。页脚以 `@Liss` 标识收尾，使用更透明、更宽的渐变融入背景。镜面与水面结合场景映像、细微磨损、透明水层和鼠标涟漪，提供模拟环境反射。当前仅本地开发，打开 http://127.0.0.1:8896/ 查看，未部署正式站；验证范围见 v40 文档。
+[v40 评论层次与镜面、水面](docs/community-v40.md)把桌面引用放入独立右栏，定向回复保持一级缩进，长引用最多显示两行；回复框收到匹配的成功回执后自动收起，请求期间继续输入的文字保留。服务端和异步回复统一按从旧到新排列，新回复追加到底部。页脚以 `@Liss` 标识收尾，使用更透明、更宽的渐变融入背景。镜面与水面结合场景映像、细微磨损、透明水层和鼠标涟漪，提供模拟环境反射。v40 文档记录当时的本地验收，正式站现已采用后续版本。
 
 [v39 的聊天气泡与轻量回复](docs/community-v39.md)、[v38 的全宽页脚](docs/community-v38.md)、[v37 的列表动效](docs/community-v37.md)和 [v36 的旧设计与全量验证](docs/community-v36.md)保留为历史记录，各轮报告只证明对应源码和记录范围。
 
@@ -22,7 +22,7 @@
 
 历史迭代分别记录在 [v19](docs/design-reading-room.md)、[v20](docs/design-material-studio.md)、[v21](docs/community-v21.md)、[v22](docs/community-v22.md)、[v23](docs/community-v23.md)、[v24](docs/community-v24.md)、[v25](docs/community-v25.md)、[v26](docs/community-v26.md)、[v27](docs/community-v27.md)、[v28](docs/community-v28.md)、[v29](docs/community-v29.md)、[v30](docs/community-v30.md)、[v31](docs/community-v31.md)、[v32](docs/community-v32.md)。旧报告只证明对应源码和记录范围。
 
-作品展厅由 Astro 构建并部署到 [Liss Works](https://heroliss.github.io/liss-works/)，旧 `/works/` 入口重定向并保留路径。社区导航可以进入作品，22 项作品各自有 `/projects/<slug>/talk/` 讨论页；这里发表的讨论属于真实文章，可在文章流阅读、继续评论并由原作者编辑。原文章保留，关联表只记录项目关系。
+作品展厅由 Astro 构建并部署到 [Liss Works](https://heroliss.github.io/liss-works/)，旧 `/works/` 入口重定向并保留路径。社区导航可以进入作品，23 项作品（包括玻璃海）各自有 `/projects/<slug>/talk/` 讨论页；这里发表的讨论属于真实文章，可在文章流阅读、继续评论并由原作者编辑。原文章保留，关联表只记录项目关系。
 
 ## 网站管理
 

@@ -43,7 +43,7 @@ LISS 是访客优先、可选账号的持久化写作与交流站点。内部配
 
 官方资料：[Brevo 免费计划](https://help.brevo.com/hc/en-us/articles/208589409-About-Brevo-s-pricing-plans)、[发件人认证](https://help.brevo.com/hc/en-us/articles/208836149-Create-a-new-sender-From-name-and-From-email)、[域名与发件地址改写](https://help.brevo.com/hc/en-us/articles/14925263522578-Comply-with-Gmail-Yahoo-and-Microsoft-s-requirements-for-email-senders)、[PythonAnywhere 白名单](https://www.pythonanywhere.com/whitelist/)、[Resend 测试域名限制](https://resend.com/docs/knowledge-base/403-error-resend-dev-domain)。
 
-**[线上站点](https://liss.pythonanywhere.com/)** · **[GitHub](https://github.com/heroliss/liss-community)**。2026-10-24 已在 PythonAnywhere 免费 Web app / Manual / Python 3.13 上线原持久访客版本，完成 HTTPS、真实发文、预览、评论与 Reload 保留检查。本次账号 / 界面升级正在本地联调，不将本地结果冒称已发布。
+**[线上站点](https://liss.pythonanywhere.com/)** · **[GitHub](https://github.com/heroliss/liss-community)**。2026-11-01（马来西亚时间）已将本轮账号、阅读与评论界面更新部署到 PythonAnywhere 免费 Web app / Manual / Python 3.13。正式更新前完成一致性快照与隔离升级演练；上线后确认旧用户、文章、评论、关注数据保留，健康检查、匿名页面和玻璃海讨论入口正常。真实设备兼容性与生产邮件实收仍需单独验证。
 
 ## 访客与账号
 
