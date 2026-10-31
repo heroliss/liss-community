@@ -1,2 +1,9 @@
 
+app/static/*.css text eol=lf
+app/static/*.js text eol=lf
+app/static/asset-manifest.json text eol=lf
+app/static/bundles/*.css text eol=lf
+app/static/bundles/*.js text eol=lf
+assets/sources.json text eol=lf
+
 app/static/vendor/** -text -whitespace
