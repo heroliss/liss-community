@@ -79,11 +79,13 @@ class Sandbox:
         self._assert_database()
         if not self.initialized:
             from .public_schema import (migrate_account_kinds, migrate_admin_schema,
-                                        migrate_owner_schema, migrate_glass_finishes)
+                                        migrate_owner_schema, migrate_reflective_materials)
             migrate_account_kinds(db.engine.url.database)
             migrate_admin_schema(db.engine.url.database)
             migrate_owner_schema(db.engine.url.database)
-            migrate_glass_finishes(db.engine.url.database)
+            migrate_reflective_materials(db.engine.url.database)
+            from .discussion_schema import migrate_discussion_schema
+            migrate_discussion_schema(db.engine.url.database)
             # create_all / sample seeding only add missing tables and samples.
             # Invalid databases fail instead of being deleted or recreated.
             seed_sample_content(password=secrets.token_urlsafe(48), public=True)
@@ -278,14 +280,19 @@ class Sandbox:
             return
         if endpoint == 'auth.logout':
             return  # CSRFProtect validates the POST before the auth view runs.
+        if endpoint in {'main.notification_read', 'main.notifications_read_all'}:
+            if not self.participant():
+                abort(403)
+            self.limit('write')
+            return  # Reading private notifications does not create new content.
         allowed = {'main.index', 'main.post', 'main.edit', 'main.edit_profile',
-                   'main.follow', 'main.unfollow', 'community.project_talk'}
+                   'main.follow', 'main.unfollow', 'community.project_talk', 'main.edit_comment'}
         if endpoint not in allowed or not self.participant():
             abort(403, description='请先以访客身份加入，或登录已有账号。')
         self.limit('write')
         self.check_storage()
-        if endpoint in {'main.index', 'main.edit', 'main.post', 'community.project_talk'}:
-            maximum = self.quota('MAX_COMMENT_BODY' if endpoint == 'main.post' else 'MAX_BODY')
+        if endpoint in {'main.index', 'main.edit', 'main.post', 'community.project_talk', 'main.edit_comment'}:
+            maximum = self.quota('MAX_COMMENT_BODY' if endpoint in {'main.post', 'main.edit_comment'} else 'MAX_BODY')
             if len(request.form.get('body', '')) > maximum:
                 abort(413, description=f'内容请控制在 {maximum} 字以内。')
         if endpoint == 'main.edit_profile' and len(request.form.get('about_me', '')) > self.quota('MAX_PROFILE_BODY'):
@@ -367,7 +374,8 @@ def install(app):
 
     @app.after_request
     def demo_headers(response):
-        response.headers['X-Robots-Tag'] = 'noindex, nofollow'
+        from .seo import robots_policy
+        response.headers['X-Robots-Tag'] = robots_policy(response.status_code)
         response.headers['X-Content-Type-Options'] = 'nosniff'
         if response.mimetype == 'text/html':
             response.headers['Cache-Control'] = 'no-store'

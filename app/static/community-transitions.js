@@ -9,7 +9,7 @@
   function url(value){try{return new URL(value,location.href);}catch(e){return null;}}
   function postId(value){var u=typeof value==='string'?url(value):value,m=u&&u.pathname.match(/\/post\/(\d+)\/?$/);return m?m[1]:null;}
   function samePage(a,b){return !!a&&!!b&&a.origin===b.origin&&a.pathname===b.pathname&&a.search===b.search;}
-  function paused(){if(reduce.matches||document.documentElement.dataset.roomMotion==='paused')return true;try{return localStorage.getItem('liss-room-motion')==='paused';}catch(e){return false;}}
+  function paused(){if(reduce.matches)return true;var state=document.documentElement.dataset.roomMotion;if(state==='paused')return true;if(state==='ready')return false;if(!document.querySelector('[data-room-motion-toggle]'))return false;try{return localStorage.getItem('liss-room-motion')==='paused';}catch(e){return false;}}
   function readOrigin(){try{var o=JSON.parse(sessionStorage.getItem(storageKey));if(o&&/^\d+$/.test(o.id)&&url(o.list)&&url(o.list).origin===location.origin&&Date.now()-o.time<28800000)return o;}catch(e){}return null;}
   function saveOrigin(id){var o={id:id,list:location.href,x:scrollX,y:scrollY,time:Date.now()};try{sessionStorage.setItem(storageKey,JSON.stringify(o));}catch(e){}return o;}
   function restoreNames(){named.forEach(function(e){if(e.value)e.node.style.setProperty('view-transition-name',e.value,e.priority);else e.node.style.removeProperty('view-transition-name');});named=[];}
@@ -75,7 +75,13 @@
   // A freshly revealed login must accept fill/click/submit immediately, even
   // while the browser is still displaying an incoming snapshot.
   ['pointerdown','keydown','focusin','beforeinput','input','compositionstart'].forEach(function(type){document.addEventListener(type,skip,{capture:true,passive:type==='pointerdown',signal:signal});});
-  document.addEventListener('submit',function(){submitting=true;skip();},{capture:true,signal:signal});
+  document.addEventListener('submit',function(event){
+    submitting=true;skip();
+    // A local controller may cancel the submit after this capture listener.
+    // Keep native submissions immediate, then release the navigation guard
+    // once all listeners have decided whether this form actually navigates.
+    queueMicrotask(function(){submitting=!event.defaultPrevented;});
+  },{capture:true,signal:signal});
   reduce.addEventListener('change',function(){if(paused())skip();},{signal:signal});window.addEventListener('liss:motion-state',function(){if(paused())skip();},{signal:signal});
   window.addEventListener('storage',function(e){if(e.key==='liss-room-motion'&&paused())skip();},{signal:signal});
   document.addEventListener('DOMContentLoaded',returnLink,{once:true,signal:signal});

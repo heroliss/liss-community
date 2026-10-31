@@ -110,7 +110,7 @@ class OwnerIdentityUITests(unittest.TestCase):
         page = self.client.get(f'/post/{self.reader_post_id}').get_data(as_text=True)
         extra_attribute = r'''\s+[A-Za-z_:][\w:.-]*(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?'''
         matches = re.findall(
-            rf'<li class="comment" id="comment-{self.comment_id}"(?:{extra_attribute})*\s*>(.*?)</li>',
+            rf'<li class="(?:[^"\s]+\s+)*comment(?:\s+[^"\s]+)*" id="comment-{self.comment_id}"(?:{extra_attribute})*\s*>(.*?)</li>',
             page, re.S)
         self.assertEqual(len(matches), 1, 'Extract exactly the requested comment, allowing valid extra attributes.')
         self.assertEqual(page.count(f'id="comment-{self.comment_id}"'), 1)

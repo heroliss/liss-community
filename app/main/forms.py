@@ -1,6 +1,6 @@
 from flask import current_app
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, BooleanField, SelectField,\
+from wtforms import StringField, TextAreaField, BooleanField, SelectField, HiddenField,\
     SubmitField
 from wtforms.validators import DataRequired, Length, Email, Regexp, Optional
 from wtforms import ValidationError
@@ -93,5 +93,7 @@ class PostForm(FlaskForm):
         self.appearance_material.data = saved.card_material if saved else 'auto'
 
 class CommentForm(FlaskForm):
-    body = StringField('回复：', validators=[DataRequired()])
+    body = TextAreaField('评论', validators=[DataRequired()],
+                         filters=[lambda value: value.strip() if isinstance(value, str) else value])
+    reply_to = HiddenField(default='', validators=[Optional(), Regexp(r'^[0-9]+$', message='请选择有效的回复。')])
     submit = SubmitField('提交')

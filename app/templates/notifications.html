@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% import "_macros.html" as macros %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ super() }}回复提醒{% endblock %}
+{% block page_content %}
+<section class="reading-column notifications-page" aria-labelledby="notifications-title">
+<a class="back-link" href="{{ url_for('main.index') }}">{{ ui.icon('back') }}全部文章</a>
+<header class="page-heading"><h1 id="notifications-title">回复提醒</h1><p>有人评论你的文章或回复你时，从这里接上对话。</p><p class="notification-unread-summary">当前有 {{ unread_reply_count }} 条未读。提醒仅你可见。</p></header>
+<div class="notification-toolbar">
+  <nav class="notification-filters" aria-label="提醒范围"><a href="{{ url_for('main.notifications') }}"{% if notification_filter == 'all' %} class="is-active" aria-current="page"{% endif %}>全部提醒</a><a href="{{ url_for('main.notifications', filter='unread') }}"{% if notification_filter == 'unread' %} class="is-active" aria-current="page"{% endif %}>只看未读 <span class="notification-filter-count">{{ unread_reply_count }}</span></a></nav>
+  {% if unread_reply_count %}<form method="post" action="{{ url_for('main.notifications_read_all') }}">{{ notification_form.hidden_tag() }}<input type="hidden" name="filter" value="{{ notification_filter }}"><input type="hidden" name="page" value="{{ pagination.page }}"><button class="button button-secondary notification-bulk-action" type="submit">全部标为已读</button></form>{% endif %}
+</div>
+{% if notification_items %}
+<p class="notification-list-summary">{{ '未读' if notification_filter == 'unread' else '全部' }} {{ pagination.total }} 条{% if pagination.pages > 1 %} · 第 {{ pagination.page }} / {{ pagination.pages }} 页{% endif %}</p>
+<ol class="notification-list" aria-label="{{ '未读' if notification_filter == 'unread' else '全部' }}回复提醒">
+{% for item in notification_items %}
+{% set notification = item.notification %}
+<li class="notification-item{% if not notification.read_at %} is-unread{% endif %}"><article aria-labelledby="notification-{{ notification.id }}">
+  <header class="notification-heading-row"><div><h2 class="notification-heading" id="notification-{{ notification.id }}"><a href="{{ url_for('main.user', username=notification.comment.author.username) }}">{{ ui.author_name(notification.comment.author) }}</a> <span>{{ '回复了你的评论' if notification.comment.parent_id else '评论了你的文章' }}</span></h2><span class="notification-meta">{{ moment(notification.created_at).fromNow() }}</span></div><span class="notification-status">{{ '未读' if not notification.read_at else '已读' }}</span></header>
+  <p class="notification-source"><span>来自文章</span><a href="{{ url_for('main.post', id=notification.comment.post_id) }}">{{ item.post_title }}</a></p>
+  {% if item.parent_excerpt %}<blockquote class="notification-parent"><p class="notification-context-label">你此前的评论</p><p>{{ item.parent_excerpt }}</p></blockquote>{% elif notification.comment.parent_id %}<p class="notification-parent-unavailable">原评论当前不可见。</p>{% endif %}
+  <p class="notification-reply">{{ item.reply_excerpt }}</p>
+  <form class="notification-actions" method="post" action="{{ url_for('main.notification_read', id=notification.id) }}">{{ notification_form.hidden_tag() }}<input type="hidden" name="filter" value="{{ notification_filter }}"><input type="hidden" name="page" value="{{ pagination.page }}"><button class="button button-small button-secondary" type="submit" name="action" value="view" aria-label="查看《{{ item.post_title }}》中的回复">查看回复 {{ ui.icon('arrow') }}</button>{% if not notification.read_at %}<button class="quiet-link notification-mark-read" type="submit" name="action" value="stay">标为已读</button>{% else %}<button class="quiet-link notification-mark-read" type="submit" name="action" value="unread">标为未读</button>{% endif %}</form>
+</article></li>
+{% endfor %}
+</ol>
+{% elif pagination.total %}
+<div class="notifications-empty">{{ ui.icon('comment') }}<h2>这一页没有提醒</h2><p>回到第一页，继续查看{{ '未读' if notification_filter == 'unread' else '全部' }}提醒。</p><a class="button button-secondary" href="{{ url_for('main.notifications', filter=notification_filter) }}">返回第一页</a></div>
+{% elif notification_filter == 'unread' %}
+<div class="notifications-empty">{{ ui.icon('check') }}<h2>暂时没有未读提醒</h2><p>新的评论和回复会显示在这里。已读的对话仍可在全部提醒中查看。</p><a class="button button-secondary" href="{{ url_for('main.notifications') }}">查看全部提醒</a></div>
+{% else %}
+<div class="notifications-empty">{{ ui.icon('comment') }}<h2>还没有回复提醒</h2><p>收到文章评论或针对你的回复后，会显示在这里。</p><a class="button button-secondary" href="{{ url_for('main.index') }}">去读读文章</a></div>
+{% endif %}
+{% if pagination %}{{ macros.pagination_widget(pagination, 'main.notifications', filter=notification_filter) }}{% endif %}
+</section>
+{% endblock %}

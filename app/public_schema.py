@@ -105,7 +105,8 @@ def migrate_material_catalog(database):
     old_tokens = ('auto', 'glass', 'ceramic', 'paper', 'metal')
     new_tokens = old_tokens + ('leather', 'cork', 'slate')
     _migrate_material_constraint(database, (frozenset(old_tokens),), new_tokens,
-                                 forward_tokens=(frozenset(new_tokens + ('frosted',)),))
+                                 forward_tokens=(frozenset(new_tokens + ('frosted',)),
+                                                 frozenset(new_tokens + ('frosted', 'mirror', 'water'))))
 
 
 def migrate_glass_finishes(database):
@@ -117,7 +118,18 @@ def migrate_glass_finishes(database):
     oldest = ('auto', 'glass', 'ceramic', 'paper', 'metal')
     previous = oldest + ('leather', 'cork', 'slate')
     _migrate_material_constraint(database, (frozenset(oldest), frozenset(previous)),
-                                 previous + ('frosted',))
+                                 previous + ('frosted',),
+                                 forward_tokens=(frozenset(previous + ('frosted', 'mirror', 'water')),))
+
+
+def migrate_reflective_materials(database):
+    """Widen a recognized catalog after an online backup; keep every saved row."""
+    oldest = ('auto', 'glass', 'ceramic', 'paper', 'metal')
+    previous = oldest + ('leather', 'cork', 'slate')
+    current = previous + ('frosted',)
+    _migrate_material_constraint(database,
+        (frozenset(oldest), frozenset(previous), frozenset(current)),
+        current + ('mirror', 'water'))
 
 
 def _migrate_material_constraint(database, accepted_tokens, target_tokens, forward_tokens=()):

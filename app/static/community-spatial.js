@@ -86,6 +86,7 @@
     function blocked(){return closed||reduce.matches||document.hidden||!windowActive||modalOpen||html.dataset.roomMotion==='paused';}
     function active(scene){return !blocked()&&scene.visible&&!scene.fullscreen;}
     function held(scene){return scene.held||scene.selecting||scene.hoverControl;}
+    function listEdition(scene){return html.dataset.feedView==='list'&&scene.kind==='edition'&&scene.host.classList.contains('post')&&scene.host.parentElement.matches('.posts[data-feed-list]');}
     function schedule(){if(!closed&&!document.hidden&&!frame)frame=requestAnimationFrame(paint);}
     function invalidate(){dirtyLayout=true;schedule();}
     function stopArrival(scene,cancel){
@@ -104,10 +105,11 @@
       if(scene.kind==='image'&&pointerSceneFor(scene.host)!==scene)return;
       if(scene.header||scene.kind==='workspace'||scene.kind==='reader'||!scene.arrival||!scene.arrival.animate||!active(scene)||held(scene)||scene.focused)return;
       stopArrival(scene,true);
+      var compact=listEdition(scene);
       var animation=scene.arrival.animate([
-        {transform:'translate3d(0,26px,-58px)'},
+        {transform:compact?'translate3d(0,10px,-12px)':'translate3d(0,26px,-58px)'},
         {transform:'translate3d(0,0,0)'}
-      ],{duration:scene.kind==='reply'?540:680,easing:'cubic-bezier(.16,1,.3,1)',fill:'none'});
+      ],{duration:compact?400:scene.kind==='reply'?540:680,easing:'cubic-bezier(.16,1,.3,1)',fill:'none'});
       scene.animation=animation;
       animation.finished.then(function(){if(scene.animation===animation){animation.cancel();scene.animation=null;}}).catch(function(){});
     }
@@ -122,7 +124,7 @@
       if(depth&&!surface)return;
       var scene={surfaceId:++surfaceSerial,host:host,scroll:scroll,arrival:arrival,surface:surface,header:!depth,
         kind:host.dataset.depthKind||'edition',visible:!observer,focused:false,held:false,selecting:false,fullscreen:false,hoverControl:false,
-        bounds:null,rest:[0,0],nested:!!host.parentElement.closest('[data-depth-host]'),follow:null,inside:false,entering:false,
+        bounds:null,rest:[0,0],compact:null,listPointer:null,modeChanged:false,nested:!!host.parentElement.closest('[data-depth-host]'),follow:null,inside:false,entering:false,
         relayExcluded:!!host.closest('[data-appearance-preview]'),
         skipEntry:!!fromCache&&entered.has(host),animation:null,savedStyles:snapshot(host,depth?names.concat(poseNames):roomNames),restores:[],written:{},
         current:[0,0,0,0,0,0,0,0,50,50,.5,0,0],x:0,y:0};
@@ -179,6 +181,13 @@
         scene.bounds=b;
         var computed=getComputedStyle(host);
         scene.rest=[parseFloat(computed.getPropertyValue('--depth-rest-rx'))||0,parseFloat(computed.getPropertyValue('--depth-rest-ry'))||0];
+        var compact=listEdition(scene);
+        if(scene.compact!==null&&(scene.compact!==compact||compact&&scene.listPointer!==fine.matches)){
+          // A held pointer may cross a mode switch. Drop only the old motion
+          // regime, retaining the interaction lock and the stable host itself.
+          scene.current=[0,0,0,0,0,0,0,0,50,50,.5,0,0];scene.written={};scene.modeChanged=true;
+        }
+        scene.compact=compact;scene.listPointer=compact?fine.matches:null;
         if(!observer)scene.visible=b.top+b.height>scrollY&&b.top<scrollY+innerHeight;
       });
     }
@@ -261,21 +270,23 @@
         // A mounted image shares the card's input owner, including its locks.
         // Its small local drift may lag, but never establishes another camera.
         var familyHeld=follow&&(!active(follow)||held(follow)||follow.focused||follow.fullscreen);
-        var enabled=active(scene),frozen=held(scene)||familyHeld,focused=scene.focused;
+        var compact=scene.compact,enabled=active(scene),frozen=held(scene)||familyHeld,focused=scene.focused;
+        var flatten=compact&&focused&&!scene.held&&!scene.selecting;
         attr(scene.host,'data-depth-visible',String(scene.visible));attr(scene.host,'data-depth-held',String(scene.held));
         attr(scene.host,'data-depth-focus',String(focused));attr(scene.host,'data-depth-selecting',String(scene.selecting));
         attr(scene.host,'data-depth-hover',String(scene.hoverControl));
         attr(scene.host,'data-depth-fullscreen',String(scene.fullscreen));attr(scene.host,'data-depth-active',String(enabled&&!frozen&&!focused));
+        if(scene.modeChanged)stopArrival(scene,true);
         if(!scene.visible||reduce.matches||scene.fullscreen)stopArrival(scene,true);
         else if(!enabled||frozen)stopArrival(scene,false);
         else if(focused)stopArrival(scene,true);
         else if(scene.animation&&scene.animation.playState==='paused')scene.animation.play();
         if(scene.entering)startArrival(scene);
-        if(!enabled&&!reduce.matches&&!scene.fullscreen)return;
-        if(frozen&&!reduce.matches&&!scene.fullscreen)return;
-        var b=scene.bounds,profile=profiles[scene.kind]||profiles.edition;
+        if(!enabled&&!reduce.matches&&!scene.fullscreen&&!scene.modeChanged)return;
+        if(frozen&&!reduce.matches&&!scene.fullscreen&&!flatten&&!scene.modeChanged)return;
+        var b=scene.bounds,profile=compact?[1.4,0,4,2,6,.09]:profiles[scene.kind]||profiles.edition;
         var attenuation=scene.kind==='reader'?Math.min(.28,480/Math.max(480,b.height)):Math.min(1,650/Math.max(650,b.height));
-        var pointerEnabled=enabled&&fine.matches&&!focused&&scene.inside;
+        var pointerEnabled=enabled&&fine.matches&&!focused&&!frozen&&scene.inside;
         if(pointerEnabled&&pointerOwner===scene&&pointer.present){
           scene.x=clamp((pointer.x-b.left)/Math.max(1,b.width)*2-1,-1,1);
           scene.y=clamp((pointer.y-b.top)/Math.max(1,b.height)*2-1,-1,1);
@@ -283,9 +294,17 @@
         var x=pointerEnabled?scene.x:0,y=pointerEnabled?scene.y:0;
         var progress=clamp(((scrollY+innerHeight*.5)-(b.top+b.height*.5))/(innerHeight*.5+b.height*.5),-1,1);
         var scrollGain=enabled&&!focused&&!scene.header?profile[5]*attenuation*(fine.matches?1:.42)*(scene.nested?.35:1):0;
+        if(compact&&!fine.matches)scrollGain=0;
         var values=[-y*profile[0]*attenuation,x*profile[1]*attenuation,x*profile[2]*attenuation,y*profile[3]*attenuation,
           pointerEnabled?profile[4]*attenuation:0,progress*1.25*scrollGain,-progress*14*scrollGain,(1-progress*progress)*20*scrollGain,
           50+x*22,50+y*18,(progress+1)*.5];
+        if(compact&&pointerEnabled){
+          // The reading edge turns square across the left title region. The
+          // right edge turns away gently; light telemetry uses this same yaw.
+          var u=(x+1)*.5,t=clamp((u-.28)/.64,0,1);
+          values[1]=14*t*t*(3-2*t)-scene.rest[1];
+        }
+        if(flatten)values=[-scene.rest[0],-scene.rest[1],0,0,0,0,0,0,50,50,.5];
         if(follow){
           // Read the parent's already damped numbers, not the projected image
           // bounds. Bounded same-direction targets plus a slower non-overshoot
@@ -305,7 +324,8 @@
           var difference=value-scene.current[index];
           if(Math.abs(difference)>.008){scene.current[index]+=difference*(follow?imageBlend:blend);unsettled=true;}else scene.current[index]=value;
         });
-        if(reduce.matches||scene.fullscreen){scene.current=values;unsettled=false;}
+        if(reduce.matches||scene.fullscreen||flatten||scene.modeChanged){scene.current=values;unsettled=false;}
+        scene.modeChanged=false;
         if(scene.header){
           [scene.current[2],scene.current[3],scene.current[0],scene.current[1]].forEach(function(value,index){
             var next=value.toFixed(2)+(index<2?'px':'deg');
@@ -356,6 +376,7 @@
       // A picture remains an exploratory surface. Only short text controls
       // hold their current pose; images freeze on actual pointerdown instead.
       if(control&&(control.matches('[data-depth-host],.composer>summary,.community-image-trigger,.post-cover')||control.closest('.depth-image-host')||control.querySelector('img')))control=null;
+      if(control&&control.matches('.post-title>a')){var titleScene=sceneFor(control);if(titleScene&&listEdition(titleScene))control=null;}
       if(control===hoveredControl)return;
       hoveredControl=control;scenes.forEach(function(scene){scene.hoverControl=false;});
       if(control&&control.isConnected)ancestors(control,function(scene){scene.hoverControl=true;stopArrival(scene,false);});
@@ -438,7 +459,7 @@
     window.addEventListener('liss:surface-request',function(){
       if(lastSurfaceFrame)window.dispatchEvent(new CustomEvent('liss:surface-frame',{detail:lastSurfaceFrame}));else schedule();
     },{signal:signal});
-    document.addEventListener('liss:depth-content',function(){dirtyRegistry=true;dirtyLocks=true;invalidate();},{signal:signal});
+    document.addEventListener('liss:depth-content',function(){dirtyRegistry=true;dirtyLocks=true;dirtyHitTest=true;invalidate();},{signal:signal});
     document.addEventListener('liss:write',function(){dirtyLocks=true;invalidate();},{signal:signal});
     var stateObserver=new MutationObserver(gate);
     stateObserver.observe(html,{attributes:true,attributeFilter:['data-room-motion']});

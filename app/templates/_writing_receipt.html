@@ -1,0 +1,2 @@
+{% set writing_receipt = session.pop('writing_receipt', none) %}
+{% if writing_receipt %}<script src="{{ url_for('static', filename='writing-receipt.js') }}?v=20261031-1" data-writing-receipt data-writing-receipt-owner="{{ writing_receipt.owner }}" data-writing-receipt-scope="{{ writing_receipt.scope|default(writing_receipt.path) }}" data-writing-receipt-token="{{ writing_receipt.token }}" defer></script>{% endif %}

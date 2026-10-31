@@ -64,9 +64,6 @@
 .identity-profile .profile-identity-note { max-width: 58em; margin-top: 22px; color: var(--muted); font-size: 14px; line-height: 1.9; }
 .identity-profile .profile-articles .feed-toolbar { margin-bottom: 12px; border: 0; }
 .identity-profile .profile-articles .feed-toolbar h2 { font-size: 26px; font-weight: 500; }
-.identity-profile .profile-articles .post { padding-block: 30px; background: transparent; border-radius: 0; box-shadow: none; }
-.identity-profile .profile-articles .post-title { font-size: 24px; line-height: 1.5; }
-.identity-profile .profile-articles .post-excerpt { font-size: 16px; line-height: 1.85; }
 .identity-followers .page-heading { margin-bottom: 40px; }
 .identity-followers .page-heading h1 { font-size: clamp(32px,3.5vw,46px); font-weight: 500; margin-bottom: 15px; }
 .identity-followers .people-list > li { gap: 24px; padding-block: 27px; }
@@ -235,8 +232,6 @@
   .identity-profile .profile-bio { font-size: 17px; }
   .identity-profile .profile-stats { gap: 12px 23px; font-size: 13px; }
   .identity-profile .profile-stats strong { font-size: 22px; }
-  .identity-profile .profile-articles .post-title { font-size: 22px; }
-  .identity-profile .profile-articles .post-excerpt { font-size: 15px; }
   .identity-followers .page-heading { margin-bottom: 28px; }
   .identity-followers .people-list > li { flex-wrap: wrap; gap: 8px 15px; padding-block: 23px; }
   .identity-followers .person-link { flex-basis: 100%; gap: 13px; }

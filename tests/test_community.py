@@ -83,7 +83,8 @@ class CommunityTests(unittest.TestCase):
             self.assertEqual(ProjectEntry.query.count(), 0)
 
     def test_aoe4_flow_catalog_includes_browser_tools_and_unique_projects(self):
-        self.assertEqual(len(PROJECTS), 22)
+        self.assertEqual(len(PROJECTS), 23)
+        self.assertEqual(PROJECTS['glass-atoll'], ('玻璃海 · Atoll', '可交互 WebGL 热带离岛'))
         self.assertIn('mkfun', PROJECTS)
         self.assertIn('utility-lab', PROJECTS)
         self.assertEqual(PROJECTS['aoe4-flow'], ('AoE4 Flow · 帝国时代 4 自动化助手', '帝国时代 4 · 图像识别与可视流程自动化'))

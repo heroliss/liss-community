@@ -123,6 +123,7 @@
         event.preventDefault();
       });
       if (!composer || composer.open) refresh();
+      if (window.LissWritingDrafts) window.LissWritingDrafts.bind(textarea, editor);
     } catch (error) {
       // A failed enhancement must leave the native, server-backed form usable.
       if (editor) editor.toTextArea();

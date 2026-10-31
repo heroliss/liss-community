@@ -9,7 +9,9 @@
     var html = document.documentElement, abort = new AbortController(), signal = abort.signal;
     var reduce = matchMedia('(prefers-reduced-motion: reduce)'), userPaused = false, closed = false;
     var controls = Array.from(document.querySelectorAll('[data-room-motion-toggle]'));
-    try { userPaused = localStorage.getItem('liss-room-motion') === 'paused'; } catch (error) {}
+    // Legacy manual pause is meaningful only while a matching control exists.
+    // Pages without that control follow the system's reduced-motion preference.
+    try { userPaused = controls.length > 0 && localStorage.getItem('liss-room-motion') === 'paused'; } catch (error) {}
     function sync() {
       if (closed) return;
       var blocked = userPaused || reduce.matches;
@@ -44,7 +46,7 @@
     reduce.addEventListener('change', sync, { signal: signal });
     window.addEventListener('storage', function (event) {
       if (event.key !== 'liss-room-motion') return;
-      userPaused = event.newValue === 'paused';
+      userPaused = controls.length > 0 && event.newValue === 'paused';
       sync();
     }, { signal: signal });
     function syncTheme() {

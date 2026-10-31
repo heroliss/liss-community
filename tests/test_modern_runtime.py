@@ -22,6 +22,7 @@ class ModernRuntimeTests(unittest.TestCase):
         with self.app.app_context():
             db.session.remove()
             db.drop_all()
+            db.engine.dispose()
 
     def login(self, path='/auth/login'):
         return self.client.post(path, data={'email': 'demo@example.com', 'password': 'demo-pass'})

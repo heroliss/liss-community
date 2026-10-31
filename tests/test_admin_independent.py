@@ -230,7 +230,7 @@ class AdminIndependentTests(unittest.TestCase):
         detail = self.anonymous.get(f'/post/{post_id}').get_data(as_text=True)
         self.assertIn('Visible comment needle', detail)
         self.assertNotIn('Hidden comment needle', detail)
-        self.assertIn('1 条评论', detail)
+        self.assertIn('1 条评论', re.sub(r'<[^>]+>', '', detail))
         self.assertNotIn(f'/post/{post_id}?page=2', detail)
         self.assertNotIn('Hidden comment needle', self.anonymous.get(
             f'/post/{post_id}?page=-1').get_data(as_text=True))

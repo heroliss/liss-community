@@ -120,7 +120,8 @@ def send_account_mail(config, message):
                     or not isinstance(payload.get('RequestId'), str) or not payload['RequestId'].strip()):
                 return False, 'provider_rejected'
             return True, ''
-    except HTTPError:
+    except HTTPError as error:
+        error.close()
         return False, 'provider_rejected'
     except (URLError, TimeoutError, OSError, ValueError, TypeError):
         return False, 'unavailable'

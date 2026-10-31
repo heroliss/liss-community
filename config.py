@@ -40,6 +40,9 @@ class Config:
     LISS_ALIYUN_REGION = os.environ.get('LISS_ALIYUN_REGION', 'cn-hangzhou')
     LISS_ALIYUN_SENDER_VERIFIED = os.environ.get('LISS_ALIYUN_SENDER_VERIFIED', '0') == '1'
     LISS_PUBLIC_BASE_URL = os.environ.get('LISS_PUBLIC_BASE_URL', '')
+    LISS_INDEXING_ENABLED = os.environ.get('LISS_INDEXING_ENABLED', '0') == '1'
+    LISS_LOCAL_PREVIEW = os.environ.get('LISS_LOCAL_PREVIEW', '0') == '1'
+    LISS_USE_BUILT_ASSETS = os.environ.get('LISS_USE_BUILT_ASSETS', '1') != '0'
     # Empty serves the local portfolio directory; production can redirect to Pages.
     LISS_PORTFOLIO_URL = os.environ.get('LISS_PORTFOLIO_URL', '')
     LISS_MAIL_TIMEOUT = 10

@@ -1,0 +1,195 @@
+/* Two opt-in optical surfaces. These are empty leaves below the reading plane:
+   the scene is reflected, never a raster copy of the article or its controls. */
+.community-room [data-material=mirror] {
+  --material-thickness:7px;--material-radius:10px 12px 10px 8px;
+  --material-edge:#8aadb5;--material-back:#183039;--material-base:#14252eb8;
+  --optical-sky:#adc9d4;--optical-horizon:#779d9b;--optical-depth:#152c39;
+  --optical-image-opacity:.84;--optical-sky-opacity:.63;--optical-scene-opacity:.89;
+}
+.community-room [data-material=water] {
+  --material-thickness:11px;--material-radius:38px 25px 44px 22px;
+  --material-edge:#5e9d9d;--material-back:#07272e28;--material-base:#0b29328c;
+  --optical-sky:#b1d9df;--optical-horizon:#75b5b0;--optical-depth:#123f4b;
+  --optical-image-opacity:.68;--optical-sky-opacity:.54;--optical-scene-opacity:.73;
+}
+.community-room :is([data-material=mirror],[data-material=water]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  background:var(--material-base);
+  box-shadow:inset 1px 1px 0 #e8ffff70,inset -1px -1px 0 #021c2769;
+}
+.community-room :is([data-material=mirror],[data-material=water])[data-theme-color] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::before { content:none; }
+.community-room [data-material=mirror] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::after {
+  content:'';position:absolute;inset:4px;border-radius:7px;
+  border:1px solid #d8f1f31c;
+  background:linear-gradient(148deg,#efffff1f,transparent 21% 70%,#93c5c514);
+}
+.community-room [data-material=water] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  background:radial-gradient(ellipse at 48% 47%,#09283052,transparent 76%),var(--material-base);
+  -webkit-backdrop-filter:blur(2px) saturate(1.17);backdrop-filter:blur(2px) saturate(1.17);
+  box-shadow:inset 2px 3px 5px #d2fff340,inset -2px -4px 8px #01212e67,0 0 0 .5px #c1f5ef48;
+}
+.community-room :is([data-material=mirror],[data-material=water]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-sheen {
+  background:radial-gradient(ellipse at 22% -34%,#e6f5ff30,transparent 65%),linear-gradient(165deg,#c5e4eb12,transparent 40% 75%,#86bcba14);
+  transform:translateZ(.6px);opacity:1;
+}
+.community-room :is([data-material=mirror],[data-material=water])[data-optics] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-sheen { opacity:.45; }
+.community-room [data-material=mirror] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim {
+  padding:1.8px;
+  background:linear-gradient(134deg,#edf9f6d6,#91a8ad59 18%,#d2e8e3b3 25%,#334c5d60 49%,#b7ced3ba 76%,#e0f5e896 91%,#7089938f);
+  box-shadow:inset 0 0 0 1px #e8faff40;
+}
+.community-room [data-material=water] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim {
+  padding:1.3px;
+  background:linear-gradient(153deg,#def8e8a3,transparent 37% 67%,#c7f8ed85 88%,#7bbbb54a);
+}
+.community-room [data-material=mirror] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before,
+.community-room [data-material=mirror] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after {
+  top:13px;bottom:13px;border-radius:0;
+  background:linear-gradient(90deg,#283f4c,#bed4d4 45%,#586d7b 62%,#b6caca 80%,#263b49);
+}
+.community-room [data-material=mirror] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::before,
+.community-room [data-material=mirror] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-bottom::after {
+  background:linear-gradient(0deg,#36515c,#bed4d2 48%,#536c75 70%,#d3e5df);border-radius:0;
+}
+.community-room [data-material=water] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > :is(.material-side,.material-bottom) { opacity:.58; }
+.community-room [data-material=water] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::before,
+.community-room [data-material=water] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-side::after { top:36px;bottom:42px; }
+
+.community-room .material-shell > :is(.material-reflection,.material-wear,.material-ripple-layer) {
+  position:absolute;display:block;inset:0;border-radius:inherit;pointer-events:none;overflow:hidden;
+}
+.community-room .material-reflection {
+  transform:translateZ(.25px);
+  background:radial-gradient(ellipse at 24% -22%,var(--optical-scene-a,var(--optical-sky)),transparent 69%),linear-gradient(164deg,var(--optical-sky),var(--optical-scene-b,var(--optical-horizon)) 39%,var(--optical-depth) 67%,var(--optical-scene-c,var(--optical-horizon)));
+  opacity:var(--optical-sky-opacity);
+  -webkit-mask-image:radial-gradient(ellipse at 49% 42%,#0007 0%,#0009 51%,#0000 100%);
+  mask-image:radial-gradient(ellipse at 49% 42%,#0007 0%,#0009 51%,#0000 100%);
+}
+.community-room .material-reflection::before {
+  content:'';position:absolute;inset:-14%;
+  background-image:var(--optical-scene-image,none);background-size:cover;background-position:50% 38%;
+  opacity:var(--optical-image-opacity);
+  transform:translate3d(var(--optical-x,0px),var(--optical-y,0px),0) scaleX(-1);
+}
+.community-room .material-reflection::after {
+  content:'';position:absolute;inset:-20%;
+  background:radial-gradient(ellipse at 24% 0%,#efffffaa,transparent 54%),radial-gradient(ellipse at 84% 118%,#a1c5c968,transparent 49%);
+  transform:translate3d(calc(var(--optical-x,0px) * -.45),calc(var(--optical-y,0px) * -.45),0);
+}
+.community-room [data-optical-image=true] .material-reflection { opacity:var(--optical-scene-opacity); }
+.community-room [data-material=water] .material-reflection::before {
+  transform:translate3d(var(--optical-x,0px),var(--optical-y,0px),0) scale(1,-1.08);
+  filter:blur(.65px);background-position:50% 24%;
+}
+.community-room [data-material=water] .material-reflection {
+  -webkit-mask-image:linear-gradient(#000b 0%,#0007 24%,#0005 54%,#000b 85%,#0000 100%);
+  mask-image:linear-gradient(#000b 0%,#0007 24%,#0005 54%,#000b 85%,#0000 100%);
+}
+.community-room .material-wear { transform:translateZ(.7px); }
+.community-room [data-material=mirror] .material-wear {
+  opacity:.61;
+  background:linear-gradient(126deg,transparent 47%,#e9f8ef5c 49%,transparent 52%) 13px 30px/27px 1px no-repeat,
+    linear-gradient(112deg,transparent 45%,#e9f8ef45 48%,transparent 51%) calc(100% - 19px) 23px/37px 1px no-repeat,
+    linear-gradient(144deg,transparent 45%,#e9f8ef50 48%,transparent 51%) 24px calc(100% - 18px)/42px 1px no-repeat,
+    repeating-linear-gradient(127deg,transparent 0 17px,#c9e4e224 18px,transparent 18.6px 41px);
+  -webkit-mask-image:radial-gradient(ellipse at 48% 50%,transparent 52%,#000 99%);
+  mask-image:radial-gradient(ellipse at 48% 50%,transparent 52%,#000 99%);
+}
+.community-room [data-material=mirror] .material-wear::before {
+  content:'';inset:-8%;border-radius:inherit;opacity:.46;
+  background:repeating-linear-gradient(112deg,transparent 0 42px,#f1ffff19 42.5px,transparent 43px 89px),
+    radial-gradient(ellipse at 78% 6%,#f0ffff29,transparent 35%);
+  transform:translate3d(calc(var(--optical-x,0px) * -.18),calc(var(--optical-y,0px) * -.18),0);
+}
+.community-room [data-material=water] .material-wear {
+  opacity:.83;
+  background:radial-gradient(ellipse 3px 1px at 11% 16%,#dfd3a594 70%,transparent),
+    radial-gradient(ellipse 1px 2px at 88% 21%,#e9e8c6a6 70%,transparent),
+    radial-gradient(ellipse 2px 1px at 81% 85%,#c9dda8a6 70%,transparent),
+    radial-gradient(ellipse 2px 1px at 16% 88%,#e4edc975 70%,transparent),
+    radial-gradient(ellipse at 8% 94%,#89e2da26,transparent 27%),radial-gradient(ellipse at 98% 7%,#d8f4d929,transparent 30%);
+  transform:translate3d(calc(var(--optical-x,0px) * -.13),calc(var(--optical-y,0px) * -.13),.7px);
+}
+.community-room [data-material=water] .material-wear::before {
+  content:'';inset:-7%;border-radius:inherit;opacity:.7;
+  /* Uneven long/short highlight-shade pairs suggest a normal field without
+     making a striped overlay or repainting a full-card canvas on every move. */
+  background:radial-gradient(ellipse 28% 4% at 21% 31%,#d5fff226,transparent),
+    radial-gradient(ellipse 19% 3% at 76% 61%,#0b455029,transparent),
+    repeating-linear-gradient(175deg,transparent 0 19px,#c4fff016 20px,transparent 22px 37px,#052c3c16 39px,transparent 41px 73px),
+    repeating-linear-gradient(7deg,transparent 0 43px,#a8e6e011 45px,transparent 47px 96px);
+  -webkit-mask-image:linear-gradient(180deg,#000b,transparent 83%);
+  mask-image:linear-gradient(180deg,#000b,transparent 83%);
+  transform:translate3d(calc(var(--optical-x,0px) * -.28),calc(var(--optical-y,0px) * -.16),0);
+}
+.community-room [data-material=water] .material-wear::after {
+  content:'';inset:-12%;border-radius:inherit;opacity:.62;
+  background:radial-gradient(ellipse 24% 6% at 27% 27%,#e3fff74a,transparent 95%),
+    radial-gradient(ellipse 19% 5% at 72% 42%,#baf4e735,transparent 95%),
+    radial-gradient(ellipse 31% 6% at 56% 76%,#dcfff52e,transparent 95%);
+  transform:translate3d(calc(var(--optical-x,0px) * .55),calc(var(--optical-y,0px) * .45),0);
+}
+.community-room .material-ripple-layer { transform:translateZ(.9px); }
+.community-room .material-ripple {
+  position:absolute;display:block;width:var(--ripple-size,170px);height:calc(var(--ripple-size,170px) * .49);
+  margin-left:calc(var(--ripple-size,170px) * -.5);margin-top:calc(var(--ripple-size,170px) * -.245);
+  border-radius:49% 53% 47% 51% / 52% 47% 53% 48%;
+  background:radial-gradient(ellipse 78% 47% at 47% 52%,transparent 49%,#1d55621e 55%,#a9d8ce25 61%,transparent 70%),
+    radial-gradient(ellipse 46% 25% at 59% 48%,transparent 52%,#b4e5d31a 62%,transparent 74%);
+  -webkit-mask-image:conic-gradient(from 27deg at 50% 50%,transparent 0deg,#000a 39deg,#000 84deg,transparent 117deg 175deg,#0009 207deg,#000 249deg,transparent 281deg 328deg,#0008 349deg,transparent 360deg);
+  mask-image:conic-gradient(from 27deg at 50% 50%,transparent 0deg,#000a 39deg,#000 84deg,transparent 117deg 175deg,#0009 207deg,#000 249deg,transparent 281deg 328deg,#0008 349deg,transparent 360deg);
+  animation:optical-water-shiver 1.25s cubic-bezier(.16,.54,.28,1) forwards;
+}
+.community-room .material-ripple::before,.community-room .material-ripple::after {
+  content:'';position:absolute;border-radius:inherit;
+}
+.community-room .material-ripple::before {
+  inset:16% 13%;
+  background:linear-gradient(174deg,transparent 35%,#bceadd20 46%,#13566825 56%,transparent 68%);
+  -webkit-backdrop-filter:blur(.4px) brightness(1.035) saturate(1.055);
+  backdrop-filter:blur(.4px) brightness(1.035) saturate(1.055);
+  -webkit-mask-image:radial-gradient(ellipse at 47% 52%,transparent 28%,#0008 50%,transparent 77%);
+  mask-image:radial-gradient(ellipse at 47% 52%,transparent 28%,#0008 50%,transparent 77%);
+}
+.community-room .material-ripple::after {
+  inset:28% 24%;
+  background:repeating-linear-gradient(174deg,transparent 0 4px,#c9e9da12 5px,transparent 7px 12px);
+  -webkit-mask-image:radial-gradient(ellipse at center,transparent 22%,#0009 57%,transparent 79%);
+  mask-image:radial-gradient(ellipse at center,transparent 22%,#0009 57%,transparent 79%);
+}
+@keyframes optical-water-shiver {
+  0% { transform:scale(.44,.6) rotate(-3deg);opacity:0; }
+  17% { opacity:var(--ripple-force,.54); }
+  65% { opacity:calc(var(--ripple-force,.54) * .52); }
+  100% { transform:scale(1.11,1.17) rotate(2deg);opacity:0; }
+}
+.material-chip-mirror { background:linear-gradient(140deg,#e7f4ef,#6f939b 24%,#bacfd3 37%,#3e5966 66%,#cadfe0);border:1px solid #d3e8df99;border-radius:3px; }
+.material-chip-water { background:radial-gradient(ellipse at 28% 35%,transparent 15%,#d6ffef8c 18%,transparent 23% 36%,#b0efe56b 40%,transparent 45%),linear-gradient(155deg,#a7ddd467,#245b6c9e);border:1px solid #abe0d38a;border-radius:7px 4px 8px 3px; }
+
+:root[data-theme=light] .community-room [data-material=mirror] {
+  --material-base:#e1ececd0;--material-back:#718c9659;--material-edge:#a0b9c0;
+  --optical-depth:#819ba7;--optical-sky:#f7fff9;--optical-horizon:#bad2ce;--optical-image-opacity:.71;
+}
+:root[data-theme=light] .community-room [data-material=water] {
+  --material-base:#dcf1e996;--material-back:#649d9d29;--material-edge:#8dbfba;
+  --optical-depth:#8fbdc4;--optical-sky:#f4fff5;--optical-horizon:#b8dfd6;--optical-image-opacity:.53;
+}
+:root[data-theme=light] .community-room [data-material=water] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  background:radial-gradient(ellipse at 48% 47%,#eff9f35c,transparent 76%),var(--material-base);
+  box-shadow:inset 2px 3px 5px #f4fff8ad,inset -2px -4px 8px #2d6d7129,0 0 0 .5px #5e9b9d6b;
+}
+:root[data-theme=light] .community-room .material-ripple { background:radial-gradient(ellipse 78% 47% at 47% 52%,transparent 49%,#257b7d24 55%,#659e8a28 61%,transparent 70%),radial-gradient(ellipse 46% 25% at 59% 48%,transparent 52%,#467e7020 62%,transparent 74%); }
+:root[data-theme=light] .community-room .material-ripple::before { background:linear-gradient(174deg,transparent 35%,#bde2c721 46%,#26707928 56%,transparent 68%); }
+.community-room :is([data-material=mirror],[data-material=water])[data-depth-kind=reader] { --material-radius:16px 20px 22px 14px; }
+@media(max-width:600px) {
+  .community-room [data-material=water] { --material-radius:27px 19px 32px 17px; }
+}
+@media(prefers-reduced-motion:reduce),(pointer:coarse) {
+  .community-room .material-reflection::before,.community-room .material-reflection::after,.community-room .material-wear::before,.community-room .material-wear::after { transform:none; }
+  .community-room [data-material=mirror] .material-reflection::before { transform:scaleX(-1); }
+  .community-room [data-material=water] .material-reflection::before { transform:scale(1,-1.08); }
+  .community-room .material-ripple { animation:none;display:none; }
+}
+@media(forced-colors:active) {
+  .community-room :is([data-material=mirror],[data-material=water]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base { background:Canvas;backdrop-filter:none;-webkit-backdrop-filter:none;outline:1px solid CanvasText; }
+  .community-room .material-shell > :is(.material-reflection,.material-wear,.material-ripple-layer) { display:none; }
+}

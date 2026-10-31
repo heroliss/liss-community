@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% import "_macros.html" as macros %}
+{% import "_ui.html" as ui with context %}
+{% import "_depth.html" as depth with context %}
+{% block title %}{{ super() }}搜索文章{% endblock %}
+{% block page_content %}
+<section class="search-page reading-column" aria-labelledby="search-title">
+<a class="back-link" href="{{ url_for('main.index') }}">{{ ui.icon('back') }}全部文章</a>
+<header class="page-heading"><h1 id="search-title">搜索文章</h1><p>找回一段文字，也可以沿着作者和作品继续阅读。</p></header>
+<form method="get" action="{{ url_for('main.search') }}" class="site-form search-form" role="search" aria-label="搜索公开文章">
+  <div class="search-query-field">
+    <label for="search-query">关键词</label>
+    <input class="form-control" id="search-query" type="search" name="q" value="{{ q }}" maxlength="160" placeholder="例如：材质 调整" aria-describedby="search-help{% if search_error %} search-error{% endif %}"{% if search_error %} aria-invalid="true"{% endif %}>
+    <p class="search-help" id="search-help">多个关键词用空格分开，每个词都需出现在正文中。也可以只选择作者或项目。</p>
+  </div>
+  <div class="search-filter-grid">
+    <div class="search-filter-field"><label for="search-author">作者</label><select class="form-control" id="search-author" name="author"><option value="">全部作者</option>{% for option in author_options %}<option value="{{ option.value }}"{% if author_filter == option.value %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div>
+    <div class="search-filter-field"><label for="search-project">项目</label><select class="form-control" id="search-project" name="project"><option value="">全部项目</option>{% for option in project_options %}<option value="{{ option.value }}"{% if project_filter == option.value %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div>
+  </div>
+  {% if search_error %}<p class="field-error search-error" id="search-error" role="alert">{{ search_error }}</p>{% endif %}
+  <div class="search-form-actions"><button class="button" type="submit">{{ ui.icon('search') }}搜索文章</button>{% if has_search or search_error %}<a class="quiet-link" href="{{ url_for('main.search') }}">清除全部条件</a>{% endif %}</div>
+</form>
+{% if has_search and not search_error %}
+<div class="search-summary" role="status"><p>找到 {{ pagination.total }} 篇文章</p>{% if pagination.total %}<span>按发布时间从新到旧排列</span>{% endif %}</div>
+{% if search_results %}
+<ol class="search-result-list" aria-label="搜索结果">
+{% for result in search_results %}
+{% set post = result.post %}
+{% set look = display_post_appearance(post) %}
+<li><article class="post search-result" data-depth-host data-depth-kind="edition" data-depth-id="{{ post.id }}" data-theme-color="{{ look.color }}" data-pose="{{ post.id % 5 }}" data-material="{{ ui.card_material(post.id,look.material) }}" data-glass-finish="{{ ui.glass_finish(look.material) }}"{% if look.color %} style="--appearance-hue:{{ look.hue }};--appearance-saturation:{{ look.saturation }}%;--appearance-accent:hsl({{ look.hue }} {{ look.saturation }}% 70%)"{% endif %}>
+{% call depth.layers(material=true) %}
+  {% if result.project_label and post.project_entry %}<a class="project-topic-tag" href="{{ url_for('community.project_talk', slug=canonical_project_slug(post.project_entry.project_slug)) }}">{{ ui.icon('comment') }}{{ result.project_label }} · 项目交流</a>{% endif %}
+  <header class="post-meta"><a class="author-avatar" href="{{ url_for('main.user', username=post.author.username) }}" aria-label="{{ result.author_label }}的主页">{{ ui.avatar(post.author, 'avatar-small') }}</a><div class="post-byline"><a class="post-author" href="{{ url_for('main.user', username=post.author.username) }}">{{ result.author_label }}</a>{{ ui.identity_badge(post.author) }}<span class="post-date">{{ moment(post.timestamp).fromNow() }}</span></div></header>
+  <h2 class="search-result-title" data-depth-post-title><a href="{{ url_for('main.post', id=post.id) }}">{% for segment in result.title_segments %}{% if segment.matched %}<mark class="search-hit">{{ segment.text }}</mark>{% else %}{{ segment.text }}{% endif %}{% endfor %}</a></h2>
+  <p class="search-result-excerpt">{% for segment in result.excerpt_segments %}{% if segment.matched %}<mark class="search-hit">{{ segment.text }}</mark>{% else %}{{ segment.text }}{% endif %}{% endfor %}</p>
+  {% if result.excerpt_note %}<p class="search-result-note">{{ result.excerpt_note }}</p>{% endif %}
+  <footer class="post-footer"><a class="post-comment-link" href="{{ url_for('main.post', id=post.id) }}#comments">{{ ui.icon('comment') }}<span>{{ post.visible_comment_count }} 条评论</span></a><a class="read-post" href="{{ url_for('main.post', id=post.id) }}">阅读全文 {{ ui.icon('arrow') }}</a></footer>
+{% endcall %}
+</article></li>
+{% endfor %}
+</ol>
+{% elif pagination.total %}
+<div class="search-empty">{{ ui.icon('book') }}<h2>这一页没有搜索结果</h2><p>当前条件仍有 {{ pagination.total }} 篇文章，回到第一页继续阅读。</p><a class="button button-secondary" href="{{ url_for('main.search', q=q, author=author_filter, project=project_filter) }}">返回第一页</a></div>
+{% else %}
+<div class="search-empty">{{ ui.icon('search') }}<h2>没有找到相关内容</h2><p>试试减少一个关键词，或放宽作者、项目条件。</p>{% if author_filter or project_filter %}<a class="button button-secondary" href="{{ url_for('main.search', q=q) }}">清除作者和项目筛选</a>{% else %}<a class="button button-secondary" href="#search-query">调整关键词</a>{% endif %}</div>
+{% endif %}
+{% if pagination %}{{ macros.pagination_widget(pagination, 'main.search', q=q, author=author_filter, project=project_filter) }}{% endif %}
+{% elif not search_error %}
+<div class="search-empty search-introduction">{{ ui.icon('search') }}<h2>从一段文字开始</h2><p>搜索公开文章和项目讨论，关键词、作者和项目可以组合使用。</p></div>
+{% endif %}
+</section>
+{% endblock %}

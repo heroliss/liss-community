@@ -1,0 +1,21 @@
+{% import "_ui.html" as ui with context %}
+{% set reply_theme = display_page_theme|default(page_theme|default({})) %}
+<li class="comment thread-comment" id="comment-{{ comment.id }}" data-thread-comment{% if comment.body|length > 240 %} data-thread-long{% endif %} data-comment-id="{{ comment.id }}" data-parent-id="{{ comment.parent_id or '' }}" data-author-name="{{ ui.author_name(comment.author) }}" data-post-theme-card data-theme-color="{{ reply_theme.get('color','') }}" style="--thread-glass-hue:{{ (comment.id * 137) % 360 }};{% if reply_theme.get('active') %}--appearance-hue:{{ reply_theme.hue }};--appearance-saturation:{{ reply_theme.saturation }}%;{% endif %}">
+  <a class="author-avatar thread-avatar" href="{{ url_for('main.user', username=comment.author.username) }}" aria-label="{{ ui.author_name(comment.author) }}的主页">{{ ui.avatar(comment.author, 'avatar-small') }}</a>
+  <div class="thread-message">
+    <header class="comment-meta"><a class="comment-author" href="{{ url_for('main.user', username=comment.author.username) }}">{{ ui.author_name(comment.author) }}</a>{% if not comment.author.is_visitor|default(false) or ui.author_name(comment.author)|trim != '访客' %}{{ ui.identity_badge(comment.author) }}{% endif %}<span class="comment-date">{{ moment(comment.timestamp).fromNow() }}</span>{% if comment.edited_at %}<span class="comment-edited">已编辑</span>{% endif %}
+    {% if not comment.disabled and not moderate|default(false) %}<nav class="comment-actions" aria-label="评论操作"><a href="{{ url_for('main.post', id=comment.post_id, reply_to=comment.id, _anchor='reply-editor') }}" data-thread-reply data-comment-id="{{ comment.id }}">{{ ui.icon('comment') }}回复</a>{% if current_user.is_authenticated and current_user.id == comment.author_id %}<a href="{{ url_for('main.edit_comment', id=comment.id) }}" aria-label="编辑评论">{{ ui.icon('edit') }}编辑</a>{% endif %}</nav>{% endif %}</header>
+    <div class="comment-body reading-prose" data-thread-body>{% if comment.disabled %}<p class="muted">这条评论已被隐藏。</p>{% endif %}{% if moderate|default(false) or not comment.disabled %}{% if comment.body_html %}{{ comment.body_html|safe }}{% else %}<p class="plain-text">{{ comment.body }}</p>{% endif %}{% endif %}</div>
+    {% if moderate|default(false) %}<a class="button button-small button-secondary" href="{{ url_for('main.moderate_enable' if comment.disabled else 'main.moderate_disable', id=comment.id, page=page) }}">{{ '恢复显示' if comment.disabled else '隐藏评论' }}</a>{% endif %}
+  </div>
+  {% if comment.parent_id %}
+      {% if comment.parent and not comment.parent.disabled and comment.parent.post_id == comment.post_id %}
+      <div class="thread-reference">
+        <a class="thread-context-toggle" href="{{ url_for('main.comment_anchor', id=comment.parent_id) }}" data-thread-context data-parent-id="{{ comment.parent_id }}" aria-expanded="false" aria-controls="context-{{ comment.id }}">{{ ui.icon('comment') }}<span class="thread-context-author">回复 {{ ui.author_name(comment.parent.author) }}</span><span class="thread-context-action">原句</span></a>
+        <p class="thread-quote-teaser">{{ (comment.parent.body_html or comment.parent.body)|striptags|truncate(90, true, '…') }}</p>
+        <div class="thread-context-panel" id="context-{{ comment.id }}" hidden><blockquote>{{ (comment.parent.body_html or comment.parent.body)|striptags|truncate(180, true, '…') }}</blockquote></div>
+      </div>
+      {% else %}<p class="comment-reply-context">原评论已不可见。</p>{% endif %}
+    {% endif %}
+  <div class="thread-editor-slot" data-thread-slot></div>
+</li>

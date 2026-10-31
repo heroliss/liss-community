@@ -250,6 +250,23 @@ class AppearanceHttpTests(unittest.TestCase):
         self.assertIn('<strong>Original words</strong>', rendered)
         self.assertEqual(self.client.get(f'/post/{post_id}').status_code, 200)
 
+    def test_reflective_materials_save_reload_edit_and_render_on_cards_and_reader(self):
+        for material in ('mirror', 'water'):
+            with self.subTest(material=material):
+                post_id = self.create_post(body='# Reflective ' + material + '\n\nKeep the original words.',
+                    appearance_color='#7ab8dd', appearance_material=material)
+                self.assertEqual(self.saved(post_id)[2], ('#7ab8dd', material))
+                for path in ('/', f'/post/{post_id}'):
+                    source = self.client.get(path).get_data(as_text=True)
+                    self.assertIn('data-material="' + material + '"', source)
+                self.assertEqual(self.edit_post(post_id, self.saved(post_id)[0],
+                    appearance_material=material, appearance_color='#a59bd8').status_code, 302)
+                self.assertEqual(self.saved(post_id)[2], ('#a59bd8', material))
+                original = self.saved(post_id)
+                self.assertEqual(self.edit_post(post_id, 'Invalid edit must not save',
+                    appearance_material=material.title()).status_code, 200)
+                self.assertEqual(self.saved(post_id), original)
+
     def test_old_body_only_create_has_no_appearance_record(self):
         post_id = self.create_post()
         self.assertIsNone(self.saved(post_id)[2])
@@ -487,7 +504,11 @@ class AppearanceMigrationTests(unittest.TestCase):
         config = AlembicConfig()
         config.set_main_option('script_location', str(Path(__file__).resolve().parents[1] / 'migrations'))
         scripts = ScriptDirectory.from_config(config)
-        self.assertEqual(scripts.get_heads(), ['20261031_glass_finishes'])
+        self.assertEqual(scripts.get_heads(), ['20261031_reflective_materials'])
+        self.assertEqual(scripts.get_revision('20261031_reflective_materials').down_revision,
+                         '20261031_discussion_replies')
+        self.assertEqual(scripts.get_revision('20261031_discussion_replies').down_revision,
+                         '20261031_glass_finishes')
         self.assertEqual(scripts.get_revision('20261031_glass_finishes').down_revision,
                          '20261031_material_catalog')
         self.assertEqual(scripts.get_revision('20261031_material_catalog').down_revision,

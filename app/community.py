@@ -63,6 +63,7 @@ def _with_request_query(location):
 
 # Stable slugs shared with the engineering gallery; never accept arbitrary links.
 PROJECTS = {
+    'glass-atoll': ('玻璃海 · Atoll', '可交互 WebGL 热带离岛'),
     'nomadworkshop': ('NomadWorkshop', '移动生存游戏 · AI 驱动开发'),
     'outpost': ('Outpost', 'Unity 波次防守游戏'),
     'gomoku': ('Gomoku v3', '五子棋与搜索引擎实验'),
@@ -105,8 +106,10 @@ class ProjectEntry(db.Model):
 @community.app_context_processor
 def project_context():
     from .transactional_mail import email_accounts_enabled
+    from .writing_guide import get_published_writing_guide
     return {'project_catalog': PROJECTS, 'canonical_project_slug': canonical_project_slug,
             'email_accounts_enabled': email_accounts_enabled, 'post_appearance': post_appearance,
+            'get_published_writing_guide': get_published_writing_guide,
             'page_theme': page_theme(getattr(g, 'page_theme_post', None)),
             'display_post_appearance': display_post_appearance,
             'display_page_theme': display_page_theme(getattr(g, 'page_theme_post', None))}
@@ -117,7 +120,7 @@ def writing_guide():
     from .writing_guide import get_published_writing_guide
     guide = get_published_writing_guide()
     if guide is None:
-        abort(404, description='写作指南尚未发布。')
+        return render_template('writing_guide.html')
     return redirect(url_for('main.post', id=guide.id))
 
 
@@ -137,6 +140,8 @@ def project_talk(slug):
         form.save_appearance(post)
         db.session.add(ProjectEntry(project_slug=slug, post=post))
         db.session.commit()
+        from .writing_receipts import record_writing_receipt
+        record_writing_receipt()
         return redirect(url_for('main.post', id=post.id))
     related_slugs = [slug] + [old for old, current in PROJECT_SLUG_ALIASES.items() if current == slug]
     pagination = Post.query.join(ProjectEntry).filter(ProjectEntry.project_slug.in_(related_slugs), Post.hidden.is_(False)).order_by(

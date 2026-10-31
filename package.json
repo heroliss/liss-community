@@ -1,0 +1,12 @@
+{
+  "name": "liss-community-assets",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build_assets.cjs",
+    "check:assets": "node scripts/build_assets.cjs --check"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

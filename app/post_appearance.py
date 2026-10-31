@@ -4,7 +4,8 @@ import re
 MATERIAL_CHOICES = (
     ('glass', '晶透玻璃'), ('frosted', '磨砂玻璃'), ('ceramic', '温润釉面'),
     ('paper', '纸册'), ('metal', '石墨金属'), ('leather', '皮革'),
-    ('cork', '软木'), ('slate', '岩板'), ('auto', '随站点安排'),
+    ('cork', '软木'), ('slate', '岩板'), ('mirror', '镜面'), ('water', '水面'),
+    ('auto', '随站点安排'),
 )
 MATERIAL_KEYS = frozenset(value for value, _ in MATERIAL_CHOICES)
 _COLOR = re.compile(r'#[0-9a-fA-F]{6}')

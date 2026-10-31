@@ -12,6 +12,7 @@ depends_on = None
 
 _OLD = {'auto', 'glass', 'ceramic', 'paper', 'metal', 'leather', 'cork', 'slate'}
 _NEW = _OLD | {'frosted'}
+_KNOWN_FORWARD = _NEW | {'mirror', 'water'}
 _CHECK = "card_material IN ('auto','glass','ceramic','paper','metal','leather','cork','slate','frosted')"
 
 
@@ -22,7 +23,7 @@ def upgrade():
     known_shape = re.fullmatch(r"\s*card_material\s+IN\s*\(\s*'[a-z]+'(?:\s*,\s*'[a-z]+')*\s*\)\s*", current or '', re.I)
     tokens = set(re.findall(r"'([^']*)'", current or '')) if known_shape else set()
     # Public-demo preparation may already have widened its unversioned store.
-    if tokens == _NEW:
+    if tokens in (_NEW, _KNOWN_FORWARD):
         return
     if tokens != _OLD:
         raise RuntimeError('Unrecognized post material constraint; keep the database and inspect its schema before upgrading.')

@@ -9,17 +9,14 @@ body.community-room { position:relative; isolation:isolate; --atmosphere-ink:#6d
 .community-vector-scene[data-vector-style=mist] .community-vector-lines { display:none; }
 .community-procedural-scene { inset:-80px;width:calc(100% + 160px);height:calc(142% + 160px);--scene-opacity:1; }
 .community-procedural-scene[data-scene-theme=light] { --scene-opacity:.76; }
+.community-procedural-scene[data-scene-theme=light]:is([data-vector-style=mirror-hall],[data-vector-style=tideglass],[data-vector-style=etched-metal],[data-vector-style=porcelain],[data-vector-style=leather],[data-vector-style=cork-relief],[data-vector-style=slate]) { --scene-opacity:1; }
 .procedural-vector-art,.procedural-ribbons { display:block;width:100%;height:100%;opacity:var(--scene-opacity); }
 /* Extend the drawing space instead of stretching its strokes into a panorama. */
-.procedural-vector-art :is(path,line,polyline,circle,ellipse) { vector-effect:non-scaling-stroke; }
+.procedural-vector-art :is(path,line,polyline,polygon,circle,ellipse) { vector-effect:non-scaling-stroke; }
 .procedural-shape { display:block;position:absolute;pointer-events:none; }
 .community-procedural-scene[data-vector-style=mist] .procedural-shape { width:76%;height:92%;border-radius:50%;background:radial-gradient(ellipse,color-mix(in srgb,var(--scene-a) 15%,transparent),transparent 68%);left:65%;top:-39%; }
 .community-procedural-scene[data-vector-style=mist] .procedural-shape-1 { left:-39%;top:40%;background:radial-gradient(ellipse,color-mix(in srgb,var(--scene-b) 12%,transparent),transparent 67%); }
 .community-procedural-scene[data-vector-style=mist] .procedural-shape-2 { display:none; }
-.community-procedural-scene[data-vector-style=prism] .procedural-shape { width:52%;height:82%;right:-7%;top:-5%;clip-path:polygon(31% 0,100% 38%,67% 100%,0 57%);background:linear-gradient(130deg,color-mix(in srgb,var(--scene-a) 34%,transparent),color-mix(in srgb,var(--scene-b) 16%,transparent) 53%,color-mix(in srgb,var(--scene-c) 31%,transparent));transform:rotate(-12deg); }
-.community-procedural-scene[data-vector-style=prism] .procedural-shape-1 { top:38%;right:13%;width:41%;height:75%;background:linear-gradient(70deg,color-mix(in srgb,var(--scene-c) 27%,transparent),transparent 65%);transform:rotate(13deg); }
-.community-procedural-scene[data-vector-style=prism] .procedural-shape-2 { right:auto;left:-17%;top:58%;width:61%;height:70%;background:linear-gradient(120deg,color-mix(in srgb,var(--scene-b) 31%,transparent),transparent 78%);transform:rotate(18deg); }
-.community-procedural-scene[data-vector-style=prism] .procedural-shape-3 { right:3%;top:3%;width:39%;height:61%;background:linear-gradient(130deg,transparent 47%,color-mix(in srgb,var(--scene-a) 32%,transparent) 47.2% 47.4%,transparent 47.7%); }
 .community-procedural-scene[data-vector-style=paper] .procedural-shape { width:75%;height:80%;border-radius:42% 22% 58% 13%;right:-29%;top:-22%;transform:rotate(-29deg);background:linear-gradient(130deg,color-mix(in srgb,var(--scene-a) 16%,var(--bg)),color-mix(in srgb,var(--scene-b) 5%,var(--bg)));box-shadow:-14px 22px 24px -23px #010a0f75,inset 1px 0 0 #c9d8c123; }
 .community-procedural-scene[data-vector-style=paper] .procedural-shape-1 { right:-31%;top:-9%;transform:rotate(-22deg); }
 .community-procedural-scene[data-vector-style=paper] .procedural-shape-2 { right:-35%;top:5%;transform:rotate(-14deg); }
@@ -71,7 +68,7 @@ body.community-room { position:relative; isolation:isolate; --atmosphere-ink:#6d
 
 /* Native decorative motion: no changing gradient stops, paths or canvas pixels
    every frame. Each style moves only a few cached decorative leaves. Static
-   transforms (paper angles, prism folds) remain intact via individual translate. */
+   transforms (paper angles) remain intact via individual translate. */
 @keyframes scene-v26-air {
   from { translate:-.8% -.3%;scale:1; }
   to { translate:1.1% .6%;scale:1.025; }
@@ -104,21 +101,46 @@ body.community-room { position:relative; isolation:isolate; --atmosphere-ink:#6d
   from { translate:-.5% -.35%;scale:1;opacity:.82; }
   to { translate:.8% .65%;scale:1.04;opacity:1; }
 }
+/* Material scenes hold their large forms still. Only the optical detail moves,
+   at different rhythms, so it does not look like a single shifting SVG sheet. */
+@keyframes scene-hall-glint {
+  from { translate:-3.2% -.5%;opacity:.34; }
+  to { translate:2.7% .4%;opacity:.75; }
+}
+@keyframes scene-tide-caustics {
+  from { translate:-.8% .8%;opacity:.67; }
+  to { translate:1.2% -.7%;opacity:1; }
+}
+@keyframes scene-tide-sheen {
+  from { translate:-1.6% 0;opacity:.35; }
+  to { translate:1.4% .2%;opacity:.73; }
+}
+@keyframes scene-metal-glint {
+  from { translate:-2.7% 0;opacity:.22; }
+  to { translate:2.4% 0;opacity:.69; }
+}
+@keyframes scene-material-breathe {
+  from { translate:-.35% -.25%;opacity:.50; }
+  to { translate:.65% .45%;opacity:.92; }
+}
 .community-procedural-scene[data-vector-style=mist] .procedural-shape {
   animation:scene-v26-air 74s ease-in-out infinite alternate paused;
 }
 .community-procedural-scene[data-vector-style=mist] .procedural-shape-1 { animation-duration:103s;animation-delay:-29s;animation-direction:alternate-reverse; }
-.community-procedural-scene:is([data-vector-style=line],[data-vector-style=contour],[data-vector-style=dunes]) .procedural-vector-art {
+.community-procedural-scene:is([data-vector-style=line],[data-vector-style=contour],[data-vector-style=dunes],[data-vector-style=prism]) .procedural-vector-art {
   animation:scene-v26-line 87s ease-in-out infinite alternate paused;
 }
 .community-procedural-scene[data-vector-style=contour] .procedural-vector-art { animation-duration:112s;animation-delay:-33s; }
 .community-procedural-scene[data-vector-style=dunes] .procedural-vector-art { animation-duration:96s;animation-direction:alternate-reverse; }
-.community-procedural-scene[data-vector-style=prism] .procedural-shape {
-  animation:scene-v26-facets 93s ease-in-out infinite alternate paused;
-}
-.community-procedural-scene[data-vector-style=prism] .procedural-shape-1 { animation-duration:113s;animation-delay:-23s; }
-.community-procedural-scene[data-vector-style=prism] .procedural-shape-2 { animation-duration:126s;animation-delay:-41s;animation-direction:alternate-reverse; }
-.community-procedural-scene[data-vector-style=prism] .procedural-shape-3 { animation:none; }
+.community-procedural-scene[data-vector-style=prism] .procedural-vector-art { animation-duration:103s;animation-delay:-29s; }
+.community-procedural-scene[data-vector-style=mirror-hall] .procedural-hall-glint { animation:scene-hall-glint 19s ease-in-out infinite alternate paused; }
+.community-procedural-scene[data-vector-style=tideglass] .procedural-tide-caustics { animation:scene-tide-caustics 13s ease-in-out infinite alternate paused; }
+.community-procedural-scene[data-vector-style=tideglass] .procedural-tide-sheen { animation:scene-tide-sheen 23s ease-in-out infinite alternate-reverse paused; }
+.community-procedural-scene[data-vector-style=etched-metal] .procedural-metal-glint { animation:scene-metal-glint 32s ease-in-out infinite alternate paused; }
+.community-procedural-scene[data-vector-style=porcelain] .procedural-porcelain-glaze { animation:scene-material-breathe 31s ease-in-out infinite alternate paused; }
+.community-procedural-scene[data-vector-style=leather] .procedural-leather-seam { animation:scene-material-breathe 63s ease-in-out infinite alternate paused; }
+.community-procedural-scene[data-vector-style=cork-relief] .procedural-cork-grain { animation:scene-material-breathe 71s ease-in-out infinite alternate paused; }
+.community-procedural-scene[data-vector-style=slate] .procedural-slate-light { animation:scene-material-breathe 57s ease-in-out infinite alternate paused; }
 .community-procedural-scene[data-vector-style=paper] .procedural-shape {
   animation:scene-v26-paper 104s ease-in-out infinite alternate paused;
 }
@@ -142,10 +164,10 @@ body.community-room { position:relative; isolation:isolate; --atmosphere-ink:#6d
 }
 .community-procedural-scene[data-vector-style=spectrum] .procedural-shape-1 { animation-duration:107s;animation-delay:-32s;animation-direction:alternate-reverse; }
 .community-procedural-scene[data-vector-style=spectrum] .procedural-shape-2 { animation-duration:129s;animation-delay:-61s; }
-.community-procedural-scene[data-scene-motion=running] :is(.procedural-shape,.procedural-ribbons,.procedural-vector-art,.procedural-orbit-satellites) { animation-play-state:running; }
-.community-procedural-scene[data-scene-motion=paused] :is(.procedural-shape,.procedural-ribbons,.procedural-vector-art,.procedural-orbit-satellites) { animation-play-state:paused; }
+.community-procedural-scene[data-scene-motion=running] :is(.procedural-shape,.procedural-ribbons,.procedural-vector-art,.procedural-orbit-satellites,.procedural-hall-glint,.procedural-tide-caustics,.procedural-tide-sheen,.procedural-metal-glint,.procedural-porcelain-glaze,.procedural-leather-seam,.procedural-cork-grain,.procedural-slate-light) { animation-play-state:running; }
+.community-procedural-scene[data-scene-motion=paused] :is(.procedural-shape,.procedural-ribbons,.procedural-vector-art,.procedural-orbit-satellites,.procedural-hall-glint,.procedural-tide-caustics,.procedural-tide-sheen,.procedural-metal-glint,.procedural-porcelain-glaze,.procedural-leather-seam,.procedural-cork-grain,.procedural-slate-light) { animation-play-state:paused; }
 @media(prefers-reduced-motion:reduce),(prefers-reduced-data:reduce) {
-  .community-procedural-scene :is(.procedural-shape,.procedural-ribbons,.procedural-vector-art,.procedural-orbit-satellites) { animation-play-state:paused!important; }
+  .community-procedural-scene :is(.procedural-shape,.procedural-ribbons,.procedural-vector-art,.procedural-orbit-satellites,.procedural-hall-glint,.procedural-tide-caustics,.procedural-tide-sheen,.procedural-metal-glint,.procedural-porcelain-glaze,.procedural-leather-seam,.procedural-cork-grain,.procedural-slate-light) { animation-play-state:paused!important; }
 }
 @media(forced-colors:active) { .community-atmosphere,.community-room::before { display:none!important; }body.community-room { background:Canvas;color:CanvasText; }.community-room .site-header { background:Canvas;box-shadow:none; } }
 @media print { .community-atmosphere,.community-room::before { display:none!important; } }

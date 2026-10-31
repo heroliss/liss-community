@@ -1,0 +1,80 @@
+{
+  "styles": [
+    "liss.css",
+    "community-room.css",
+    "community-identity.css",
+    "community-spatial.css",
+    "community-depth.css",
+    "community-atmosphere.css",
+    "community-materials.css",
+    "community-appearance.css",
+    "community-theme.css",
+    "community-studio.css",
+    "community-portals.css",
+    "community-crystal.css",
+    "community-backgrounds.css",
+    "community-experience.css",
+    "community-avatar.css",
+    "community-ux-v25.css",
+    "community-atelier-v27.css",
+    "community-material-identity-v28.css",
+    "community-material-variants-v29.css",
+    "community-image-viewer.css",
+    "community-reading-v28.css",
+    "community-shapes-v30.css",
+    "community-glass-optics-v31.css",
+    "community-edges-v32.css",
+    "community-navigation-v32.css",
+    "community-feed.css",
+    "community-footer.css",
+    "community-reflections.css"
+  ],
+  "background-head": [
+    "community-backgrounds.js"
+  ],
+  "transitions-head": [
+    "community-transitions.js"
+  ],
+  "runtime": [
+    "liss.js",
+    "community-theme.js",
+    "community-room.js",
+    "community-spatial.js",
+    "community-procedural.js",
+    "community-atmosphere.js",
+    "community-surfaces.js",
+    "community-reflections.js",
+    "community-crystal.js",
+    "community-experience.js"
+  ],
+  "gallery": [
+    "community-gallery.js"
+  ],
+  "portals": [
+    "community-portals.js"
+  ],
+  "writing": [
+    "writing.js",
+    "community-appearance.js"
+  ],
+  "drafts": [
+    "writing-drafts.js"
+  ],
+  "navigation": [
+    "community-disclosure.js",
+    "community-navigation.js"
+  ],
+  "discussions": [
+    "community-discussions.css"
+  ],
+  "thread-styles": [
+    "community-thread.css"
+  ],
+  "thread": [
+    "community-thread.js",
+    "community-thread-layout.js"
+  ],
+  "feed": [
+    "community-feed.js"
+  ]
+}

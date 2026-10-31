@@ -1,8 +1,8 @@
 {% import "_depth.html" as depth with context %}
 {% import "_appearance.html" as appearance with context %}
-{% macro render_form(form, submit_label=none, class_name='', labels={}) %}
+{% macro render_form(form, submit_label=none, class_name='', labels={}, draft_scope=none) %}
 <div class="depth-workpad" data-depth-host data-depth-kind="workspace" data-material="glass"><div class="workspace-chassis" aria-hidden="true"><span class="workspace-chassis-back"></span><span class="workspace-chassis-side"></span><span class="workspace-chassis-lip"></span></div>{% call depth.layers(material=true) %}
-<form method="post" class="site-form {{ class_name }}" novalidate>
+<form method="post" class="site-form {{ class_name }}"{% if form.appearance_color is defined or draft_scope is not none %} data-writing-owner="{{ current_user.get_id() or '' }}" data-writing-scope="{{ draft_scope if draft_scope is not none else request.path }}" data-writing-method="{{ request.method }}"{% endif %} novalidate>
   {{ form.hidden_tag() }}
   {% for field in form if field.type not in ['CSRFTokenField','HiddenField'] and field.name not in ['appearance_color','appearance_material'] %}
     {% if field.type == 'SubmitField' %}{% if form.appearance_color is defined %}{{ appearance.controls(form) }}{% endif %}<div class="form-actions">{{ field(class_='button', value=submit_label or field.label.text) }}<span class="form-pending" role="status" aria-live="polite"></span></div>
@@ -12,7 +12,7 @@
       {% if field.type == 'PasswordField' %}{{ field(class_='form-control', autocomplete='current-password' if field.name in ['old_password'] or (request.endpoint == 'auth.login') else 'new-password', **{'aria-invalid':'true' if field.errors else 'false'}) }}
       {% elif field.name == 'username' %}{{ field(class_='form-control', autocomplete='username', spellcheck='false', **{'aria-invalid':'true' if field.errors else 'false'}) }}
       {% elif field.name == 'email' %}{{ field(class_='form-control', type='email', autocomplete='email', **{'aria-invalid':'true' if field.errors else 'false'}) }}
-      {% elif field.name == 'body' and request.endpoint == 'main.post' %}<textarea class="form-control" id="{{ field.id }}" name="{{ field.name }}" rows="3" placeholder="分享你的看法，或向作者提个问题。" aria-invalid="{{ 'true' if field.errors else 'false' }}">{{ field.data or '' }}</textarea>
+      {% elif field.name == 'body' and request.endpoint == 'main.post' %}<textarea class="form-control" id="{{ field.id }}" name="{{ field.name }}" rows="1" placeholder="接着聊一句…" aria-required="{{ 'true' if field.flags.required else 'false' }}"{% if field.flags.required %} required{% endif %} aria-invalid="{{ 'true' if field.errors else 'false' }}">{{ field.data or '' }}</textarea>
       {% elif field.type == 'TextAreaField' %}{{ field(class_='form-control', rows=4, **{'aria-invalid':'true' if field.errors else 'false'}) }}
       {% else %}{{ field(class_='form-control', **{'aria-invalid':'true' if field.errors else 'false'}) }}{% endif %}
       {% for error in field.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}

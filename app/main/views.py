@@ -1,5 +1,5 @@
 from flask import render_template, redirect, url_for, abort, flash, request, \
-    current_app, make_response, g
+    current_app, make_response, g, jsonify
 from flask_login import login_required, current_user
 from flask_sqlalchemy.record_queries import get_recorded_queries
 from flask_wtf.csrf import validate_csrf
@@ -9,6 +9,8 @@ from .forms import EditProfileForm, EditProfileAdminForm, PostForm, \
     CommentForm
 from .. import db
 from ..models import Permission, Role, User, Post, Comment
+from ..discussions import comment_destination, comment_json_request, visible_comment, create_reply_notification, requested_page
+from ..writing_receipts import record_writing_receipt
 from ..decorators import admin_required, permission_required
 from urllib.parse import urlencode
 
@@ -61,8 +63,9 @@ def index():
         db.session.add(post)
         form.save_appearance(post)
         db.session.commit()
+        record_writing_receipt()
         return redirect(url_for('.index'))
-    page = request.args.get('page', 1, type=int)
+    page = requested_page()
     show_followed = False
     if current_user.is_authenticated:
         show_followed = bool(request.cookies.get('show_followed', ''))
@@ -86,7 +89,7 @@ def user(username):
     canonical = canonical_profile_redirect(user, username, '.user')
     if canonical is not None:
         return canonical
-    page = request.args.get('page', 1, type=int)
+    page = requested_page()
     pagination = user.posts.filter_by(hidden=False).order_by(Post.timestamp.desc()).paginate(
         page=page, per_page=current_app.config['FLASKY_POSTS_PER_PAGE'],
         error_out=False)
@@ -145,27 +148,49 @@ def edit_profile_admin(id):
 def post(id):
     post = Post.query.filter_by(id=id, hidden=False).first_or_404()
     g.page_theme_post = post
+    wants_json = comment_json_request()
     form = CommentForm()
+    reply_to = form.reply_to.data if request.method == 'POST' else request.args.get('reply_to', '')
+    parent = None
+    if reply_to:
+        if not reply_to.isdecimal() or len(reply_to) > 19 or int(reply_to) > 9223372036854775807:
+            abort(404)
+        parent = visible_comment(int(reply_to), post_id=post.id)
+        form.reply_to.data = str(parent.id)
     if form.validate_on_submit():
         if not current_user.is_authenticated or not current_user.can(Permission.COMMENT):
             abort(403)
         comment = Comment(body=form.body.data,
                           post=post,
-                          author=current_user._get_current_object())
+                          author=current_user._get_current_object(), parent=parent)
         db.session.add(comment)
+        db.session.flush()
+        create_reply_notification(comment, parent)
         db.session.commit()
+        if wants_json:
+            receipt = record_writing_receipt(store=False)
+            return jsonify(ok=True, id=comment.id, parent_id=comment.parent_id,
+                           count=post.visible_comment_count, destination=comment_destination(comment),
+                           comment_html=render_template('_comment.html', comment=comment),
+                           writing_receipt=receipt), 201
+        record_writing_receipt()
         flash('评论已提交')
-        return redirect(url_for('.post', id=post.id, page=-1))
+        return redirect(url_for('main.comment_anchor', id=comment.id))
+    if wants_json:
+        return jsonify(ok=False, errors=form.errors), 400
     page = request.args.get('page', 1, type=int)
     if page == -1:
-        page = (post.comments.filter(Comment.disabled.is_not(True)).count() - 1) // \
-               current_app.config['FLASKY_COMMENTS_PER_PAGE'] + 1
-    pagination = post.comments.filter(Comment.disabled.is_not(True)).order_by(Comment.timestamp.asc()).paginate(
+        page = max(1, (post.comments.filter(Comment.disabled.is_not(True)).count() - 1) //
+                   current_app.config['FLASKY_COMMENTS_PER_PAGE'] + 1)
+    else:
+        page = requested_page()
+    pagination = post.comments.filter(Comment.disabled.is_not(True)).order_by(Comment.timestamp.asc().nullsfirst(), Comment.id.asc()).paginate(
         page=page, per_page=current_app.config['FLASKY_COMMENTS_PER_PAGE'],
         error_out=False)
     comments = pagination.items
     return render_template('post.html', posts=[post], form=form,
-                           comments=comments, pagination=pagination)
+                           comments=comments, pagination=pagination, reply_parent=parent,
+                           thread_json_ready=True)
 
 
 @main.route('/edit/<int:id>', methods=['GET', 'POST'])
@@ -182,6 +207,7 @@ def edit(id):
         form.save_appearance(post)
         db.session.add(post)
         db.session.commit()
+        record_writing_receipt()
         flash('修改已提交！')
         return redirect(url_for('.post', id=post.id))
     if not form.is_submitted():

@@ -1,0 +1,56 @@
+name: Community checks
+
+on:
+  push:
+    branches: [main, design/community-reading-room]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: community-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.13', '3.14']
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: requirements/*.txt
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install pinned test dependencies
+        run: python -m pip install -r requirements/dev.txt
+      - name: Install locked asset build dependencies
+        run: npm ci --ignore-scripts
+      - name: Verify tracked generated assets
+        run: npm run check:assets
+      - name: Check Python, JavaScript and controller behavior
+        run: python -B scripts/check.py
+      - name: Retain check reports and unfiltered logs
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: checks-python-${{ matrix.python }}
+          path: .tmp/checks/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14

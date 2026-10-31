@@ -31,6 +31,10 @@ def create_app(config_name):
     pagedown.init_app(app)
     from .post_preview import post_preview
     app.add_template_filter(post_preview, 'post_preview')
+    from .frontend_assets import install as install_frontend_assets
+    install_frontend_assets(app)
+    from .seo import install as install_seo
+    install_seo(app)
 
     if app.config.get('PUBLIC_DEMO'):
         from .public_demo import install

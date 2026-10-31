@@ -524,7 +524,7 @@ class PostAppearance(db.Model):
     card_material = db.Column(db.String(16), nullable=False, default='auto', server_default='auto')
     post = db.relationship('Post', back_populates='appearance')
     __table_args__ = (
-        db.CheckConstraint("card_material IN ('auto','glass','ceramic','paper','metal','leather','cork','slate','frosted')", name='ck_post_appearance_material'),
+        db.CheckConstraint("card_material IN ('auto','glass','ceramic','paper','metal','leather','cork','slate','frosted','mirror','water')", name='ck_post_appearance_material'),
         db.CheckConstraint("theme_color = '' OR (length(theme_color) = 7 AND substr(theme_color,1,1) = '#')", name='ck_post_appearance_color_shape'),
     )
 
@@ -548,6 +548,9 @@ class Comment(db.Model):
     disabled = db.Column(db.Boolean, nullable=False, default=False, server_default='0')
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
+    parent_id = db.Column(db.Integer, db.ForeignKey('comments.id'), nullable=True)
+    edited_at = db.Column(db.DateTime, nullable=True)
+    parent = db.relationship('Comment', remote_side=[id], foreign_keys=[parent_id])
 
     @staticmethod
     def generate_fake(count:'生成数量'=100,post_id:'要添加评论的帖子id，该值默认-1表示所有帖子随机添加'=-1) -> '无返回值':
@@ -600,3 +603,19 @@ class Comment(db.Model):
 
 
 db.event.listen(Comment.body, 'set', Comment.on_changed_body)
+
+
+class ReplyNotification(db.Model):
+    """A private, durable pointer to a reply; content stays in its original row."""
+    __tablename__ = 'reply_notifications'
+    id = db.Column(db.Integer, primary_key=True)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    comment_id = db.Column(db.Integer, db.ForeignKey('comments.id'), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+    read_at = db.Column(db.DateTime, nullable=True)
+    recipient = db.relationship('User', foreign_keys=[recipient_id])
+    comment = db.relationship('Comment', foreign_keys=[comment_id])
+    __table_args__ = (
+        db.UniqueConstraint('recipient_id', 'comment_id', name='uq_reply_notification_recipient_comment'),
+        db.Index('ix_reply_notifications_recipient_read', 'recipient_id', 'read_at'),
+    )

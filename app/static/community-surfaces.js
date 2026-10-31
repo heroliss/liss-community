@@ -7,7 +7,9 @@
   var KEY = '__lissCommunitySurfaces';
   if (window[KEY] && window[KEY].destroy) window[KEY].destroy();
   var scriptURL = document.currentScript && document.currentScript.src;
-  var textureURL = new URL('textures/material-v22/normal-roughness.png', scriptURL || document.baseURI).href;
+  var assetBase = new URL('.', scriptURL || document.baseURI);
+  if (/\/bundles\/$/.test(assetBase.pathname)) assetBase = new URL('../', assetBase);
+  var textureURL = new URL('textures/material-v22/normal-roughness.png', assetBase).href;
   var lifetime = new AbortController(), dispose = null;
   var metrics = { version: 'room-material-v31', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'material-specific-flat-chamfer-or-soft-shoulder', shapeProfiles: ['crystal-plane','ceramic-rim','paper-sheet','folded-metal','leather-pad','cork-cut','slate-cleft'], transmission: 'native-backdrop', edgeSampling: false, antialias: 'analytic-rounded-coverage', lighting: 'upper-left-area-key+ambient', pigment: 'shared-css-gpu', materialContrast: 'intrinsic-grain-in-reading-budget', materialKinds: 7, materialChoices: 8, glassFinishes: 2, atlasSources: 4, contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
   var inspectState = function () { return Object.assign({}, metrics); };
@@ -307,6 +309,9 @@
       });
       document.querySelectorAll(selector).forEach(function (host) {
         if (byHost.has(host)) return;
+        // These two optical faces own their separate environment reflection;
+        // treating an unknown token as glass would paint over it a second time.
+        if (host.dataset.material === 'mirror' || host.dataset.material === 'water') return;
         // Account portals have their own single console shell. Their stable
         // inner form deliberately has no second glass body or lighting tile.
         if (host.dataset.depthKind === 'workspace' && host.closest('.portal-console')) return;

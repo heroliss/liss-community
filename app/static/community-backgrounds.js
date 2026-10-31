@@ -4,6 +4,7 @@
   var KEY='LissBackgrounds',STORE='liss-background-v24';
   if(window[KEY]&&window[KEY].destroy)window[KEY].destroy();
   var base=new URL('.',document.currentScript&&document.currentScript.src||new URL('/static/community-backgrounds.js',location.href).href);
+  if(/\/bundles\/$/.test(base.pathname))base=new URL('../',base);
   var catalogue={
     mist:{id:'mist',title:'柔光留白',description:'安静的光色与空间',kind:'vector',style:'mist',bytes:0},
     line:{id:'line',title:'流线素描',description:'少量曲线，轻盈的层次',kind:'vector',style:'line',bytes:0},
@@ -15,6 +16,13 @@
     constellation:{id:'constellation',title:'星图余白',description:'稀疏星点与几条偶然的连线',kind:'vector',style:'constellation',bytes:0},
     spectrum:{id:'spectrum',title:'柔彩色域',description:'宽广留白中的三种轻柔色彩',kind:'vector',style:'spectrum',bytes:0},
     dunes:{id:'dunes',title:'层峦暖沙',description:'温暖的轮廓，远近不同的山脊',kind:'vector',style:'dunes',bytes:0},
+    'mirror-hall':{id:'mirror-hall',title:'镜廊微光',description:'斜向镜影与冷暖交错的光带',kind:'vector',style:'mirror-hall',bytes:0},
+    tideglass:{id:'tideglass',title:'潮汐玻璃',description:'透光水纹与轻柔的潮线',kind:'vector',style:'tideglass',bytes:0},
+    'etched-metal':{id:'etched-metal',title:'银箔刻痕',description:'细密拉丝和克制的环形刻线',kind:'vector',style:'etched-metal',bytes:0},
+    porcelain:{id:'porcelain',title:'釉面流光',description:'温润釉色与缓缓游走的光',kind:'vector',style:'porcelain',bytes:0},
+    leather:{id:'leather',title:'皮革压纹',description:'暖褐纹理与细致的缝线',kind:'vector',style:'leather',bytes:0},
+    'cork-relief':{id:'cork-relief',title:'软木浮雕',description:'轻盈颗粒与有机起伏',kind:'vector',style:'cork-relief',bytes:0},
+    slate:{id:'slate',title:'板岩层光',description:'冷灰切面与安静的矿物光',kind:'vector',style:'slate',bytes:0},
     "coast":{"id":"coast","title":"欧泊海岸","description":"熟悉的晶透海岸","kind":"image","src":"scenes/coast-v25-ai-3840.webp","bytes":508034,"width":6688,"height":3764,"tall":false,"enhancement":"Real-ESRGAN x4plus","originalWidth":1672,"originalHeight":941,"nativeHighResolution":false,"variants":[{"file":"scenes/coast-v25-ai-960.webp","width":960,"height":540,"bytes":57280},{"file":"scenes/coast-v25-ai-1440.webp","width":1440,"height":810,"bytes":117914},{"file":"scenes/coast-v25-ai-1920.webp","width":1920,"height":1081,"bytes":187428},{"file":"scenes/coast-v25-ai-2560.webp","width":2560,"height":1441,"bytes":289842},{"file":"scenes/coast-v25-ai-3840.webp","width":3840,"height":2161,"bytes":508034}]},
     "mineral-scroll":{"id":"mineral-scroll","title":"晶石长卷","description":"沿着暖光与水面向深处走","kind":"image","src":"scenes/mineral-v25-ai-3172.webp","bytes":1956076,"width":3172,"height":7932,"tall":true,"enhancement":"Real-ESRGAN x4plus","originalWidth":793,"originalHeight":1983,"nativeHighResolution":false,"variants":[{"file":"scenes/mineral-v25-ai-960.webp","width":960,"height":2401,"bytes":392674},{"file":"scenes/mineral-v25-ai-1440.webp","width":1440,"height":3601,"bytes":686528},{"file":"scenes/mineral-v25-ai-1920.webp","width":1920,"height":4801,"bytes":1027892},{"file":"scenes/mineral-v25-ai-2560.webp","width":2560,"height":6402,"bytes":1481324},{"file":"scenes/mineral-v25-ai-3172.webp","width":3172,"height":7932,"bytes":1956076}]},
     "ink-scroll":{"id":"ink-scroll","title":"雾谷月色","description":"山水、月光与一层薄雾","kind":"image","src":"scenes/ink-v25-ai-3172.webp","bytes":1340522,"width":3172,"height":7932,"tall":true,"enhancement":"Real-ESRGAN x4plus","originalWidth":793,"originalHeight":1983,"nativeHighResolution":false,"variants":[{"file":"scenes/ink-v25-ai-960.webp","width":960,"height":2401,"bytes":255180},{"file":"scenes/ink-v25-ai-1440.webp","width":1440,"height":3601,"bytes":460906},{"file":"scenes/ink-v25-ai-1920.webp","width":1920,"height":4801,"bytes":692746},{"file":"scenes/ink-v25-ai-2560.webp","width":2560,"height":6402,"bytes":1007892},{"file":"scenes/ink-v25-ai-3172.webp","width":3172,"height":7932,"bytes":1340522}]},
@@ -31,7 +39,7 @@
   var reducedData=matchMedia('(prefers-reduced-data: reduce)'),reduce=matchMedia('(prefers-reduced-motion: reduce)');
   function saved(){try{var d=JSON.parse(localStorage.getItem(STORE)||'null');return d&&typeof d==='object'&&catalogue[d.id]?d:null;}catch(e){return null;}}
   function dataSaver(){return !!(reducedData.matches||(navigator.connection&&navigator.connection.saveData));}
-  function normalize(d){d=d||{};return{id:catalogue[d.id]?d.id:(dataSaver()?'mist':'coast'),quality:d.quality==='high'?'high':'auto',scroll:d.scroll!==false};}
+  function normalize(d){d=d||{};return{id:catalogue[d.id]?d.id:'coast',quality:d.quality==='high'?'high':'auto',scroll:d.scroll!==false};}
   var stored=saved(),explicit=!!stored,current=normalize(stored);
   function entry(id){var e=catalogue[id]||catalogue.mist;return Object.assign({},e);}
   function read(){return Object.assign({},current,{kind:catalogue[current.id].kind,explicit:explicit,dataSaver:dataSaver(),reducedMotion:reduce.matches});}
@@ -113,7 +121,7 @@
         note.textContent=origin+' · 本次载入 '+r.width+' × '+r.height+'，约 '+Math.round(r.bytes/1024)+' KB。';
       }
       scroll.disabled=reduce.matches;
-      motionNote.textContent=reduce.matches?'已遵循系统的减少动态设置。':e.kind==='vector'?(dataSaver()?'节省数据时画面保持静止，不下载背景图片。':'绘图以页面约 4.5% 的速度缓慢展开；关闭跟随滚动可保持原位，页头暂停键可定格所有动态。'):e.tall?'长卷仅以页面约 5.5% 的速度移动，关闭后保持原位。':'照片保留原色，只作轻微位移。';
+      motionNote.textContent=reduce.matches?'已遵循系统的减少动态设置。':e.kind==='vector'?(dataSaver()?'节省数据时画面保持静止，不下载背景图片。':'绘图以页面约 4.5% 的速度缓慢展开；关闭跟随滚动可保持原位。'):e.tall?'长卷仅以页面约 5.5% 的速度移动，关闭后保持原位。':'照片保留原色，只作轻微位移。';
       if(credit){credit.hidden=!e.credit;credit.textContent=e.credit||'';if(e.creditUrl)credit.href=e.creditUrl;else credit.removeAttribute('href');}
     }
     function closeDialog(){if(typeof dialog.close==='function')dialog.close();else{dialog.removeAttribute('open');if(opener&&opener.isConnected)opener.focus({preventScroll:true});}}

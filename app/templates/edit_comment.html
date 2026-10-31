@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% import "_forms.html" as forms with context %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ super() }}编辑评论{% endblock %}
+{% block page_content %}
+<section class="settings-column comment-editor"><a class="back-link" href="{{ url_for('main.comment_anchor', id=comment.id) }}">{{ ui.icon('back') }}返回评论</a><header class="page-heading"><h1>编辑评论</h1><p>修改会保留原作者、发布时间与回复关系，并显示已编辑标记。</p></header>{{ forms.render_form(form, '保存修改', 'comment-edit', {'body':'评论内容'}, '/comments/' ~ comment.id ~ '/edit') }}</section>
+{% endblock %}

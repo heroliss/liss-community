@@ -12,21 +12,15 @@
 
 ## 作品与交流
 
-2026-10-30 新的阅读室视觉版本已在 `design/community-reading-room` 分支完成本地验收，见[设计与验证记录](docs/design-reading-room.md)。此分支的本地隔离预览不代表正式站已经更新。
+当前新版位于 `design/community-reading-room`，[v35 双视图文章流与阅读室页脚](docs/community-v35.md)加入可记住选择的卡片/紧凑列表切换，保留立体材质，并重新整理页脚导航与身份入口。[v34 紧凑评论与原地交流](docs/community-v34.md)继续提供原地回复、按目标隔离的评论草稿、两步引用连线、多词搜索、作者与项目筛选及私人提醒管理。源码分支完成不代表正式站已更新；本地预览、自动检查和正式部署分别验收。当前入口及发布限制见[检查与发布指南](docs/testing-and-release.md)。
 
-v21 增加可保存的文章主题色与材质、连续的滚动姿态、透景玻璃及场景联动，见 [v21 变更与验收](docs/community-v21.md)。已有文章保持自动搭配；更新前需备份并按[外观迁移说明](docs/post-appearance.md)准备存储。
+[v40 评论层次与镜面、水面](docs/community-v40.md)把桌面引用放入独立右栏，定向回复保持一级缩进，长引用最多显示两行；回复框收到匹配的成功回执后自动收起，请求期间继续输入的文字保留。服务端和异步回复统一按从旧到新排列，新回复追加到底部。页脚以 `@Liss` 标识收尾，使用更透明、更宽的渐变融入背景。镜面与水面结合场景映像、细微磨损、透明水层和鼠标涟漪，提供模拟环境反射。当前仅本地开发，打开 http://127.0.0.1:8896/ 查看，未部署正式站；验证范围见 v40 文档。
 
-v22 将整体重新设计为悬浮交流工作室：帖子内部独立层高、真实微表面材质、整页即时主题、文章展开与回收，以及新的登录、注册和资料工作台。见 [v22 设计与验证记录](docs/community-v22.md)。此版本仍是独立分支预览，未部署正式站。
+[v39 的聊天气泡与轻量回复](docs/community-v39.md)、[v38 的全宽页脚](docs/community-v38.md)、[v37 的列表动效](docs/community-v37.md)和 [v36 的旧设计与全量验证](docs/community-v36.md)保留为历史记录，各轮报告只证明对应源码和记录范围。
 
-v23 统一为晶透玻璃主题，收敛共享三维背景、加入稳定随机展示色、调整头像与内容层高，并通过实际对照修复逐帧文字阴影重绘。高精度合成、色阶处理及 HDR 的实测边界见 [v23 设计与验证记录](docs/community-v23.md)。
+十种具体材质为晶透玻璃、磨砂玻璃、温润釉面、纸册、石墨金属、皮革、软木、岩板、镜面、水面，另有“随站点安排”（`auto`），共 11 项选择。颜色与材质可预览并保存；正文、作者、项目关联和文章 URL 保留。镜面和水面使用模拟环境反射，未对其他材质统一叠加反射。已有存储升级前需一致备份，见[外观与迁移说明](docs/post-appearance.md)。
 
-v24 增加可选择的画卷、无图背景与按像素密度加载的高清实景，通过窄倒角、实体侧壁和局部光影表现玻璃厚度，移除逐卡背景取景；同时完善头像、代码阅读、表单与页面间的体验。真实原图尺寸、选档方法及验收见 [v24 设计与验证记录](docs/community-v24.md)。
-
-v25 增加轮廓覆盖抗锯齿、浅色专用光影、AI 超分辨率背景和十种程序背景，放慢长卷视差；新帖自动选好随机颜色与材质，旧帖保留保存值。实现、素材来源与验收见 [v25 设计与验证记录](docs/community-v25.md)。
-
-v26 修正材质入场队列与默认样式优先级，统一基色并采用固定方向光；增加可暂停的程序背景动态、原色照片和独立长列表演示，收敛默认姿态并加强纸张细节。见 [v26 设计与验证记录](docs/community-v26.md)。
-
-v27 用玻璃对话装置替代首屏重复帖子，统一片段定位与写作聚焦；绘制背景可缓慢随滚动展开，分享入口、写作承托器与作品入口拥有各自的空间交互，并加强方向阴影、头像和侧壁抗锯齿。见 [v27 设计与验证记录](docs/community-v27.md)。
+历史迭代分别记录在 [v19](docs/design-reading-room.md)、[v20](docs/design-material-studio.md)、[v21](docs/community-v21.md)、[v22](docs/community-v22.md)、[v23](docs/community-v23.md)、[v24](docs/community-v24.md)、[v25](docs/community-v25.md)、[v26](docs/community-v26.md)、[v27](docs/community-v27.md)、[v28](docs/community-v28.md)、[v29](docs/community-v29.md)、[v30](docs/community-v30.md)、[v31](docs/community-v31.md)、[v32](docs/community-v32.md)。旧报告只证明对应源码和记录范围。
 
 作品展厅由 Astro 构建并部署到 [Liss Works](https://heroliss.github.io/liss-works/)，旧 `/works/` 入口重定向并保留路径。社区导航可以进入作品，22 项作品各自有 `/projects/<slug>/talk/` 讨论页；这里发表的讨论属于真实文章，可在文章流阅读、继续评论并由原作者编辑。原文章保留，关联表只记录项目关系。
 
@@ -36,24 +30,25 @@ v27 用玻璃对话装置替代首屏重复帖子，统一片段定位与写作�
 
 首次授权、数据库升级及测试方法见 [网站管理说明](docs/admin.md)。后台不提供服务密钥编辑，也不提供永久清空内容的操作。
 
-邮箱验证 / 找回通过 Brevo 或 Resend 的 HTTPS API，凭据仅放服务器私有配置。用途独立的签名链接 1 小时有效；密码重置会撤销其他旧登录会话。已有用户名账号可登录后绑定邮箱；从访客升级继续复用原用户 ID。完整配置步骤与免费服务限制见 [部署指南](docs/public-demo.md)。没有真实发信前，不将测试 outbox 结果当作投递成功。
+邮箱验证 / 找回通过 Aliyun DirectMail、Brevo 或 Resend 的 HTTPS API，凭据仅放服务器私有配置。用途独立的签名链接 1 小时有效；密码重置会撤销其他旧登录会话。已有用户名账号可登录后绑定邮箱；从访客升级继续复用原用户 ID。完整配置步骤与免费服务限制见 [部署指南](docs/public-demo.md)。没有真实发信前，不将测试 outbox 结果当作投递成功。
 
 ## 运行
 
-使用 Python 3.13 或 3.14。在 Windows PowerShell 中：
+使用 Python 3.13 或 3.14，以及 Node.js 24（检查前端时需要）。在仓库目录执行：
 
 ```powershell
 python -m venv .venv
-.venv\Scripts\python -m pip install -r requirements.txt
-$env:FLASK_CONFIG = 'public-demo'
-$env:LISS_DATA_DIR = (Join-Path $PWD 'instance/public-demo')
-# 首次生成并安全保存一个至少32字符的随机SECRET_KEY；以后使用同一个值
-$env:SECRET_KEY = '替换为自己固定保存的随机密钥'
-$env:LIHOU_DEMO_COOKIE_SECURE = '0' # 仅限本地HTTP预览
-.venv\Scripts\python manage.py runserver --port 5000
+.venv/Scripts/python -m pip install -r requirements/dev.txt
+npm ci --ignore-scripts
+.venv/Scripts/python -B scripts/check.py --frontend-only
+.venv/Scripts/python -B scripts/serve_preview.py --port 8896
 ```
 
-打开 http://127.0.0.1:5000 。`public-demo` 是保留的内部配置名，产品界面使用 LISS；正式入口为 `/welcome`，旧 `/demo` 书签继续跳转。首次启动补充站点写作指南，后续启动保留原库及身份。不要更换密钥或指定新的空目录来更新网站。
+打开 http://127.0.0.1:8896/ 。当前工作区根目录可双击 `启动新版论坛.cmd`，或在 PowerShell 7 中运行 `./启动新版论坛.ps1`；它会检查现有本地服务。先查看终端给出的运行地址；端口已有服务时不要重复启动。
+
+`serve_preview.py` 只监听本机，默认使用 `instance/local-preview/` 的独立 SQLite 和固定保存的本地密钥，关闭真实邮件与搜索收录，并创建明确标记的合成账号和示例内容。终端 Ctrl+C 停止；再次启动保留这份预览的数据和身份。此入口不读取正式服务私有配置。已有另一份隔离预览时，可用 `--data-dir <原预览目录>` 继续使用同一存储；不要把生产存储当作预览目录。完整用法可运行 `scripts/serve_preview.py --help`。
+
+手动持久部署继续使用 `FLASK_CONFIG=public-demo`、原数据目录和固定 `SECRET_KEY`；`public-demo` 是历史内部配置名，产品界面使用 LISS。正式入口为 `/welcome`，旧 `/demo` 书签继续跳转。不要通过更换密钥或指定新空目录来更新已有站点。
 
 PythonAnywhere 的 WSGI、现有存储升级、固定密钥、SQLite 一致备份与恢复见 **[部署与维护指南](docs/public-demo.md)**。已有部署的数据目录、私有配置与 Cookie 名保留兼容，仓库改名不会重置身份。公网使用 HTTPS 与正式 WSGI，继续保留 1 个 worker。
 
@@ -66,13 +61,18 @@ PythonAnywhere 的 WSGI、现有存储升级、固定密钥、SQLite 一致备�
 ## 验证
 
 ```powershell
-.venv\Scripts\python -m pip install -r requirements/dev.txt
-.venv\Scripts\python -m unittest discover -s tests -v
+.venv/Scripts/python -m pip install -r requirements/dev.txt
+npm ci --ignore-scripts
+.venv/Scripts/python -B scripts/check.py
 ```
 
-回归覆盖模型、权限、真实表单路由、CSRF、访客隔离、账号注册 / 登录、同 ID 访客升级、旧 SQLite 与旧 Cookie 兼容、跨重启、配额、内容保留，以及包含已提交 WAL 的 SQLite backup API 备份与显式恢复。历史 Selenium 脚本默认跳过，实际浏览器交互另行验收。
+统一入口依次检查 Python 语法、生成资源与源码的一致性、第一方 JavaScript 语法、实际控制器场景和 Python 回归。`--frontend-only` 检查资源及前端；`--python-only` 只检查 Python；`--test tests.test_post_appearance` 可选定模块。每次报告和完整日志保存在 `.tmp/checks/<本次运行>/`。测试进程清除部署数据、密钥和邮件环境配置，禁用真实邮件，并校验仓库演示数据库没有变化。GitHub Actions 在 Python 3.13 / 3.14 与 Node.js 24 上运行同一入口，只做检查，不发布网站。
 
-PythonAnywhere / Python 3.13 的原访客版本已完成公网发文、Markdown 实时预览、评论与 Web Reload 后身份 / 内容保留验收；本次账号与界面升级先本地联调再更新线上。Docker 镜像仍未实测，真实 SMTP 与生产 PostgreSQL 不在这次验收范围内。
+前端源文件清单位于 `assets/sources.json`。改动清单内的 CSS/JS 后运行 `npm run build`，审阅并一同提交源文件、`app/static/asset-manifest.json` 与 `app/static/bundles/` 的哈希生成物；`npm run check:assets` 仅核验，不重写。运行时若发现源码或生成物过期，会回退到带版本哈希的当前源文件，避免继续提供旧包。正式服务器使用仓库内已验证产物，运行 Flask 不需要 Node.js。
+
+回归覆盖模型、权限、表单与 CSRF、访客隔离、账号、迁移、重启、配额、WAL 一致备份和恢复。Node 场景运行实际控制器，覆盖背景请求取消、写作展开、文章返回与外观保存状态；VM 场景不证明浏览器布局或 GPU 表现。历史 Selenium 用例仍为显式选择；完整浏览器及真机验收按[检查与发布指南](docs/testing-and-release.md)单独记录。
+
+Docker、生产 PostgreSQL 和真实手机/Safari 的结果不能从这些测试推断。生产邮箱已经启用，但本地检查禁止发信；真实收件箱送达需要在发布验收中另行实测。
 
 ## 技术与兼容
 

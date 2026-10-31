@@ -153,6 +153,8 @@ python deploy/manage_public.py restore-public-demo --input ~/liss-backups/2026-1
 
 日常更新：一致备份 → `git pull --ff-only` → 安装依赖 → Reload → 验收。保留同一个数据目录与密钥。管理脚本支持 `--settings /私有配置.json --data-dir /持久目录`（子命令前），不打印密钥。
 
+当前新版还包含外观材质及讨论功能的增量存储。发布前用一致快照升级副本、比较旧表旧行，并按[当前检查与发布指南](testing-and-release.md#受控发布与迁移演练)记录完整回归、真实设备边界和部署后结果。复制脚本生成的 SQLite 演练目录也包含私有内容，按备份同等级保存；不要提交到仓库。
+
 ## Docker 与验证
 
 Render 免费文件系统在休眠、重启、部署后不可靠，不满足这次持久数据要求。[官方说明](https://render.com/docs/free)

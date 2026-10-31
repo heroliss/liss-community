@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui with context %}
+{% import "_depth.html" as depth with context %}
+{% block title %}{{ super() }}发文指南{% endblock %}
+{% block page_content %}
+<div class="reading-column identity-reading crystal-reading" data-depth-reading>
+  <nav class="reader-navigation" aria-label="写作帮助"><a class="back-link" href="{{ url_for('main.index') }}">{{ ui.icon('back') }}回到首页</a></nav>
+  <article class="post post-detail" aria-labelledby="writing-guide-title" data-depth-host data-depth-kind="reader" data-depth-id="writing-guide" data-material="glass">
+    {% call depth.layers(material=true) %}
+    <div class="post-body reading-prose">
+      <h1 id="writing-guide-title">发文指南</h1>
+      <p>一次尝试、一个发现，或还没想明白的问题，都可以成为文章的开始。</p>
+      <h2>从一个想法开始</h2>
+      <p>从首页的写作入口开始，先写下想分享的事，再用几段文字说说过程和感受。不必一次写完，发布后也可以回到自己的文章继续编辑。</p>
+      <h2>让文字更容易阅读</h2>
+      <p>两段之间空一行。使用编辑器工具栏插入标题、粗体、列表和链接，也可以直接输入 Markdown：</p>
+      <pre><code>## 这次尝试
+
+这是我的发现，**这里是重点**。
+
+- 我做了什么
+- 遇到了什么问题
+- 接下来想试什么</code></pre>
+      <p>图片使用 HTTPS 外链，暂不支持本地文件上传。添加自己有权分享的图片，并补上一句简短说明。</p>
+      <h2>预览之后，再分享</h2>
+      <p>发布前打开预览，检查段落、链接和图片是否正常。也可以在结尾留下一个问题，邀请读者继续聊聊。</p>
+      <p><a href="{{ url_for('main.index') }}">回到首页</a>，写下你的第一个想法。</p>
+    </div>
+    {% endcall %}
+  </article>
+</div>
+{% endblock %}

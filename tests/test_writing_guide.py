@@ -161,15 +161,58 @@ class WritingGuideTests(unittest.TestCase):
         WritingGuidePublication.__table__.drop(bind=db.engine, checkfirst=True)
         self.assertIsNone(get_published_writing_guide())
         snapshot = self.snapshot()
+        database_hash = sha256(self.database.read_bytes()).hexdigest()
         client = self.app.test_client()
-        self.assertEqual(client.get('/writing-guide/').status_code, 404)
+        response = client.get('/writing-guide/?next=https://example.test/')
+        self.assertEqual(response.status_code, 200)
+        content = response.get_data(as_text=True)
+        self.assertIn('id="writing-guide-title"', content)
+        self.assertIn('从一个想法开始', content)
+        self.assertIn('HTTPS 外链', content)
+        self.assertNotIn('example.test', content)
         self.assertEqual(self.snapshot(), snapshot)
+        self.assertEqual(sha256(self.database.read_bytes()).hexdigest(), database_hash)
         self.assertFalse(inspect(db.engine).has_table('site_guide_publications'))
         result = publish_writing_guide()
         response = client.get('/writing-guide/?next=https://example.test/')
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.location, '/post/' + str(result['post_id']))
         self.assertIn(GUIDE_TITLE, client.get(response.location).get_data(as_text=True))
+
+    def test_unavailable_published_guides_use_builtin_help_without_mutating_content(self):
+        result = publish_writing_guide()
+        guide = db.session.get(Post, result['post_id'])
+        reader = User(username='unavailable_guide_reader', password='test-password',
+                      account_kind='account', confirmed=True)
+        db.session.add(reader)
+        db.session.commit()
+        owner_id = guide.author_id
+        reader_id = reader.id
+        client = self.app.test_client()
+        for state in ('hidden', 'changed-author', 'missing'):
+            with self.subTest(state=state):
+                guide = db.session.get(Post, result['post_id'])
+                if state == 'hidden':
+                    guide.hidden = True
+                elif state == 'changed-author':
+                    guide.hidden = False
+                    guide.author_id = reader_id
+                else:
+                    guide.author_id = owner_id
+                    db.session.commit()
+                    db.session.execute(text('DELETE FROM posts WHERE id=:id'),
+                                       {'id': result['post_id']})
+                db.session.commit()
+                snapshot = self.snapshot()
+                marker = db.session.get(WritingGuidePublication, GUIDE_KEY).post_id
+                response = client.get('/writing-guide/')
+                self.assertEqual(response.status_code, 200)
+                content = response.get_data(as_text=True)
+                self.assertIn('id="writing-guide-title"', content)
+                self.assertNotIn(GUIDE_TITLE, content)
+                self.assertEqual(self.snapshot(), snapshot)
+                self.assertEqual(db.session.get(WritingGuidePublication, GUIDE_KEY).post_id,
+                                 marker)
 
     def test_cli_dry_run_and_idempotent_publish_are_explicit(self):
         runner = self.app.test_cli_runner()

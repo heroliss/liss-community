@@ -40,7 +40,7 @@
       var color = theme.normalize(hex.value), radio = root.querySelector('[name=appearance_material]:checked');
       var material = radio ? radio.value : 'auto';
       var automaticMaterial = root.dataset.appearanceAutoMaterial;
-      if (['glass','ceramic','paper','metal','leather','cork','slate'].indexOf(automaticMaterial) === -1) automaticMaterial = 'glass';
+      if (['glass','ceramic','paper','metal','leather','cork','slate','mirror','water'].indexOf(automaticMaterial) === -1) automaticMaterial = 'glass';
       preview.dataset.material = material === 'frosted' ? 'glass' : material === 'auto' ? automaticMaterial : material;
       preview.dataset.glassFinish = material === 'frosted' ? 'frosted' : 'clear';
       if (color !== null) {

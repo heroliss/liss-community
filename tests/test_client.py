@@ -15,6 +15,7 @@ class FlaskClientTestCase(unittest.TestCase):
     def tearDown(self):
         db.session.remove()
         db.drop_all()
+        db.engine.dispose()
         self.app_context.pop()
 
     def test_home_page(self):
