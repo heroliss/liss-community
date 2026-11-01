@@ -48,7 +48,8 @@ class CommunityTests(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             page = response.get_data(as_text=True)
             self.assertIn(project[0], page)
-            self.assertIn('/works/projects/' + slug + '/', page)
+            self.assertIn('href="/works/"', page)
+            self.assertNotRegex(page, r'href="/works/[^"]+')
         self.assertEqual(self.client.get('/projects/unknown/talk/').status_code, 404)
 
     def test_discussion_is_real_article_visible_in_feed_and_original_author_can_edit(self):
@@ -124,7 +125,8 @@ class CommunityTests(unittest.TestCase):
         detail = self.client.get(f'/post/{old_post_id}').get_data(as_text=True)
         self.assertIn('AoE4 Flow · 帝国时代 4 自动化助手 · 项目交流', detail)
         self.assertIn('/projects/aoe4-flow/talk/', detail)
-        self.assertIn('/works/projects/aoe4-flow/', detail)
+        self.assertIn('href="/works/"', detail)
+        self.assertNotRegex(detail, r'href="/works/[^"]+')
         self.assertNotIn('/works/projects/aoe4-autovillager-tool/', detail)
         with self.app.app_context():
             after = [(entry.post_id, entry.project_slug, entry.post.body, entry.post.author_id)
@@ -190,7 +192,8 @@ class CommunityTests(unittest.TestCase):
                 page = response.get_data(as_text=True)
                 self.assertIn(name, page)
                 self.assertIn(description, page)
-                self.assertIn('/works/projects/' + slug + '/', page)
+                self.assertIn('href="/works/"', page)
+                self.assertNotRegex(page, r'href="/works/[^"]+')
                 self.assertNotIn('Existing Outpost discussion retained.', page)
         self.assertEqual(snapshot(), before)
 

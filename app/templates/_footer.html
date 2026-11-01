@@ -23,7 +23,7 @@
           <ul>
             <li><a href="{{ url_for('community.writing_guide') }}">发文指南</a></li>
             <li><a href="{{ url_for('main.search') }}">搜索文章</a></li>
-            <li><a href="{{ url_for('community.portfolio', path='projects/') }}">探索作品</a></li>
+            <li><a href="{{ url_for('community.portfolio') }}">探索作品</a></li>
             {% if footer_write_url %}<li><a href="{{ footer_write_url }}">写文章 {{ ui.icon('edit') }}</a></li>{% endif %}
           </ul>
         </nav>

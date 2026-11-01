@@ -50,7 +50,7 @@
     <div class="studio-console-note"><span aria-hidden="true">{{ ui.icon('comment') }}</span><p>留下一点发现，遇见新的想法。<br>让每一段对话，都有继续的余地。</p></div>
     {% if site_owner|default(none) %}<a class="studio-host" href="{{ url_for('main.user', username=site_owner.username) }}">认识站点作者 {{ ui.avatar(site_owner, 'avatar-small') }}{{ ui.icon('arrow') }}</a>{% endif %}
   {% endcall %}</section>
-  <a class="studio-works-door works-gallery" data-depth-host data-depth-kind="crystal" data-material="glass" href="{{ url_for('community.portfolio', path='projects/') }}" aria-label="探索作品：游戏、工具、AI 与交互实验">{% call depth.layers(material=true) %}
+  <a class="studio-works-door works-gallery" data-depth-host data-depth-kind="crystal" data-material="glass" href="{{ url_for('community.portfolio') }}" aria-label="探索作品：游戏、工具、AI 与交互实验">{% call depth.layers(material=true) %}
     <span class="works-gallery-window" aria-hidden="true">
       <span class="works-gallery-arch"></span><span class="works-gallery-floor"></span><span class="works-gallery-plinth"></span>
       <svg class="works-gallery-cube" viewBox="0 0 120 130" fill="none"><path d="m60 13 43 25-43 25L17 38Z" fill="currentColor" fill-opacity=".86"/><path d="m17 38 43 25v52l-43-25Z" fill="currentColor" fill-opacity=".4"/><path d="m60 63 43-25v52l-43 25Z" fill="currentColor" fill-opacity=".64"/><path d="m60 13 43 25v52l-43 25-43-25V38Zm0 50v52M17 38l43 25 43-25" stroke="currentColor" stroke-width="1.2"/><path d="m60 29 16 9-16 10-16-10Z" fill="var(--bg)" fill-opacity=".48"/></svg>

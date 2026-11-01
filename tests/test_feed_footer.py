@@ -113,10 +113,10 @@ class FeedFooterTests(unittest.TestCase):
         return client
 
     def assert_public_links(self, page):
-        for href in ('/writing-guide/', '/search', '/works/projects/', '#main-content'):
+        for href in ('/writing-guide/', '/search', '/works/', '#main-content'):
             self.assertIn(href, page.footer_hrefs)
         self.assertEqual(page.footer_link_names('/writing-guide/'), ['发文指南'])
-        self.assertEqual(page.footer_link_names('/works/projects/'), ['探索作品'])
+        self.assertEqual(page.footer_link_names('/works/'), ['探索作品'])
         self.assertNotIn('/#article-feed', page.footer_hrefs)
 
     def test_anonymous_footer_offers_reading_and_a_real_visitor_writing_destination(self):
