@@ -101,9 +101,9 @@ body.community-room:has(>.community-atmosphere[data-scene-art=image]) :is(.ateli
   :root:not([data-room-motion=paused]) .community-room details.composer>summary:hover>.composer-invitation-light>i { animation:atelier-invitation-light 1s cubic-bezier(.2,.6,.25,1) both; }
   :root:not([data-room-motion=paused]) .community-room details.composer>summary:hover>.composer-invitation-orbit { opacity:.75;transform:translateZ(18px) rotateZ(55deg) scale(1); }
   :root:not([data-room-motion=paused]) .community-room details.composer>summary:hover>.icon { transform:translateZ(29px) translateY(-3px) rotateZ(8deg);filter:drop-shadow(5px 10px 4px #0008); }
-  .community-room :is(.nav-write,.studio-entry-actions>.button,.discussion-join>.button) { transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s; }
-  :root:not([data-room-motion=paused]) .community-room :is(.nav-write,.studio-entry-actions>.button,.discussion-join>.button):hover { transform:translateY(-2px);box-shadow:0 4px 0 color-mix(in srgb,var(--accent) 35%,var(--bg)),5px 12px 20px -12px #000a; }
-  :root:not([data-room-motion=paused]) .community-room :is(.nav-write,.studio-entry-actions>.button,.discussion-join>.button):active { transform:translateY(1px);box-shadow:none; }
+  .community-room :is(.nav-write,.studio-entry-actions>.button,.discussion-join .button) { transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s; }
+  :root:not([data-room-motion=paused]) .community-room :is(.nav-write,.studio-entry-actions>.button,.discussion-join .button):hover { transform:translateY(-2px);box-shadow:0 4px 0 color-mix(in srgb,var(--accent) 35%,var(--bg)),5px 12px 20px -12px #000a; }
+  :root:not([data-room-motion=paused]) .community-room :is(.nav-write,.studio-entry-actions>.button,.discussion-join .button):active { transform:translateY(1px);box-shadow:none; }
 }
 :root[data-theme=light] .composer-invitation-light>i { background:linear-gradient(90deg,transparent,#fff8 50%,transparent); }
 :root[data-room-motion=paused] .community-room details.composer>summary,:root[data-room-motion=paused] .community-room details.composer>summary>* { animation:none!important;transition:none!important; }
@@ -112,6 +112,6 @@ body.community-room:has(>.community-atmosphere[data-scene-art=image]) :is(.ateli
   .community-room details.composer>summary,.community-room details.composer>summary>* { animation:none!important;transition:none!important; }
   .community-room details.composer>summary>.composer-invitation-light,.community-room details.composer>summary>.composer-invitation-orbit { display:none; }
   :root:not([data-room-motion=paused]) .community-room details.composer>summary:hover,:root:not([data-room-motion=paused]) .community-room details.composer>summary:hover>.icon { transform:none;filter:none; }
-  :root:not([data-room-motion=paused]) .community-room :is(.nav-write,.studio-entry-actions>.button,.discussion-join>.button):hover { transform:none;transition:none; }
+  :root:not([data-room-motion=paused]) .community-room :is(.nav-write,.studio-entry-actions>.button,.discussion-join .button):hover { transform:none;transition:none; }
 }
 @media(forced-colors:active) { .composer-invitation-light,.composer-invitation-orbit { display:none; } }

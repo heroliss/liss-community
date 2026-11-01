@@ -12,7 +12,7 @@ LISS 是访客优先、可选账号的持久化写作与交流站点。内部配
 
 本地静态模式以 `SITE_BASE=/works/` 构建，在仓库旁的 `portfolio/` 发布目录运行。可通过 `LISS_PORTFOLIO_DIR` 指定其他专用构建目录，不要指向源码、数据目录或密钥目录。`/works/`、`/works/projects/<slug>/`、媒体与脚本均由独立静态路由提供，不占用访客数据库的请求锁。
 
-项目讨论地址为 `/projects/<slug>/talk/`，固定 12 个 slug，讨论仍存入 `posts`，新 `project_entries` 表关联项目。新访客加入后会回到对应讨论页；普通发文、评论、编辑、配额与 CSRF 保护继续适用。GET 不创建任何项目帖子。
+项目讨论地址为 `/projects/<slug>/talk/`，当前 23 个作品由 `app/community.py` 的固定目录注册，讨论仍存入 `posts`，`project_entries` 表关联项目。新访客加入后会回到对应讨论页；普通发文、评论、编辑、配额与 CSRF 保护继续适用。GET 不创建任何项目帖子。
 
 只有使用本地静态模式时才需要部署作品构建包：先按通常流程备份并更新源码，再运行 `deploy/install_portfolio.py --url <GitHub-Release附件URL> --sha256 <已核对SHA256>`。安装器验证包体摘要、子路径和路径边界，保留旧构建作为 `portfolio-previous-*`；不会删除数据库或源码。发布媒体约 18.3 MB，不是每次访问的流量。作品目录无需 Python 重新构建或 Node 环境。外部 Pages 模式无需向 PythonAnywhere 复制作品附件；已有目录保留即可，配置留空时可明确回退。
 

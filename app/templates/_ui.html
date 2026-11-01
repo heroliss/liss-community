@@ -1,3 +1,4 @@
+{% import '_depth.html' as feedback_depth with context %}
 {% macro icon(name, class_name='') -%}
 <svg class="icon {{ class_name }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
 {% if name == 'edit' %}<path d="m16 3 5 5M4 20l4-1L20 7a2.1 2.1 0 0 0-3-3L5 16l-1 4Z"/><path d="M13 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-8"/>
@@ -31,4 +32,6 @@
 {% macro avatar(user, extra_class='') -%}
 <span class="avatar {{ extra_class }} avatar-tone-{{ (user.id or 0) % 4 }}" aria-hidden="true"><span>{{ author_name(user)|trim|first|upper }}</span>{% if not user.is_visitor|default(false) %}<img src="{{ user.gravatar(size=96)|replace('http://','https://') }}" width="48" height="48" alt="" loading="lazy" data-avatar-image>{% endif %}</span>
 {%- endmacro %}
-{% macro empty_state(title, body) -%}<div class="empty-state">{{ icon('book') }}<h3>{{ title }}</h3><p>{{ body }}</p></div>{%- endmacro %}
+{# Reuse the room's glass leaves and spatial controller for public feedback. #}
+{% macro feedback_panel(classes='') -%}{% set feedback_content = caller() %}<div class="room-feedback {{ classes }}" data-depth-host data-depth-kind="ledge" data-material="glass" data-glass-finish="frosted">{% call feedback_depth.layers(material=true) %}<div class="feedback-copy">{{ feedback_content }}</div>{% endcall %}</div>{%- endmacro %}
+{% macro empty_state(title, body) -%}{% call feedback_panel('empty-state') %}{{ icon('book') }}<h3>{{ title }}</h3><p>{{ body }}</p>{% endcall %}{%- endmacro %}

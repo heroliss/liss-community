@@ -64,6 +64,25 @@ class AdminAudit(db.Model):
                 'user.update': '更新用户权限', 'settings.update': '更新站点设置',
                 'user.grant_admin': '授予管理员权限', 'user.merge_site_owner': '合并站点作者身份'}.get(self.action, self.action)
 
+    @property
+    def changes(self):
+        """Expose only known moderation/settings fields from historical receipts."""
+        try:
+            states = json.loads(self.details)
+            before, after = states.get('before', {}), states.get('after', {})
+            if not isinstance(before, dict) or not isinstance(after, dict):
+                return []
+        except (ValueError, TypeError, AttributeError):
+            return []
+        labels = dict(site_name='网站名称', tagline='网站简介', welcome='欢迎语',
+            registration_open='账号注册', guest_posting_open='访客发文',
+            guest_post_limit='访客文章上限', hidden='显示状态', role='账号角色', disabled='账号状态')
+        return [dict(label=label,
+                     before=pretty_value(key, before[key]) if key in before else '—',
+                     after=pretty_value(key, after[key]) if key in after else '—')
+                for key, label in labels.items()
+                if (key in before or key in after) and before.get(key) != after.get(key)]
+
 
 class AdminConfirmation(db.Model):
     """Short-lived server receipts prevent replay of a copied signed cookie."""
@@ -129,7 +148,11 @@ def record_audit(action, kind, target, before, after, cli=False):
 
 
 def page_query(query):
-    return query.paginate(page=max(1, min(1_000_000, request.args.get('page', 1, type=int))), per_page=20, error_out=False)
+    result = query.paginate(page=max(1, min(1_000_000, request.args.get('page', 1, type=int))), per_page=20, error_out=False)
+    # Moderating the only item on the last filtered page can remove that page.
+    if result.page > max(1, result.pages):
+        return query.paginate(page=max(1, result.pages), per_page=20, error_out=False)
+    return result
 
 
 def search_term():
@@ -144,6 +167,7 @@ def search_like(value):
 def index():
     stats = dict(posts=Post.query.count(), hidden_posts=Post.query.filter_by(hidden=True).count(),
         comments=Comment.query.count(), hidden_comments=Comment.query.filter_by(disabled=True).count(),
+        public_comments=Comment.query.join(Post).filter(Comment.disabled.is_(False), Post.hidden.is_(False)).count(),
         users=User.query.filter(User.account_kind != 'system').count(),
         registered_users=User.query.filter_by(account_kind='account').count(),
         guests=User.query.filter_by(account_kind='guest').count(),
@@ -174,7 +198,9 @@ def comments():
     q, status = search_term(), request.args.get('status', 'all')
     query = Comment.query.join(User)
     if q:
-        if re.fullmatch(r'#[0-9]{1,18}', q):
+        if re.fullmatch(r'c#[0-9]{1,18}', q, re.IGNORECASE):
+            query = query.filter(Comment.id == int(q[2:]))
+        elif re.fullmatch(r'#[0-9]{1,18}', q):
             query = query.filter(Comment.post_id == int(q[1:]))
         else:
             pattern = search_like(q)
@@ -218,8 +244,21 @@ def settings():
 
 @admin.get('/audit', strict_slashes=False)
 def audit():
-    return render_template('admin/audit.html', admin_section='audit',
-        pagination=page_query(AdminAudit.query.order_by(AdminAudit.id.desc())))
+    q, kind = search_term(), request.args.get('kind', 'all')
+    if kind not in {'post', 'comment', 'user', 'settings'}:
+        kind = 'all'
+    query = AdminAudit.query
+    if kind != 'all':
+        query = query.filter_by(target_type=kind)
+    if q:
+        if re.fullmatch(r'#[0-9]{1,18}', q):
+            query = query.filter(AdminAudit.target_id == int(q[1:]))
+        else:
+            pattern = search_like(q)
+            query = query.filter(or_(AdminAudit.actor_name.ilike(pattern, escape='\\'),
+                                     AdminAudit.target_label.ilike(pattern, escape='\\')))
+    return render_template('admin/audit.html', admin_section='audit', q=q, kind=kind,
+        pagination=page_query(query.order_by(AdminAudit.id.desc())))
 
 
 def fail(message, status=400):

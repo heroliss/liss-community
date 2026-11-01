@@ -159,3 +159,85 @@
   .admin-changes>div { grid-template-columns: 1fr; gap: 5px; }
 }
 @media (prefers-reduced-motion: reduce) { .admin-main *, .admin-sidebar * { scroll-behavior: auto; transition: none; } }
+
+/* Management is a flat, readable workspace within the community room.
+   At desktop: 185px navigation + 32px gap + remaining content = the shell width. */
+.admin-layout.identity-admin { gap: 32px; align-items: start; }
+.identity-admin .community-spatial-environment { display: none; }
+.identity-admin .admin-sidebar { padding: 18px 10px 6px; background: var(--surface); border-radius: 8px; }
+.identity-admin .admin-main { padding: 28px; background: var(--surface); border-radius: 8px; }
+.identity-admin .admin-heading h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+.identity-admin .admin-heading p { font-size: 14px; }
+.identity-admin .admin-nav a.is-active { background: var(--raised); color: var(--text); }
+.identity-admin .admin-nav a, .identity-admin .admin-return { color: var(--muted); }
+.identity-admin .admin-home { font-size: 16px; }
+.identity-admin .admin-stats { margin-bottom: 28px; padding-block: 22px; }
+.identity-admin .admin-stats strong { font-size: 26px; }
+.identity-admin .admin-stats small { font-size: 12px; color: var(--muted); }
+.identity-admin .admin-section { margin-top: 28px; }
+.identity-admin .admin-content-row { padding-block: 22px; }
+.identity-admin .admin-row-heading h2 { font-size: 16px; }
+.identity-admin .admin-row-meta, .identity-admin .admin-list-summary,
+.identity-admin .admin-activity small, .identity-admin .admin-settings-form .field-help,
+.identity-admin .admin-settings-saved, .identity-admin .admin-protection { color: var(--muted); }
+.identity-admin .admin-toolbar { padding-block: 16px; gap: 12px; }
+.identity-admin .admin-toolbar :is(input,select), .identity-admin .admin-user-form select { background: var(--input); }
+.identity-admin .admin-filter-fields { display: contents; }
+.identity-admin .admin-filter-fields > label { display: grid; gap: 7px; min-width: 112px; font-size: 13px; font-weight: 400; color: var(--muted); margin: 0; }
+.identity-admin .admin-nav[hidden], .identity-admin .admin-filter-fields[hidden] { display: none; }
+.identity-admin .admin-menu-toggle, .identity-admin .admin-filter-toggle { display: none; }
+.identity-admin .admin-list-summary { flex-wrap: wrap; font-size: 12px; gap: 8px 16px; }
+.identity-admin .admin-activity-content { width: 100%; min-width: 0; }
+.identity-admin .admin-activity > li { padding-block: 18px; }
+.identity-admin .admin-audit-detail { margin-top: 10px; }
+.identity-admin .admin-audit-detail > summary { cursor: pointer; font-size: 13px; color: var(--text); min-height: 36px; padding-block: 8px; width: fit-content; }
+.identity-admin .admin-audit-detail .admin-changes { margin: 0 0 8px; }
+.identity-admin .admin-audit-detail .admin-changes > div { grid-template-columns: 120px minmax(0,1fr); }
+.identity-admin .admin-audit-link { display: inline-flex; align-items: center; min-height: 40px; font-size: 13px; }
+.identity-admin .admin-settings-layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(200px,.65fr); align-items: start; gap: 28px; }
+.identity-admin .admin-settings-form { max-width: none; min-width: 0; }
+.identity-admin .admin-settings-section legend { font-size: 16px; font-weight: 600; }
+.identity-admin .admin-settings-preview { position: sticky; top: 24px; padding: 20px; background: var(--raised); border-radius: 6px; overflow-wrap: anywhere; }
+.identity-admin .admin-settings-preview h2 { font-size: 13px; margin: 0 0 20px; color: var(--muted); }
+.identity-admin .admin-settings-preview p { margin: 0 0 14px; font-size: 14px; line-height: 1.8; white-space: pre-wrap; }
+.identity-admin .admin-settings-preview .admin-preview-name { color: var(--text); font-size: 20px; font-weight: 500; }
+.identity-admin .admin-preview-welcome { padding-top: 16px; border-top: 1px solid var(--line); }
+.identity-admin .admin-settings-preview small, .identity-admin .admin-field-count { font-size: 12px; color: var(--muted); line-height: 1.7; }
+.identity-admin .admin-field-count { display: block; text-align: right; margin-top: 5px; font-variant-numeric: tabular-nums; }
+.identity-admin .admin-settings-form .form-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.identity-admin .admin-preview-body, .identity-admin .admin-user-form { background: var(--raised); }
+.identity-admin .button { box-shadow: none; transform: none; }
+@media (max-width: 1150px) {
+  .identity-admin .admin-settings-layout { grid-template-columns: minmax(0,1fr); }
+  .identity-admin .admin-settings-preview { position: static; }
+}
+@media (max-width: 1000px) {
+  .admin-layout.identity-admin { display: block; }
+  .identity-admin .admin-sidebar { position: static; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; padding: 8px 12px; }
+  .identity-admin .admin-home { margin-right: auto; padding: 0; min-height: 44px; }
+  .identity-admin .admin-menu-toggle { display: inline-flex; min-height: 44px; gap: 8px; }
+  .identity-admin .admin-nav { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); width: 100%; }
+  .identity-admin .admin-nav a { justify-content: center; min-height: 44px; padding: 10px 6px; }
+  .identity-admin .admin-return { display: none; }
+  .identity-admin .admin-main { padding: 22px; }
+  .identity-admin .admin-filter-toggle { display: inline-flex; min-height: 44px; }
+  .identity-admin .admin-toolbar .admin-search { flex: 1 1 180px; }
+  .identity-admin .admin-toolbar .button { flex: 0 0 auto; }
+  .identity-admin .admin-filter-fields { display: grid; grid-template-columns: repeat(auto-fit,minmax(120px,1fr)); width: 100%; gap: 12px; order: 5; }
+}
+@media (max-width: 600px) {
+  .identity-admin .admin-main { padding: 18px 16px; }
+  .identity-admin .admin-heading { margin-bottom: 20px; }
+  .identity-admin .admin-heading h1 { font-size: 22px; }
+  .identity-admin .admin-toolbar .admin-search { flex-basis: calc(100% - 80px); min-width: 0; }
+  .identity-admin .admin-toolbar > .button[type="submit"] { align-self: end; }
+  .identity-admin .admin-filter-toggle { margin-right: auto; }
+  .identity-admin .admin-row-heading h2 { font-size: 16px; }
+  .identity-admin .admin-stats { gap: 20px 0; }
+  .identity-admin .admin-stats a { padding-inline: 12px; }
+  .identity-admin .admin-stats a:nth-child(2n) { padding-left: 14px; }
+  .identity-admin .admin-audit-detail .admin-changes > div { grid-template-columns: 1fr; gap: 5px; }
+  .identity-admin .admin-settings-preview { padding: 16px; }
+  .identity-admin .admin-row-actions .button { min-height: 44px; }
+  .identity-admin .admin-audit-detail > summary, .identity-admin .admin-audit-link { min-height: 44px; }
+}

@@ -38,13 +38,14 @@ body.community-room { position:relative; isolation:isolate; --atmosphere-ink:#6d
 /* Uncovered copy can cross a dark photograph even in the light UI. These
    small reading islands change ink locally; cards and navigation keep their
    light faces, and the photo itself is never washed with white. */
-:root[data-theme=light] body.community-room:has(>.community-atmosphere[data-scene-art=image]) :is(.studio-introduction,.portal-intro,.portal-story-note,.reader-navigation,.feed-toolbar,.discussion-heading,.crystal-writing>.page-heading) {
-  --text:#f2f5ef;--muted:#d1ded8;--accent:#b4dec3;--accent-hover:#d0ebd7;--accent-ink:#163527;--focus:#e7f8ec;color:var(--text);
+:root[data-theme=light] body.community-room:has(>.community-atmosphere[data-scene-art=image]) :is(.studio-introduction,.portal-intro,.portal-story-note,.reader-navigation,.feed-toolbar,.discussion-heading,.project-discussion-heading,.community-aside .aside-about,.community-aside .aside-note,.crystal-writing>.page-heading) {
+  --text:#f2f5ef;--muted:#d1ded8;--accent:#b4dec3;--accent-hover:#d0ebd7;--accent-ink:#163527;--focus:#e7f8ec;--room-warm:#b4dec3;color:var(--text);
 }
 :root[data-theme=light] body.community-room:has(>.community-atmosphere[data-scene-art=image]) :is(.studio-introduction h1,.studio-introduction>p,.studio-introduction .quiet-link,.portal-intro h1,.portal-intro>p,.portal-story-note,.discussion-heading h2,.discussion-heading>span,.crystal-writing>.page-heading h1,.feed-toolbar a,.feed-toolbar>span) {
   text-shadow:0 1px 2px #06131ee6,0 3px 9px #06131e85;
 }
-:root[data-theme=light] body.community-room:has(>.community-atmosphere[data-scene-art=image]) :is(.discussion-empty,.comment-form .form-group>label) { color:#edf5f0;text-shadow:0 1px 2px #06131ee6,0 3px 9px #06131e85; }
+:root[data-theme=light] body.community-room:has(>.community-atmosphere[data-scene-art=image]) :is(.project-discussion-heading,.community-aside .aside-about,.community-aside .aside-note) { text-shadow:0 1px 2px #06131ee6,0 3px 9px #06131e85; }
+:root[data-theme=light] body.community-room:has(>.community-atmosphere[data-scene-art=image]) .comment-form .form-group>label { color:#edf5f0;text-shadow:0 1px 2px #06131ee6,0 3px 9px #06131e85; }
 :root[data-theme=light] body.community-room:has(>.community-atmosphere[data-scene-art=image]) :is(.reader-navigation a,.portal-back,.profile-gallery>.back-link) {
   color:#edf5f0;background:#11242b9c;border:1px solid #d7ece425;border-radius:9px;padding-inline:10px;box-shadow:0 3px 8px -5px #07131c77;
 }

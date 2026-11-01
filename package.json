@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "node scripts/build_assets.cjs",
-    "check:assets": "node scripts/build_assets.cjs --check"
+    "check:assets": "node scripts/build_assets.cjs --check",
+    "clean:assets": "node scripts/clean_assets.cjs"
   },
   "devDependencies": {
     "esbuild": "0.28.2"

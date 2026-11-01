@@ -162,6 +162,93 @@ class AdminBackendTests(unittest.TestCase):
             self.assertEqual(self.post('/admin/preview', dict(kind='post', action='hide', target_id=identifier)).status_code, 400)
 
 
+    def test_filtered_page_returns_last_available_page_after_moderation(self):
+        with self.app.app_context():
+            posts = [Post(author_id=self.uid, body=f'Pagination keeper {number}') for number in range(21)]
+            db.session.add_all(posts)
+            db.session.commit()
+        response = self.client.get('/admin/posts?q=Pagination+keeper&status=visible&page=2')
+        self.assertIn('显示 21–21', response.get_data(as_text=True))
+        with self.app.app_context():
+            oldest = Post.query.filter(Post.body.like('Pagination keeper%')).order_by(Post.id).first()
+            oldest.hidden = True
+            db.session.commit()
+        page = self.client.get('/admin/posts?q=Pagination+keeper&status=visible&page=2').get_data(as_text=True)
+        self.assertIn('Pagination keeper', page)
+        self.assertIn('显示 1–20', page)
+        self.assertNotIn('没有匹配的内容', page)
+
+    def test_overview_public_comments_follow_post_and_comment_visibility(self):
+        def displayed_count():
+            response = self.client.get('/admin/')
+            self.assertEqual(response.status_code, 200)
+            return int(re.search(r'(\d+) 条公开评论', response.get_data(as_text=True)).group(1))
+
+        baseline = displayed_count()
+        with self.app.app_context():
+            visible = Post(author_id=self.uid, body='Visible overview fixture')
+            hidden = Post(author_id=self.uid, body='Hidden overview fixture', hidden=True)
+            db.session.add_all([visible, hidden])
+            db.session.flush()
+            visible_id, hidden_id = visible.id, hidden.id
+            for article in (visible, hidden):
+                db.session.add_all([
+                    Comment(author_id=self.uid, post_id=article.id, body='Public when its post is public', disabled=False),
+                    Comment(author_id=self.uid, post_id=article.id, body='Individually hidden comment', disabled=True),
+                ])
+            db.session.commit()
+        self.assertEqual(displayed_count(), baseline + 1)
+        self.change({'kind': 'post', 'action': 'hide', 'target_id': visible_id})
+        self.assertEqual(displayed_count(), baseline)
+        self.change({'kind': 'post', 'action': 'restore', 'target_id': hidden_id})
+        self.assertEqual(displayed_count(), baseline + 1)
+
+    def test_audit_search_filters_safe_changes_and_target_lookup(self):
+        with self.app.app_context():
+            article = Post(author_id=self.uid, body='Audit target article')
+            db.session.add(article)
+            db.session.flush()
+            comment = Comment(author_id=self.uid, post_id=article.id, body='Audit target comment')
+            db.session.add(comment)
+            db.session.flush()
+            post_id, comment_id = article.id, comment.id
+            db.session.add_all([
+                AdminAudit(actor_id=self.uid, actor_name='Review_100%', action='comment.hide',
+                    target_type='comment', target_id=comment_id, target_label=f'评论 #{comment_id}',
+                    details=json.dumps({'before': {'hidden': False, 'password': 'NEVER_DISPLAY_THIS'},
+                                        'after': {'hidden': True, 'password': 'ALSO_PRIVATE'}})),
+                AdminAudit(actor_id=self.uid, actor_name='ReviewA100x', action='post.hide',
+                    target_type='post', target_id=post_id, target_label=f'文章 #{post_id}', details='bad json')])
+            db.session.commit()
+        page = self.client.get('/admin/audit?q=Review_100%25&kind=comment').get_data(as_text=True)
+        self.assertIn('Review_100%', page)
+        self.assertNotIn('ReviewA100x', page)
+        self.assertIn('显示状态', page)
+        self.assertIn('隐藏', page)
+        self.assertNotIn('NEVER_DISPLAY_THIS', page)
+        self.assertNotIn('ALSO_PRIVATE', page)
+        self.assertIn(f'c%23{comment_id}', page)
+        page = self.client.get(f'/admin/audit?q=%23{post_id}&kind=post').get_data(as_text=True)
+        self.assertIn('ReviewA100x', page)
+        self.assertNotIn('Review_100%', page)
+        self.assertEqual(self.client.get('/admin/audit?kind=unknown').status_code, 200)
+        lookup = self.client.get(f'/admin/comments?q=c%23{comment_id}').get_data(as_text=True)
+        self.assertIn('Audit target comment', lookup)
+        self.assertNotIn('没有匹配的内容', lookup)
+
+    def test_settings_preview_escapes_saved_markup_and_remains_read_only(self):
+        with self.app.app_context():
+            row = db.session.get(SiteSettings, 1)
+            row.tagline = '<script>UNSAFE_PREVIEW</script>'
+            db.session.commit()
+        page = self.client.get('/admin/settings').get_data(as_text=True)
+        self.assertIn('站点介绍预览', page)
+        self.assertIn('&lt;script&gt;UNSAFE_PREVIEW&lt;/script&gt;', page)
+        self.assertNotIn('<script>UNSAFE_PREVIEW</script>', page)
+        with self.app.app_context():
+            self.assertEqual(db.session.get(SiteSettings, 1).tagline, '<script>UNSAFE_PREVIEW</script>')
+
+
 class AdminMigrationTests(unittest.TestCase):
     def test_additive_schema_is_backed_up_idempotent_and_preserves_old_rows(self):
         with tempfile.TemporaryDirectory() as directory:

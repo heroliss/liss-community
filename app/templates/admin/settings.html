@@ -3,7 +3,7 @@
 {% block admin_content %}
 <header class="admin-heading"><div><h1>网站设置</h1><p>让社区有自己的介绍，并设置加入与写作方式。</p></div></header>
 {% set values = values|default(site_settings, true) %}{% set errors = errors|default({}) %}
-<form method="post" action="{{ url_for('admin.preview') }}" class="site-form admin-settings-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="kind" value="settings"><input type="hidden" name="action" value="update"><input type="hidden" name="return_to" value="{{ url_for('admin.settings') }}">
+<div class="admin-settings-layout"><form method="post" action="{{ url_for('admin.preview') }}" class="site-form admin-settings-form" data-admin-settings><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="kind" value="settings"><input type="hidden" name="action" value="update"><input type="hidden" name="return_to" value="{{ url_for('admin.settings') }}">
   {% if errors.get('_form') %}<div class="admin-error-box" role="alert">{% for error in errors['_form'] %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
   <fieldset class="admin-settings-section"><legend>站点介绍</legend>
     <div class="form-group"><label for="site_name">网站名称</label><input class="form-control" id="site_name" name="site_name" value="{{ values.site_name }}" maxlength="60" required aria-invalid="{{ 'true' if errors.get('site_name') else 'false' }}"><p class="field-help">显示在浏览器标题与网站导航中。</p>{{ admin_ui.field_errors(errors, 'site_name') }}</div>
@@ -15,6 +15,7 @@
     <div class="form-group"><label for="guest_posting_open">访客发文</label><select class="form-control" id="guest_posting_open" name="guest_posting_open"><option value="1"{% if values.guest_posting_open in [true, '1', 1] %} selected{% endif %}>允许访客发布文章</option><option value="0"{% if values.guest_posting_open in [false, '0', 0] %} selected{% endif %}>暂停访客发文</option></select><p class="field-help">访客文章与项目讨论合并计数，注册账号不限篇数。</p>{{ admin_ui.field_errors(errors, 'guest_posting_open') }}</div>
     <div class="form-group admin-narrow-field"><label for="guest_post_limit">每位访客的文章上限</label><input class="form-control" id="guest_post_limit" name="guest_post_limit" type="number" min="1" max="100" step="1" value="{{ values.guest_post_limit }}" required aria-invalid="{{ 'true' if errors.get('guest_post_limit') else 'false' }}">{{ admin_ui.field_errors(errors, 'guest_post_limit') }}</div>
   </fieldset>
-  <div class="form-actions"><button type="submit" class="button">预览并保存设置</button><span class="admin-settings-saved">下一步确认更改</span></div>
+  <div class="form-actions"><button type="submit" class="button">预览并保存设置</button><span class="admin-settings-saved" data-settings-state role="status">下一步确认更改</span></div>
 </form>
+<aside class="admin-settings-preview" aria-label="站点介绍预览"><h2>站点介绍预览</h2><p class="admin-preview-name" data-preview-field="site_name">{{ values.site_name }}</p><p data-preview-field="tagline">{{ values.tagline }}</p><p class="admin-preview-welcome" data-preview-field="welcome">{{ values.welcome }}</p><small>修改后可在此查看介绍，确认保存后才会公开。</small></aside></div>
 {% endblock %}

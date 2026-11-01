@@ -98,7 +98,7 @@ body.community-room{position:relative;isolation:isolate;font-size:16px;line-heig
 .community-room .discussion-orbit{position:absolute;z-index:-1;right:-10px;top:14px;width:320px;height:230px;opacity:.15;pointer-events:none;transform:translate(var(--room-x),var(--room-y)) rotateX(var(--room-rx)) rotateY(var(--room-ry));transition:transform .7s cubic-bezier(.2,.8,.2,1);mask-image:linear-gradient(90deg,transparent,#000 60%)}
 .community-room .discussion-orbit svg{width:100%;height:100%;stroke:var(--accent);stroke-width:1}
 .community-room .discussion-orbit circle{fill:var(--accent);stroke:none}
-.community-room .discussion-join{padding:22px 24px;margin-bottom:30px;background:var(--surface);border:0;border-radius:8px;display:grid;grid-template-columns:1fr auto;gap:9px 24px;align-items:center}
+.community-room .discussion-join{padding:0;margin-bottom:30px;background:transparent;border:0;border-radius:0}
 .community-room .discussion-join p{font-size:18px;line-height:1.7;margin:0}
 .community-room .discussion-join .button{grid-column:2;grid-row:1/3}
 .community-room .discussion-join small{font-size:13px;line-height:1.9;color:var(--muted)}
@@ -130,7 +130,7 @@ body.community-room{position:relative;isolation:isolate;font-size:16px;line-heig
 .community-room .EasyMDEContainer .editor-statusbar{font-size:12px;padding-top:10px}
 .community-room .pagination{margin:29px 0 0;display:flex;flex-wrap:wrap;gap:5px}
 .community-room .pagination>li>a,.community-room .pagination>li>span{min-width:42px;min-height:42px;display:grid;place-items:center;border-radius:4px;font-size:14px;margin:0}
-.community-room .empty-state{padding:45px 24px 40px;border:0;background:var(--surface);border-radius:8px;margin-top:24px}
+.community-room .empty-state{padding:0;border:0;background:transparent;border-radius:0;margin-top:24px}
 .community-room .empty-state h3{font-size:21px;font-weight:500;line-height:1.6}
 .community-room .empty-state p{font-size:15px;line-height:1.9;max-width:38em;margin-inline:auto}
 .community-room .site-footer{display:flex;align-items:center;flex-wrap:wrap;gap:14px 27px;padding-top:28px;padding-bottom:30px;margin-top:66px;border-top-color:var(--line)}

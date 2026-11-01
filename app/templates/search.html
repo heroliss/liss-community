@@ -40,13 +40,13 @@
 {% endfor %}
 </ol>
 {% elif pagination.total %}
-<div class="search-empty">{{ ui.icon('book') }}<h2>这一页没有搜索结果</h2><p>当前条件仍有 {{ pagination.total }} 篇文章，回到第一页继续阅读。</p><a class="button button-secondary" href="{{ url_for('main.search', q=q, author=author_filter, project=project_filter) }}">返回第一页</a></div>
+{% call ui.feedback_panel('search-empty') %}{{ ui.icon('book') }}<h2>这一页没有搜索结果</h2><p>当前条件仍有 {{ pagination.total }} 篇文章，回到第一页继续阅读。</p><a class="button button-secondary" href="{{ url_for('main.search', q=q, author=author_filter, project=project_filter) }}">返回第一页</a>{% endcall %}
 {% else %}
-<div class="search-empty">{{ ui.icon('search') }}<h2>没有找到相关内容</h2><p>试试减少一个关键词，或放宽作者、项目条件。</p>{% if author_filter or project_filter %}<a class="button button-secondary" href="{{ url_for('main.search', q=q) }}">清除作者和项目筛选</a>{% else %}<a class="button button-secondary" href="#search-query">调整关键词</a>{% endif %}</div>
+{% call ui.feedback_panel('search-empty') %}{{ ui.icon('search') }}<h2>没有找到相关内容</h2><p>试试减少一个关键词，或放宽作者、项目条件。</p>{% if author_filter or project_filter %}<a class="button button-secondary" href="{{ url_for('main.search', q=q) }}">清除作者和项目筛选</a>{% else %}<a class="button button-secondary" href="#search-query">调整关键词</a>{% endif %}{% endcall %}
 {% endif %}
 {% if pagination %}{{ macros.pagination_widget(pagination, 'main.search', q=q, author=author_filter, project=project_filter) }}{% endif %}
 {% elif not search_error %}
-<div class="search-empty search-introduction">{{ ui.icon('search') }}<h2>从一段文字开始</h2><p>搜索公开文章和项目讨论，关键词、作者和项目可以组合使用。</p></div>
+{% call ui.feedback_panel('search-empty search-introduction') %}{{ ui.icon('search') }}<h2>从一段文字开始</h2><p>搜索公开文章和项目讨论，关键词、作者和项目可以组合使用。</p>{% endcall %}
 {% endif %}
 </section>
 {% endblock %}

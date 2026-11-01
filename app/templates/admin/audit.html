@@ -2,6 +2,7 @@
 {% block admin_label %}管理操作记录{% endblock %}
 {% block admin_content %}
 <header class="admin-heading"><div><h1>操作记录</h1><p>文章、评论、用户与网站设置的管理更改。</p></div></header>
-<p class="admin-list-summary"><span>共 <strong>{{ pagination.total }}</strong> 条记录</span><span>最近操作在前</span></p>
-{{ admin_ui.activity(pagination.items) }}{{ admin_ui.pagination(pagination, 'admin.audit') }}
+<form method="get" class="admin-toolbar" role="search"><label class="admin-search">搜索操作记录<input name="q" value="{{ q }}" placeholder="操作人、对象名称或 #对象编号" type="search" maxlength="100"></label><label>管理对象<select name="kind">{% for value, label in [('all','全部对象'),('post','文章'),('comment','评论'),('user','用户'),('settings','网站设置')] %}<option value="{{ value }}"{% if kind == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label><button class="button button-small" type="submit">查找</button>{% if q or kind != 'all' %}<a class="admin-clear" href="{{ url_for('admin.audit') }}">清除筛选</a>{% endif %}</form>
+<p class="admin-list-summary"><span>共 <strong>{{ pagination.total }}</strong> 条记录 · {{ admin_ui.range(pagination) }}</span><span>最近操作在前 · 时间为 UTC</span></p>
+{{ admin_ui.activity(pagination.items, detailed=true) }}{{ admin_ui.pagination(pagination, 'admin.audit', q=q, kind=kind) }}
 {% endblock %}

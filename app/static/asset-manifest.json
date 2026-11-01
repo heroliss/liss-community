@@ -3,18 +3,18 @@
   "tool": "esbuild@0.28.2",
   "groups": {
     "styles": {
-      "file": "bundles/styles.10dea49dfeb09419.css",
-      "sha256": "10dea49dfeb09419dc560ad786cc095bd2f9bb1a76647b295f904321e87ca6f2",
-      "bytes": 394671,
-      "sourceBytes": 437318,
-      "gzipBytes": 67525,
+      "file": "bundles/styles.cae540ac5b840a37.css",
+      "sha256": "cae540ac5b840a37df4251f0ee5f563a0cd147817258b7fdcc0dd150f8360b3b",
+      "bytes": 394886,
+      "sourceBytes": 437538,
+      "gzipBytes": 67532,
       "sources": {
         "liss.css": "faf70844bf3ed140d4104b54947329f4e2211c9db10197d1e2ff3b60cdf083f1",
-        "community-room.css": "d67025fcd9521d3411d226bc519c98ba8c1b558d4e24c3d20b8e13fb8b28c5cf",
+        "community-room.css": "c534de6dfb70ac1ad93696081bf51224da45571ab0a04079b592c348cdbfe160",
         "community-identity.css": "7061d3215f051494857a73f1ebd05f3ff64139e43337a60659b7ca80e354705d",
         "community-spatial.css": "a87145da95aeef0fadd77a8f2d2b1b97afbf7bb96d92b85f388e3768143e1727",
         "community-depth.css": "9c0553e0ca852fa1c4d5227b5c2fab415a58419bf6ae090e5083fcc25071a6f3",
-        "community-atmosphere.css": "3bfafdfec7e64b82dfab9e1c3feb9e2f0fd3855e9fc9729032840554fff8e7b9",
+        "community-atmosphere.css": "df061dfc961c93085718af52b8690dc38da28e6afd7756ee5f7cb335eb7f78aa",
         "community-materials.css": "1c4563ae1292c57e8571e9bc300f7404ecb3bebd5cd8f83601c4f4c3deb65c3f",
         "community-appearance.css": "b0707f1e7fbc703407b97298c11591b49812c607084da25c57679f2b5c2bd73b",
         "community-theme.css": "48a3c2bda6265cb8d69d5ca07be66491bf63036fbd9f654005524ce2e3927de6",
@@ -25,7 +25,7 @@
         "community-experience.css": "7e722806f61402b7e180b7bc084a3141fe538ec88957ba4810f581c7d1f9b3db",
         "community-avatar.css": "3ef5aee636b8ffbae9a27570f7281d0850d4c814563e054599851812b30751de",
         "community-ux-v25.css": "ecad26551b9cf312f45fa5d20ce974cfe6ac21a55d262a72905642197326c1a6",
-        "community-atelier-v27.css": "e81e700cb7946b8319b41747bddb3615cab92dca790623a13830bd18cf727a64",
+        "community-atelier-v27.css": "2e8f421aef6be2da064af5b3b1305f152a133b0391674c32ee3029db2c6000cb",
         "community-material-identity-v28.css": "2b3f2361622936e92a16b2a701854cb6cd8e7c2f1a242f100575a87e15a68c2b",
         "community-material-variants-v29.css": "72e2a71ae8c3146dc49ba471a4deb242d1520235bfd7a5674906ba3a2c6d8a82",
         "community-image-viewer.css": "0f6b5e37d00659ee7cef7cb8b9e676965285a2abfce7ea8ca05f17b5102279b1",
@@ -131,13 +131,13 @@
       }
     },
     "discussions": {
-      "file": "bundles/discussions.1fea2c32a8440d6c.css",
-      "sha256": "1fea2c32a8440d6c788f86a70a9f6a8935d245d510f67c61a9de3ba90c5c47b9",
-      "bytes": 9323,
-      "sourceBytes": 9981,
-      "gzipBytes": 2066,
+      "file": "bundles/discussions.8ff469af731a0b08.css",
+      "sha256": "8ff469af731a0b0834457d0571610b7976f4d03389cc14686d8641b45b733470",
+      "bytes": 12864,
+      "sourceBytes": 13975,
+      "gzipBytes": 2937,
       "sources": {
-        "community-discussions.css": "325ec0bea2fb82dd9a90579871275bf74de4b1bcc08cc88ef0eec8f837082359"
+        "community-discussions.css": "391beeca17fac8b333e67647631060b647bc68e2b150a4227da698362263eef9"
       }
     },
     "thread-styles": {

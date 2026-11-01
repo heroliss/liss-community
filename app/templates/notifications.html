@@ -25,11 +25,11 @@
 {% endfor %}
 </ol>
 {% elif pagination.total %}
-<div class="notifications-empty">{{ ui.icon('comment') }}<h2>这一页没有提醒</h2><p>回到第一页，继续查看{{ '未读' if notification_filter == 'unread' else '全部' }}提醒。</p><a class="button button-secondary" href="{{ url_for('main.notifications', filter=notification_filter) }}">返回第一页</a></div>
+{% call ui.feedback_panel('notifications-empty') %}{{ ui.icon('comment') }}<h2>这一页没有提醒</h2><p>回到第一页，继续查看{{ '未读' if notification_filter == 'unread' else '全部' }}提醒。</p><a class="button button-secondary" href="{{ url_for('main.notifications', filter=notification_filter) }}">返回第一页</a>{% endcall %}
 {% elif notification_filter == 'unread' %}
-<div class="notifications-empty">{{ ui.icon('check') }}<h2>暂时没有未读提醒</h2><p>新的评论和回复会显示在这里。已读的对话仍可在全部提醒中查看。</p><a class="button button-secondary" href="{{ url_for('main.notifications') }}">查看全部提醒</a></div>
+{% call ui.feedback_panel('notifications-empty') %}{{ ui.icon('check') }}<h2>暂时没有未读提醒</h2><p>新的评论和回复会显示在这里。已读的对话仍可在全部提醒中查看。</p><a class="button button-secondary" href="{{ url_for('main.notifications') }}">查看全部提醒</a>{% endcall %}
 {% else %}
-<div class="notifications-empty">{{ ui.icon('comment') }}<h2>还没有回复提醒</h2><p>收到文章评论或针对你的回复后，会显示在这里。</p><a class="button button-secondary" href="{{ url_for('main.index') }}">去读读文章</a></div>
+{% call ui.feedback_panel('notifications-empty') %}{{ ui.icon('comment') }}<h2>还没有回复提醒</h2><p>收到文章评论或针对你的回复后，会显示在这里。</p><a class="button button-secondary" href="{{ url_for('main.index') }}">去读读文章</a>{% endcall %}
 {% endif %}
 {% if pagination %}{{ macros.pagination_widget(pagination, 'main.notifications', filter=notification_filter) }}{% endif %}
 </section>

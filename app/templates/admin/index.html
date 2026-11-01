@@ -1,7 +1,7 @@
 {% extends "admin/base.html" %}
 {% block admin_label %}管理概览{% endblock %}
 {% block admin_content %}
-<header class="admin-heading"><div><h1>概览</h1><p>你好，{{ ui.author_name(current_user) }}。这里是社区的内容与设置中心。</p></div><a class="button button-small button-secondary" href="{{ url_for('main.index') }}">查看社区 {{ ui.icon('arrow') }}</a></header>
+<header class="admin-heading"><div><h1>概览</h1><p>{{ stats.posts - stats.hidden_posts }} 篇公开文章，{{ stats.public_comments }} 条公开评论。管理内容、账号与社区设置。</p></div><a class="button button-small button-secondary" href="{{ url_for('main.index') }}">查看社区 {{ ui.icon('arrow') }}</a></header>
 <div class="admin-stats" aria-label="社区数据">
   <a href="{{ url_for('admin.posts') }}"><span>文章</span><strong>{{ stats.posts }}</strong><small>{{ stats.hidden_posts }} 篇已隐藏</small></a>
   <a href="{{ url_for('admin.comments') }}"><span>评论</span><strong>{{ stats.comments }}</strong><small>{{ stats.hidden_comments }} 条已隐藏</small></a>

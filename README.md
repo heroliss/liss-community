@@ -12,7 +12,7 @@
 
 ## 作品与交流
 
-新版已在正式站发布，源码由 `main` 和 `design/community-reading-room` 保留。[v35 双视图文章流与阅读室页脚](docs/community-v35.md)加入可记住选择的卡片/紧凑列表切换，保留立体材质，并重新整理页脚导航与身份入口。[v34 紧凑评论与原地交流](docs/community-v34.md)继续提供原地回复、按目标隔离的评论草稿、两步引用连线、多词搜索、作者与项目筛选及私人提醒管理。部署检查和已知验证边界见[检查与发布指南](docs/testing-and-release.md)。
+新版已在正式站发布，正式源码以 `main` 为准。[v41 评论的散落／列表两种排版](docs/community-v41.md)支持记住选择、切换时保留阅读位置，并隔离首页文章的排版偏好；[v43 评论鼠标互动](docs/community-v43.md)采用克制的悬停与微倾斜。[v35 双视图文章流与阅读室页脚](docs/community-v35.md)和 [v34 紧凑评论与原地交流](docs/community-v34.md)继续提供文章卡片／列表切换、原地回复、按目标隔离的草稿、引用连线、多词搜索、作者与项目筛选及私人提醒管理。部署检查和已知验证边界见[检查与发布指南](docs/testing-and-release.md)。
 
 [v40 评论层次与镜面、水面](docs/community-v40.md)把桌面引用放入独立右栏，定向回复保持一级缩进，长引用最多显示两行；回复框收到匹配的成功回执后自动收起，请求期间继续输入的文字保留。服务端和异步回复统一按从旧到新排列，新回复追加到底部。页脚以 `@Liss` 标识收尾，使用更透明、更宽的渐变融入背景。镜面与水面结合场景映像、细微磨损、透明水层和鼠标涟漪，提供模拟环境反射。v40 文档记录当时的本地验收，正式站现已采用后续版本。
 
@@ -69,6 +69,8 @@ npm ci --ignore-scripts
 统一入口依次检查 Python 语法、生成资源与源码的一致性、第一方 JavaScript 语法、实际控制器场景和 Python 回归。`--frontend-only` 检查资源及前端；`--python-only` 只检查 Python；`--test tests.test_post_appearance` 可选定模块。每次报告和完整日志保存在 `.tmp/checks/<本次运行>/`。测试进程清除部署数据、密钥和邮件环境配置，禁用真实邮件，并校验仓库演示数据库没有变化。GitHub Actions 在 Python 3.13 / 3.14 与 Node.js 24 上运行同一入口，只做检查，不发布网站。
 
 前端源文件清单位于 `assets/sources.json`。改动清单内的 CSS/JS 后运行 `npm run build`，审阅并一同提交源文件、`app/static/asset-manifest.json` 与 `app/static/bundles/` 的哈希生成物；`npm run check:assets` 仅核验，不重写。运行时若发现源码或生成物过期，会回退到带版本哈希的当前源文件，避免继续提供旧包。正式服务器使用仓库内已验证产物，运行 Flask 不需要 Node.js。
+
+本地历次构建留下的旧哈希包可用 `npm run clean:assets` 预览，再用 `npm run clean:assets -- --write` 清理。命令先校验当前 manifest 的全部资源，只删除同组、内容哈希匹配且未被引用的生成包；不碰源文件、资料或存储。构建和清理应分开执行，发布环境的旧包应在更新完成且旧页面不再依赖它们后另行清理。完整说明见[前端资源维护](docs/testing-and-release.md#前端资源构建)。
 
 回归覆盖模型、权限、表单与 CSRF、访客隔离、账号、迁移、重启、配额、WAL 一致备份和恢复。Node 场景运行实际控制器，覆盖背景请求取消、写作展开、文章返回与外观保存状态；VM 场景不证明浏览器布局或 GPU 表现。历史 Selenium 用例仍为显式选择；完整浏览器及真机验收按[检查与发布指南](docs/testing-and-release.md)单独记录。
 
