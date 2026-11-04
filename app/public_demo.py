@@ -86,11 +86,15 @@ class Sandbox:
             migrate_reflective_materials(db.engine.url.database)
             from .discussion_schema import migrate_discussion_schema
             migrate_discussion_schema(db.engine.url.database)
+            from .public_schema import migrate_background_catalog_schema
+            migrate_background_catalog_schema(db.engine.url.database)
             # create_all / sample seeding only add missing tables and samples.
             # Invalid databases fail instead of being deleted or recreated.
             seed_sample_content(password=secrets.token_urlsafe(48), public=True)
             from .admin import initialize_settings
             initialize_settings()
+            from .background_catalog import initialize_catalog
+            initialize_catalog()
             db.session.execute(text('CREATE TABLE IF NOT EXISTS public_demo_state '
                                     '(id INTEGER PRIMARY KEY CHECK (id=1), '
                                     'identity_epoch TEXT NOT NULL, created_at REAL NOT NULL)'))
@@ -116,26 +120,81 @@ class Sandbox:
             self.rates.clear()
         self.epoch = row[0]
 
-    def backup(self, output):
+    def backup(self, output, *, bundle=False):
         from .public_demo_storage import backup_database
+        from .public_demo_bundle import absolute, plain, plain_parents
+        output = absolute(output)
+        plain_parents(output)
+        if output.exists() or output.is_symlink():
+            plain(output, directory=bundle)
         self.prepare()
         db.session.remove()
+        if bundle:
+            from .public_demo_bundle import backup_bundle
+            return backup_bundle(db.engine.url.database, self.marker.parent, output)
         return backup_database(db.engine.url.database, output)
 
-    def restore(self, source):
-        from .public_demo_storage import inspect_backup, restore_database
+    def inspect_restore(self, source):
+        from .public_demo_storage import inspect_backup
+        from .public_demo_bundle import (absolute, check_destination, inspect_bundle,
+                                         plain, plain_parents, required_uploads, verify_uploads)
         self._assert_database()
-        source = inspect_backup(source)
-        if source == Path(db.engine.url.database).resolve():
+        source = absolute(source)
+        bundled = source.is_dir()
+        plain_parents(source)
+        plain(source, directory=bundled)
+        if bundled:
+            snapshot, files = inspect_bundle(source)
+            check_destination(self.marker.parent, files)
+        else:
+            snapshot, files = inspect_backup(source), None
+            # A legacy SQLite snapshot is safe only if every referenced uploaded
+            # image still exists in this destination's immutable private store.
+            verify_uploads(self.marker.parent, required_uploads(snapshot))
+        if snapshot == Path(db.engine.url.database).resolve():
             raise ValueError('Restore input must differ from the live database.')
+        return source, snapshot, files, bundled
+
+    def restore(self, source):
+        from .public_demo_storage import restore_database
+        from .public_demo_bundle import install_uploads, required_uploads, rollback_uploads, verify_uploads
+        source, snapshot, files, bundled = self.inspect_restore(source)
+        self.prepare()
+        db.session.remove()
+        complete_safety = bundled or bool(required_uploads(Path(db.engine.url.database).resolve()))
         safety = self.marker.parent / ('before-restore-' + time.strftime('%Y%m%d-%H%M%S')
-                                      + '-' + secrets.token_hex(3) + '.sqlite')
-        self.backup(safety)
+                                      + '-' + secrets.token_hex(3) + ('.bundle' if complete_safety else '.sqlite'))
+        self.backup(safety, bundle=complete_safety)
+        safety_snapshot = safety/'database.sqlite' if complete_safety else safety
         db.session.remove()
         db.engine.dispose()
-        restore_database(source, db.engine.url.database)
-        self.initialized = False
-        self.prepare()
+        additions, directories = [], []
+        database_changed = False
+        try:
+            if bundled:
+                additions, directories = install_uploads(source, self.marker.parent, files)
+            # A failed call may have committed the SQLite backup transaction and
+            # only then failed during cleanup. Roll back from safety on every
+            # attempted write, including errors reported after publication.
+            database_changed = True
+            restore_database(snapshot, db.engine.url.database,
+                expected_source=files['database.sqlite'] if bundled else None,
+                validate_snapshot=lambda path: verify_uploads(self.marker.parent, required_uploads(path)))
+            self.initialized = False
+            self.prepare()
+        except BaseException:
+            try:
+                if database_changed:
+                    db.session.remove()
+                    db.engine.dispose()
+                    # Roll back both contents and the original identity on a failed
+                    # post-restore preparation. The published safety backup survives.
+                    restore_database(safety_snapshot, db.engine.url.database, rotate_identity=False)
+                    self.initialized = False
+                    self.prepare()
+            finally:
+                rollback_uploads(additions, directories)
+            raise
         return safety
 
     def check_storage(self):

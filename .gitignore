@@ -47,3 +47,6 @@ venv
 .venv-*/
 instance/
 portfolio/
+verification/
+.playwright-cli/
+.taste-skill/

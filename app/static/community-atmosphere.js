@@ -19,6 +19,7 @@
     var hadClass=body.classList.contains('has-atmosphere');body.classList.add('has-atmosphere');
     var frame=0,lastTime=0,closed=false,parked=false,dirty=true,dirtySize=true;
     var width=1,height=1,padding=100,mobile=false,light=false;
+    var paletteKey='',paletteRestored=new Map(),paletteAttributes=[body.getAttribute('data-background-palette'),body.getAttribute('data-background-reading')];
     var current=[0,0,0],target=[0,0,0],pointer=[0,0],scrollPixels=Math.max(0,window.scrollY||0),scrollPixelTarget=scrollPixels;
     // The spatial controller is the single owner of card poses. Its dominant
     // pose only moves this small counter-camera and the room's supporting light.
@@ -54,6 +55,16 @@
       // A photograph is the room's real view, not a canvas to repaint with
       // abstract glass geometry. Foreground DOM materials own the 3D objects.
       wrapper.dataset.sceneRenderer=imageMode?'native-image':'native-vector';
+      wrapper.dataset.sceneTone=imageMode?(appliedEntry.readingTone||'legacy'):'vector';
+      syncPalette();
+    }
+    function syncPalette(){
+      var palette=window.LissBackgroundPalettesV40;if(!palette)return;
+      var profile=palette.get(appliedEntry.id);if(!profile)return;
+      var mode=html.dataset.theme==='light'?'light':'dark',reading=appliedEntry.kind==='image'?(appliedEntry.readingTone||profile.readingTone||'dark'):mode;
+      var next=appliedEntry.id+'|'+mode+'|'+reading;if(next===paletteKey)return;paletteKey=next;
+      var values=palette.roles(appliedEntry.id,mode,reading);Object.keys(values).forEach(function(role){var name='--scenic-'+role;if(!paletteRestored.has(name))paletteRestored.set(name,body.style.getPropertyValue(name));body.style.setProperty(name,values[role]);});
+      body.dataset.backgroundPalette=appliedEntry.id;body.dataset.backgroundReading=reading;
     }
     function applyBackground(choice,resolution){
       selectedChoice=choice;var entry=backgrounds?backgrounds.entry(choice.id):{id:'mist',kind:'vector',style:'mist'},serial=++landscapeSerial;
@@ -99,6 +110,7 @@
     }
     function resize(){
       dirtySize=false;
+      syncPalette();
       var bounds=wrapper.getBoundingClientRect();width=Math.max(1,bounds.width);height=Math.max(1,bounds.height);mobile=width<700;
       light=html.dataset.theme==='light';scrollRange=Math.max(1,document.documentElement.scrollHeight-height);if(!blocked())target[2]=scrollPosition();
       if(proceduralScene)vectorGeometry=proceduralScene.resize(width,height,light);
@@ -110,8 +122,8 @@
       }
       landscapeGeometry=null;
       if(landscapeImage){
-        var CW=width+padding*2,CH=height+padding*2,IW=landscapeImage.naturalWidth,IH=landscapeImage.naturalHeight,scale=Math.max(CW/IW,CH/IH),fullW=IW*scale,fullH=IH*scale;
-        var anchor=appliedEntry.anchorX===undefined?(mobile ? .88 : .57):appliedEntry.anchorX,vertical=appliedEntry.anchorY===undefined ? .46 : appliedEntry.anchorY;
+        var CW=width+padding*2,CH=height+padding*2,coverHeight=CH+height*(appliedEntry.scrollReserve||0),IW=landscapeImage.naturalWidth,IH=landscapeImage.naturalHeight,scale=Math.max(CW/IW,coverHeight/IH),fullW=IW*scale,fullH=IH*scale;
+        var anchor=mobile&&appliedEntry.mobileAnchorX!==undefined?appliedEntry.mobileAnchorX:appliedEntry.anchorX===undefined?(mobile ? .88 : .57):appliedEntry.anchorX,vertical=appliedEntry.anchorY===undefined ? .46 : appliedEntry.anchorY;
         var left=-padding-(fullW-CW)*anchor,top=appliedEntry.tall?-padding:-padding-(fullH-CH)*vertical;
         landscapeGeometry={width:fullW,height:fullH,left:left,top:top,scale:scale,travel:appliedEntry.tall?Math.max(0,fullH-CH):0};
         landscapeImage.style.width=fullW+'px';landscapeImage.style.height=fullH+'px';landscapeImage.style.left=left+'px';landscapeImage.style.top=top+'px';landscapeImage.style.opacity='1';
@@ -186,6 +198,7 @@
       if(closed)return;closed=true;stop();abort.abort();stateObserver.disconnect();dialogObserver.disconnect();
       landscapeSerial++;if(unsubscribeBackground)unsubscribeBackground();if(proceduralScene)proceduralScene.destroy();proceduralScene=null;landscapeWindow.replaceChildren();landscapeImage=null;landscapeGeometry=null;vectorGeometry=null;vectorScene=null;
       if(resizeObserver)resizeObserver.disconnect();if(releaseTimer)clearTimeout(releaseTimer);
+      paletteRestored.forEach(function(value,name){if(value)body.style.setProperty(name,value);else body.style.removeProperty(name);});['data-background-palette','data-background-reading'].forEach(function(name,index){if(paletteAttributes[index]===null)body.removeAttribute(name);else body.setAttribute(name,paletteAttributes[index]);});
       wrapper.remove();if(!hadClass)body.classList.remove('has-atmosphere');inspectState=null;suspend=resume=null;
     };
   }

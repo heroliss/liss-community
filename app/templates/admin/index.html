@@ -13,6 +13,8 @@
   <a href="{{ url_for('admin.comments') }}">{{ ui.icon('comment') }}<span><strong>查看讨论</strong><small>结合文章上下文管理评论</small></span>{{ ui.icon('arrow') }}</a>
   <a href="{{ url_for('admin.users') }}">{{ ui.icon('users') }}<span><strong>管理用户</strong><small>调整角色与账号状态</small></span>{{ ui.icon('arrow') }}</a>
   <a href="{{ url_for('admin.settings') }}">{{ ui.icon('settings') }}<span><strong>网站设置</strong><small>站点介绍、注册与访客写作</small></span>{{ ui.icon('arrow') }}</a>
+  <a href="{{ url_for('admin.backgrounds') }}">{{ ui.icon('sun') }}<span><strong>背景图库</strong><small>图片、展示顺序与默认随机名单</small></span>{{ ui.icon('arrow') }}</a>
+  <a href="{{ url_for('admin.audit') }}">{{ ui.icon('history') }}<span><strong>操作记录</strong><small>查看已确认的管理变更</small></span>{{ ui.icon('arrow') }}</a>
 </div></section>
 <section class="admin-section" aria-labelledby="activity-heading"><div class="admin-section-head"><h2 id="activity-heading">最近操作</h2><a href="{{ url_for('admin.audit') }}">全部记录 {{ ui.icon('arrow') }}</a></div>{{ admin_ui.activity(recent_audit) }}</section>
 {% endblock %}

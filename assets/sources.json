@@ -27,9 +27,16 @@
     "community-navigation-v32.css",
     "community-feed.css",
     "community-footer.css",
-    "community-reflections.css"
+    "community-reflections.css",
+    "community-background-designs-v40.css",
+    "community-background-defaults-v43.css",
+    "community-background-spectrum-v44.css",
+    "community-background-palettes-v40.css"
   ],
   "background-head": [
+    "community-background-palettes-v40.js",
+    "community-background-candidates-v40.js",
+    "community-background-visits-v55.js",
     "community-backgrounds.js"
   ],
   "transitions-head": [
@@ -40,7 +47,12 @@
     "community-theme.js",
     "community-room.js",
     "community-spatial.js",
+    "community-background-water-v40.js",
+    "community-background-designs-v40.js",
+    "community-background-defaults-v43.js",
     "community-procedural.js",
+    "community-background-spectrum-v44.js",
+    "community-background-previews-v49.js",
     "community-atmosphere.js",
     "community-surfaces.js",
     "community-reflections.js",
@@ -76,5 +88,11 @@
   ],
   "feed": [
     "community-feed.js"
+  ],
+  "background-review-styles": [
+    "community-background-review-v40.css"
+  ],
+  "background-review": [
+    "community-background-review-v40.js"
   ]
 }

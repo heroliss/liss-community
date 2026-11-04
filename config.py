@@ -1,6 +1,18 @@
 import os
+import re
 from datetime import timedelta
 basedir = os.path.abspath(os.path.dirname(__file__))
+
+
+def background_storage_limit():
+    """Read at app creation, including private settings passed by WSGI/CLI."""
+    value = os.environ.get('BACKGROUND_MAX_STORAGE_BYTES', str(64 * 1024 * 1024))
+    if not re.fullmatch(r'[0-9]{1,13}', value):
+        raise RuntimeError('BACKGROUND_MAX_STORAGE_BYTES must be a positive integer of at most 1 TiB.')
+    limit = int(value)
+    if not 1 <= limit <= 1024 ** 4:
+        raise RuntimeError('BACKGROUND_MAX_STORAGE_BYTES must be a positive integer of at most 1 TiB.')
+    return limit
 
 
 def database_url(name, default):
@@ -54,7 +66,7 @@ class Config:
 
     @classmethod
     def init_app(cls, app):
-        pass
+        app.config['BACKGROUND_MAX_STORAGE_BYTES'] = background_storage_limit()
 
 
 class DevelopmentConfig(Config):
@@ -135,6 +147,7 @@ class PublicDemoConfig(DemoConfig):
 
     @classmethod
     def init_app(cls, app):
+        Config.init_app(app)
         secret = os.environ.get('SECRET_KEY', '')
         if len(secret) < 32:
             raise RuntimeError('public-demo requires a random SECRET_KEY of at least 32 characters.')

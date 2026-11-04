@@ -3,11 +3,11 @@
   "tool": "esbuild@0.28.2",
   "groups": {
     "styles": {
-      "file": "bundles/styles.cae540ac5b840a37.css",
-      "sha256": "cae540ac5b840a37df4251f0ee5f563a0cd147817258b7fdcc0dd150f8360b3b",
-      "bytes": 394886,
-      "sourceBytes": 437538,
-      "gzipBytes": 67532,
+      "file": "bundles/styles.637b055a722091b4.css",
+      "sha256": "637b055a722091b429039fb546ed0a82e90904a7f3b6db572df6997ed89718b5",
+      "bytes": 412995,
+      "sourceBytes": 457392,
+      "gzipBytes": 70614,
       "sources": {
         "liss.css": "faf70844bf3ed140d4104b54947329f4e2211c9db10197d1e2ff3b60cdf083f1",
         "community-room.css": "c534de6dfb70ac1ad93696081bf51224da45571ab0a04079b592c348cdbfe160",
@@ -21,7 +21,7 @@
         "community-studio.css": "1c3b1713eed2b3e21d41d5993bdbd8ea0c17a6b3b9d1d4967a0fba7ac8a6c18f",
         "community-portals.css": "5badc94251e1ecf198f74c0eaf34dff665ce6a78b8cf8064a71f95eb20e78aa9",
         "community-crystal.css": "a0a9890af4d724512ff1ae862be6ee8efe40689b30a1a0002dae9d4bb2e90da2",
-        "community-backgrounds.css": "2315d88846c2edb17fb35ac4d3b8082a85b66467f47b4eb0d009c58df375fc57",
+        "community-backgrounds.css": "8aa5dee9eaa8378aa784df78e298e91573a1faf31ceae239b89adcf98551c52b",
         "community-experience.css": "7e722806f61402b7e180b7bc084a3141fe538ec88957ba4810f581c7d1f9b3db",
         "community-avatar.css": "3ef5aee636b8ffbae9a27570f7281d0850d4c814563e054599851812b30751de",
         "community-ux-v25.css": "ecad26551b9cf312f45fa5d20ce974cfe6ac21a55d262a72905642197326c1a6",
@@ -36,17 +36,24 @@
         "community-navigation-v32.css": "1f566245260d880c4d87ba61388e0d90758e298fe312eb8f19839297a8331051",
         "community-feed.css": "d678d98f8655d40199d13dd3624a5079bdda2c7f9cfc4fef957698151d687b91",
         "community-footer.css": "3787bb1a85d9e6ae0cebe45606334f49a9e36a2a12081dc294ac09d65460d207",
-        "community-reflections.css": "4ca3b3214ad139e3e4927cb7e1cc042c78c99c46d5e1f0df91813d570e877767"
+        "community-reflections.css": "4ca3b3214ad139e3e4927cb7e1cc042c78c99c46d5e1f0df91813d570e877767",
+        "community-background-designs-v40.css": "e539674eaee351450867c83af80e730ad265bdb122f5a177d18d13c089937d29",
+        "community-background-defaults-v43.css": "92e73fa3269cd9fa85b36e467c07e8786374218839f25a4382e2d41a66a9fd0d",
+        "community-background-spectrum-v44.css": "80cbc864eab924eb03c049e1ee7a602457e73f5b689401e3d7fe4eb46a99cd4d",
+        "community-background-palettes-v40.css": "10f0607b2cc9fc87231b68bc06b9101cc4ad229369158cf9ad66c25e0b68dd36"
       }
     },
     "background-head": {
-      "file": "bundles/background-head.768e5ab6189152ef.js",
-      "sha256": "768e5ab6189152ef950fad9623f490a74546b684917afbe8a3d6c5b6cccd8dc6",
-      "bytes": 13941,
-      "sourceBytes": 18641,
-      "gzipBytes": 5420,
+      "file": "bundles/background-head.bd8cb30f06e56fab.js",
+      "sha256": "bd8cb30f06e56fab2692496d56e3aa98044f19d27de6786a4f4935faff90d2ab",
+      "bytes": 84799,
+      "sourceBytes": 103541,
+      "gzipBytes": 20049,
       "sources": {
-        "community-backgrounds.js": "133e521fdb7ee6bdb5e491bee7e86cc8a9a70d20161e0c186e2b096c508b859e"
+        "community-background-palettes-v40.js": "bfde55b1c2d92c6d9d7a0b0a70139c4b2f879dcd03d22cdf4bdd6320f8c032e1",
+        "community-background-candidates-v40.js": "4094947fec258d316f1fc1397297efb6ed3e01d8ae2bcd43e0119aeaf52249a9",
+        "community-background-visits-v55.js": "c8627a56e90694e2acaba3a9f29bf6859018c38da68f9375f156f10cb65fc557",
+        "community-backgrounds.js": "bd66f1c77f299a3a54d0e76e62e56958523f84392ea7a1d677f928b3f13b0b40"
       }
     },
     "transitions-head": {
@@ -60,18 +67,23 @@
       }
     },
     "runtime": {
-      "file": "bundles/runtime.7ce23532603bff2d.js",
-      "sha256": "7ce23532603bff2de9f95f5ff027730cb40dc37b17691cf63ce234094e1ac684",
-      "bytes": 102813,
-      "sourceBytes": 155069,
-      "gzipBytes": 33904,
+      "file": "bundles/runtime.1efa1b858689fa53.js",
+      "sha256": "1efa1b858689fa536ac7203cac20288a86bb3953dcfe557affe6217e938f3aee",
+      "bytes": 125074,
+      "sourceBytes": 189380,
+      "gzipBytes": 42804,
       "sources": {
         "liss.js": "8c4f18b62a1f013ff0a24fd9f9a5021842fa53449b98c93045081bd55eafec45",
         "community-theme.js": "c8cfb16239c3ddae04ea40f9ed032e51de943ca003ea0c857ba9739f3bf7c61b",
         "community-room.js": "73b7625bfaed4a8121a5d8c3137bf795d92731561c0861073492101282040c34",
         "community-spatial.js": "3df5b8957bd64bbf3d94c747dd4d5b0487e11dec09764a521185a427e711de27",
-        "community-procedural.js": "78017f6e0fa22a5f4890f889d229c4b6d4763b6bad6e8b4377c44e19ae0a0b38",
-        "community-atmosphere.js": "41133be3d5f34e789581819e1d1d65aba16ed30412d53e3e60571dacec72634b",
+        "community-background-water-v40.js": "d019e46efdaed545b6c792633fb58d3fa5c22eae47bd980d8cb11bd2a9d4be3c",
+        "community-background-designs-v40.js": "d4f25ef0bed60a20b640f7a88ac8c607fe8851dab54e32fcf2f1b7f5c6b59847",
+        "community-background-defaults-v43.js": "cb4661d6d04c9e11c277fff86dd1d7f57e44a1bb0f9d15c73a74ef4745167e12",
+        "community-procedural.js": "39451c02a4dad305abd4e219f554dde2512941ff2a3d6d3b42d3d7852b079119",
+        "community-background-spectrum-v44.js": "4638e6c9c26266cc10fa61d7730362cbbe263eef143fe4f0e4c3f6aff67781cb",
+        "community-background-previews-v49.js": "72e296338d639b47d4109db2e4a920eee582418936e9b0801bda8e0536d3df25",
+        "community-atmosphere.js": "018cc43e7042e8fb8ea9206c036a089e49590a96884d800085f193f10ad9605f",
         "community-surfaces.js": "ba17d65a7deb0ba7a383e167d0dd804575da1e602bb8db84a35549a18a16a037",
         "community-reflections.js": "1e9d7cecff5c800d6a190fa000d0fda1158166eba7374eaeb48ec0c78dfd3e56",
         "community-crystal.js": "3a4c6f3edfefc288b0c3a1c153f649feb10d46fbdf8a58a4039e0864efa0722e",
@@ -169,6 +181,26 @@
       "gzipBytes": 1195,
       "sources": {
         "community-feed.js": "fae99692acf21c526edf394d4315f757ac4d5e339da486ab5e6b86ddef563fa5"
+      }
+    },
+    "background-review-styles": {
+      "file": "bundles/background-review-styles.adae6bc32f3760cb.css",
+      "sha256": "adae6bc32f3760cb945bdfc7fd092582622bf7159853babaffc4c567286316eb",
+      "bytes": 6458,
+      "sourceBytes": 6803,
+      "gzipBytes": 1814,
+      "sources": {
+        "community-background-review-v40.css": "a1a50983a6dbab94676e7ca90a61d708602a9280a2600c19897adbcad78cdd06"
+      }
+    },
+    "background-review": {
+      "file": "bundles/background-review.818cbf6d4d02b57a.js",
+      "sha256": "818cbf6d4d02b57acfe3397785ab90da24972e355d39b4541ca001dc774e7bd3",
+      "bytes": 10522,
+      "sourceBytes": 17126,
+      "gzipBytes": 3873,
+      "sources": {
+        "community-background-review-v40.js": "080b38422d7f8e3bf5e7e4386d81ed09b866f7d99abff697df7827799b5fbfd4"
       }
     }
   }

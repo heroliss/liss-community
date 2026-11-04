@@ -12,7 +12,8 @@ from .forms import LoginForm, RegistrationForm, ChangePasswordForm,\
 @auth.before_app_request
 def before_request():
     if current_app.config.get('PUBLIC_DEMO') and request.endpoint in {
-            'static', 'bootstrap.static', 'pagedown.static',
+            'static', 'bootstrap.static', 'pagedown.static', 'background_catalog.asset',
+            'admin.background_pending', 'admin.background_asset',
             'community.portfolio', 'community.portfolio_index'}:
         return
     if current_user.is_authenticated:

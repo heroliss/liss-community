@@ -1,0 +1,14 @@
+/* Low-amplitude surface reflections. The atmosphere controller owns pause,
+   visibility and reduced-motion decisions; no additional JavaScript clock. */
+.scene43-paint,.scene43-overlay { position:absolute;inset:0;display:block;width:100%;height:100%; }
+.scene43-overlay { overflow:visible;pointer-events:none; }
+.scene43-overlay [class^=scene43-] { animation-play-state:paused; }
+.scene43-weave-glint { animation:scene43-weave 37s ease-in-out infinite alternate paused; }
+.scene43-mercury-glint { animation:scene43-mercury 43s ease-in-out infinite alternate paused; }
+.scene43-strata-glint { animation:scene43-strata 51s ease-in-out infinite alternate paused; }
+.scene43[data-scene-motion=running] .scene43-overlay [class^=scene43-] { animation-play-state:running; }
+@keyframes scene43-weave { from { opacity:.24;transform:translate(-2px,-3px); } to { opacity:.65;transform:translate(3px,4px); } }
+@keyframes scene43-mercury { from { opacity:.20;transform:translate(0,-4px); } to { opacity:.58;transform:translate(2px,5px); } }
+@keyframes scene43-strata { from { opacity:.15;transform:translate(-2px,0); } to { opacity:.5;transform:translate(2px,3px); } }
+@media(prefers-reduced-motion:reduce) { .scene43-overlay [class^=scene43-] { animation:none!important; } }
+@media(forced-colors:active) { .scene43 { display:none!important; } }

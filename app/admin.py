@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 
 import click
 from flask import (Blueprint, abort, current_app, flash, redirect,
-                   render_template, request, session, url_for)
+                   render_template, request, session, url_for, send_file)
 from flask_login import current_user
 from itsdangerous import BadData, URLSafeTimedSerializer
 from sqlalchemy import or_
@@ -62,11 +62,12 @@ class AdminAudit(db.Model):
         return {'post.hide': '隐藏文章', 'post.restore': '恢复文章',
                 'comment.hide': '隐藏评论', 'comment.restore': '恢复评论',
                 'user.update': '更新用户权限', 'settings.update': '更新站点设置',
+                'backgrounds.update': '更新背景图库', 'backgrounds.upload': '添加背景图片',
                 'user.grant_admin': '授予管理员权限', 'user.merge_site_owner': '合并站点作者身份'}.get(self.action, self.action)
 
     @property
     def changes(self):
-        """Expose only known moderation/settings fields from historical receipts."""
+        """Expose known fields and bounded, server-generated catalogue diffs."""
         try:
             states = json.loads(self.details)
             before, after = states.get('before', {}), states.get('after', {})
@@ -77,11 +78,23 @@ class AdminAudit(db.Model):
         labels = dict(site_name='网站名称', tagline='网站简介', welcome='欢迎语',
             registration_open='账号注册', guest_posting_open='访客发文',
             guest_post_limit='访客文章上限', hidden='显示状态', role='账号角色', disabled='账号状态')
-        return [dict(label=label,
+        labels.update(image_count='图库图片数', available_count='可用图片数',
+                      random_enabled='站点默认随机', pool_count='默认随机名单', revision='图库版本')
+        rows = [dict(label=label,
                      before=pretty_value(key, before[key]) if key in before else '—',
                      after=pretty_value(key, after[key]) if key in after else '—')
                 for key, label in labels.items()
                 if (key in before or key in after) and before.get(key) != after.get(key)]
+        if self.target_type == 'backgrounds':
+            details = states.get('background_changes', [])
+            if isinstance(details, list) and len(details) <= 1803:
+                for row in details:
+                    if (isinstance(row, dict) and set(row) == {'label', 'before', 'after'}
+                            and all(isinstance(row[key], str) for key in row)
+                            and len(row['label']) <= 200
+                            and len(row['before']) <= 20000 and len(row['after']) <= 20000):
+                        rows.append(row)
+        return rows
 
 
 class AdminConfirmation(db.Model):
@@ -136,14 +149,17 @@ def active_admin_count():
         Role.permissions.op('&')(Permission.ADMINISTER) == Permission.ADMINISTER).count()
 
 
-def record_audit(action, kind, target, before, after, cli=False):
-    label = ('站点设置' if kind == 'settings' else
+def record_audit(action, kind, target, before, after, cli=False, background_changes=None):
+    label = ('站点设置' if kind == 'settings' else '背景图库' if kind == 'backgrounds' else
              f'{"文章" if kind == "post" else "评论"} #{target.id}' if kind in {'post', 'comment'}
              else f'@{target.username}')
+    details = {'before': before, 'after': after}
+    if kind == 'backgrounds' and background_changes is not None:
+        details['background_changes'] = background_changes
     entry = AdminAudit(actor_id=None if cli else current_user.id,
         actor_name='服务器 CLI' if cli else current_user.display_name[:64],
         action=action, target_type=kind, target_id=None if kind == 'settings' else target.id,
-        target_label=label[:100], details=json.dumps({'before': before, 'after': after}, ensure_ascii=False))
+        target_label=label[:100], details=json.dumps(details, ensure_ascii=False))
     db.session.add(entry)
 
 
@@ -242,10 +258,46 @@ def settings():
     return render_template('admin/settings.html', admin_section='settings', values=settings_values(), errors={})
 
 
+@admin.get('/backgrounds', strict_slashes=False)
+def backgrounds():
+    from .background_catalog import admin_context
+    return render_template('admin/backgrounds.html', admin_section='backgrounds',
+                           background_catalog=admin_context(), errors={}, upload_values={})
+
+
+@admin.get('/backgrounds/pending/<stage_id>/<filename>')
+def background_pending(stage_id, filename):
+    from .background_catalog import STAGE, storage_root
+    if not STAGE.fullmatch(stage_id) or filename != 'thumb.webp':
+        abort(404)
+    path = storage_root()/'staging'/stage_id
+    try:
+        metadata = json.loads((path/'stage.json').read_text(encoding='utf-8'))
+        import time
+        if metadata['actorId'] != current_user.id or time.time()-metadata['created'] > 600:
+            abort(404)
+    except (OSError, ValueError, KeyError):
+        abort(404)
+    response = send_file(path/filename, mimetype='image/webp', max_age=0)
+    response.headers['Cache-Control'] = 'no-store'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
+
+
+@admin.get('/backgrounds/items/<image_id>/<filename>')
+def background_asset(image_id, filename):
+    from .background_catalog import item_asset_path
+    response = send_file(item_asset_path(image_id, filename, include_inactive=True),
+                         mimetype='image/webp', max_age=0)
+    response.headers['Cache-Control'] = 'no-store'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
+
+
 @admin.get('/audit', strict_slashes=False)
 def audit():
     q, kind = search_term(), request.args.get('kind', 'all')
-    if kind not in {'post', 'comment', 'user', 'settings'}:
+    if kind not in {'post', 'comment', 'user', 'settings', 'backgrounds'}:
         kind = 'all'
     query = AdminAudit.query
     if kind != 'all':
@@ -256,7 +308,9 @@ def audit():
         else:
             pattern = search_like(q)
             query = query.filter(or_(AdminAudit.actor_name.ilike(pattern, escape='\\'),
-                                     AdminAudit.target_label.ilike(pattern, escape='\\')))
+                                     AdminAudit.target_label.ilike(pattern, escape='\\'),
+                                     (AdminAudit.target_type == 'backgrounds') &
+                                     AdminAudit.details.ilike(pattern, escape='\\')))
     return render_template('admin/audit.html', admin_section='audit', q=q, kind=kind,
         pagination=page_query(query.order_by(AdminAudit.id.desc())))
 
@@ -267,7 +321,7 @@ def fail(message, status=400):
 
 def clean_return(value):
     allowed = {url_for('admin.' + endpoint) for endpoint in
-               ('index', 'posts', 'comments', 'users', 'settings', 'audit')}
+               ('index', 'posts', 'comments', 'users', 'settings', 'audit', 'backgrounds')}
     if not isinstance(value, str) or len(value) > 2048 or '\\' in value or any(ord(c) < 32 for c in value):
         return url_for('admin.index')
     try:
@@ -280,6 +334,8 @@ def clean_return(value):
 
 
 def state_of(kind, target):
+    if kind == 'backgrounds':
+        return dict(revision=target.revision, catalog_hash=hashlib.sha256(target.data.encode()).hexdigest())
     if kind in {'post', 'comment'}:
         return {'hidden': bool(target.hidden if kind == 'post' else target.disabled),
                 'body_hash': hashlib.sha256((target.body or '').encode()).hexdigest()}
@@ -328,7 +384,7 @@ def parse_settings(form):
 def pretty_value(key, value):
     if key in {'hidden', 'disabled'}:
         return ('隐藏' if value else '公开') if key == 'hidden' else ('已停用' if value else '正常')
-    if key in {'registration_open', 'guest_posting_open'}:
+    if key in {'registration_open', 'guest_posting_open', 'random_enabled'}:
         return '开启' if value else '关闭'
     if key == 'role':
         return dict(ROLE_CHOICES).get(value, value)
@@ -357,9 +413,38 @@ def operation_context(kind, target, changes):
 @admin.post('/preview')
 def preview():
     kind, action = request.form.get('kind'), request.form.get('action')
-    if kind not in {'post', 'comment', 'user', 'settings'}:
+    if kind not in {'post', 'comment', 'user', 'settings', 'backgrounds'}:
         fail('未知的管理操作。')
-    if kind == 'settings':
+    operation = None
+    if kind == 'backgrounds':
+        from . import background_catalog as library
+        target = library.catalog_row()
+        try:
+            if int(request.form.get('catalog_revision', '')) != target.revision:
+                fail('图库已发生变化，请刷新后重新预览。', 409)
+        except ValueError:
+            fail('请选择有效的图库版本。')
+        before = library.document(target)
+        if action == 'update':
+            desired, errors = library.parse_update(request.form)
+            if errors:
+                return render_template('admin/backgrounds.html', admin_section='backgrounds',
+                    background_catalog=library.admin_context(desired), errors=errors, upload_values={}), 400
+            changes = dict(action='update', document=desired)
+            operation = library.operation(before, desired)
+        elif action == 'upload':
+            try:
+                upload = library.stage_upload(request.files.get('image'), request.form)
+            except library.CatalogError as error:
+                return render_template('admin/backgrounds.html', admin_section='backgrounds',
+                    background_catalog=library.admin_context(), errors={'image': str(error)},
+                    upload_values={key: request.form.get(key, '') for key in ('title', 'description', 'palette_key', 'include_pool')}), 400
+            desired = library.changes_for_upload(upload)
+            changes = dict(action='upload', upload=upload, document=desired)
+            operation = library.operation(before, desired, upload)
+        else:
+            fail('未知的图库操作。')
+    elif kind == 'settings':
         if action != 'update':
             fail('未知的设置操作。')
         target = db.session.get(SiteSettings, 1)
@@ -384,7 +469,7 @@ def preview():
             if action not in {'hide', 'restore'}:
                 fail('请选择隐藏或恢复。')
             changes = dict(hidden=action == 'hide')
-    operation = operation_context(kind, target, changes)
+    operation = operation or operation_context(kind, target, changes)
     if not operation['changes']:
         flash('没有需要保存的更改。')
         return redirect(clean_return(request.form.get('return_to')))
@@ -399,7 +484,7 @@ def preview():
                    changes=changes, before=state_of(kind, target),
                    return_to=clean_return(request.form.get('return_to')))
     token = URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt='liss-admin-change').dumps(payload)
-    return render_template('admin/confirm.html', admin_section='settings' if kind == 'settings' else kind + 's',
+    return render_template('admin/confirm.html', admin_section=kind if kind in {'settings', 'backgrounds'} else kind + 's',
         operation=operation, token=token, return_to=payload['return_to'])
 
 
@@ -421,11 +506,30 @@ def apply():
             or receipt.created_at < utcnow() - timedelta(minutes=10)):
         fail('确认已失效，请重新预览。')
     kind, changes = payload['kind'], payload['changes']
-    target = (db.session.get(SiteSettings, 1) if kind == 'settings' else
-              db.get_or_404({'post': Post, 'comment': Comment, 'user': User}[kind], payload['target_id']))
+    if kind not in {'post', 'comment', 'user', 'settings', 'backgrounds'} or not isinstance(changes, dict):
+        fail('未知的确认操作。')
+    if kind == 'backgrounds':
+        from . import background_catalog as library
+        target = library.catalog_row()
+    else:
+        target = (db.session.get(SiteSettings, 1) if kind == 'settings' else
+                  db.get_or_404({'post': Post, 'comment': Comment, 'user': User}[kind], payload['target_id']))
     if state_of(kind, target) != payload['before']:
         fail('内容已发生变化，请重新查看并确认。', 409)
-    if kind == 'user':
+    moved, background_changes = None, None
+    if kind == 'backgrounds':
+        from . import background_catalog as library
+        old_document = library.document(target)
+        before = library.summary(old_document, target.revision)
+        try:
+            moved = library.apply_change(target, changes)
+        except library.CatalogError as error:
+            fail(str(error), 409)
+        new_document = library.document(target)
+        after = library.summary(new_document, target.revision)
+        background_changes = library.operation(old_document, new_document)['changes']
+        action = changes['action']
+    elif kind == 'user':
         check_user_change(target, changes)
         before = dict(role=target.admin_role_key, disabled=bool(target.disabled))
         target.role = role_for(changes['role'])
@@ -443,9 +547,16 @@ def apply():
         before = dict(hidden=bool(getattr(target, attr)))
         setattr(target, attr, changes['hidden'])
         after, action = changes, 'hide' if changes['hidden'] else 'restore'
-    record_audit(kind + '.' + action, kind, target, before, after)
+    record_audit(kind + '.' + action, kind, target, before, after,
+                 background_changes=background_changes)
     receipt.consumed = True
-    db.session.commit()
+    try:
+        db.session.commit()
+    except BaseException:
+        db.session.rollback()
+        if moved is not None:
+            library.remove_owned(moved)
+        raise
     flash('更改已保存。')
     return redirect(clean_return(payload.get('return_to')))
 

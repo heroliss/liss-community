@@ -129,29 +129,41 @@ WSGI 保留服务器 `REMOTE_ADDR`；只有明确代理合同后才调整 `LIHOU
 
 ## 一致备份与显式恢复
 
-运行中不能直接复制 SQLite 主文件而忽略 WAL。管理命令读取与 WSGI 相同的私有密钥、持久目录，用 **SQLite backup API** 创建一致快照并核验结构与 `quick_check`。
+运行中不能直接复制 SQLite 主文件而忽略 WAL。管理命令读取与 WSGI 相同的私有密钥、持久目录，用 **SQLite backup API** 创建一致快照并核验结构与 `quick_check`。网站有管理员上传背景后，推荐使用包含数据库与私有图片的完整目录快照：
 
 ```bash
 cd ~/liss-web  # 仍保留旧源码目录时使用实际路径
 workon liss-web  # 已有环境继续用原 virtualenv 名称
-python deploy/manage_public.py backup-public-demo --output ~/liss-backups/2026-10-24.sqlite
+python deploy/manage_public.py backup-public-demo --bundle --output ~/liss-backups/before-update-20261105.bundle
 ```
 
-拒绝覆盖已有输出；将备份下载到自己的存储，另行安全保存私有配置。快照含用户、密码散列、内容、关系及身份代次，不含 SECRET_KEY，按私有数据保存。
+输出必须是不存在的新目录；重复使用相同位置会拒绝覆盖。目录包含 `database.sqlite`、`manifest.json` 和数据库所引用的 `backgrounds/items/` 原图、响应式图及缩略图，包含已停用和已移除图片；不包含待确认上传、`stage.json` 或服务器私有配置。文件摘要、字节数、引用完整性和 SQLite 完整性均在生成后核验。目录型快照不使用归档解包；链接、目录联接、路径穿越、清单外文件和摘要不符会被拒绝。单份完整快照当前支持最多1600个文件、合计4 GiB。
+
+将完整目录下载到自己的私有存储，保持内部相对路径。快照含用户、密码散列、内容、关系及身份代次，不含 `SECRET_KEY`；密钥和邮件配置需另行安全保存，不提交到仓库或映射到公开静态目录。
+
+旧的 `backup-public-demo --output ~/liss-backups/content.sqlite` 仍创建数据库单文件快照，并明确提示没有复制图片。旧快照恢复时，如果数据库引用了上传图片，目标持久目录必须已保留所有对应文件，否则恢复会提前拒绝；不要将单个 SQLite 文件误当成完整图片备份。
 
 PythonAnywhere 的 512 MiB 包括仓库、环境、数据库、日志和备份。128 MiB 是应用写入软限制，不能测量整账户余量。自动迁移前的安全备份也占空间；应定期下载备份并核对配额，不自动删除任何快照。
 
-只有明确需要回到某个快照才执行：
+先做只读核验，不改数据库、图片或身份，也不创建安全备份：
 
 ```bash
-python deploy/manage_public.py restore-public-demo --input ~/liss-backups/2026-10-24.sqlite --yes
+python deploy/manage_public.py restore-public-demo --input ~/liss-backups/before-update-20261105.bundle --check
 ```
 
-**恢复会替换当前内容，快照之后的数据不在恢复结果中。** 先自动生成 `before-restore-*.sqlite`，再准备新身份代次并一次事务写回；非法输入或准备失败不替换原库。操作需要足够空间容纳原库、安全备份与临时快照，建议在维护窗口执行。
+只有明确需要回到快照时才执行实际恢复：
+
+```bash
+python deploy/manage_public.py restore-public-demo --input ~/liss-backups/before-update-20261105.bundle --yes
+```
+
+**恢复会替换当前内容，快照之后的内容不在恢复结果中。** 工具先完整校验快照和目标图片冲突，再保留 `before-restore-*.bundle` 安全快照（没有上传图片的旧 SQLite 恢复保留原 `before-restore-*.sqlite` 格式）。目标已经存在的图片必须与快照摘要相同，不覆盖冲突文件；缺失文件经校验后原子添加，数据库成功写回前图片已准备好。数据库准备失败会回退原数据库与身份，并撤回仅本次新增的图片。目标中未被旧快照引用的新图片原样保留，便于恢复安全快照；不自动清空图片目录。
+
+操作需要足够空间容纳原库、完整安全备份和暂存图片，文件系统需支持同卷硬链接以原子发布缺失图片；建议在维护窗口执行。恢复前检查与失败恢复路径都有隔离测试，但不能替代实际服务器配额检查。
 
 显式恢复会撤销旧 Cookie，防止快照用户 ID 重用造成越权；快照中的注册账号可以重新登录，访客内容保留。恢复不是普通更新步骤。
 
-日常更新：一致备份 → `git pull --ff-only` → 安装依赖 → Reload → 验收。保留同一个数据目录与密钥。管理脚本支持 `--settings /私有配置.json --data-dir /持久目录`（子命令前），不打印密钥。
+日常更新：完整一致备份 → 核验与下载 → `git pull --ff-only` → 安装锁定依赖 → `prepare-public-demo` → Reload → 验收。保留同一个数据目录与密钥。管理脚本支持 `--settings /私有配置.json --data-dir /持久目录`（子命令前），不打印密钥。
 
 当前新版还包含外观材质及讨论功能的增量存储。发布前用一致快照升级副本、比较旧表旧行，并按[当前检查与发布指南](testing-and-release.md#受控发布与迁移演练)记录完整回归、真实设备边界和部署后结果。复制脚本生成的 SQLite 演练目录也包含私有内容，按备份同等级保存；不要提交到仓库。
 

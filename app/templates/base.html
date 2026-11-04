@@ -21,11 +21,13 @@
 <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
 <script>try{var t=localStorage.getItem('liss-theme');if(t==='light')document.documentElement.dataset.theme=t}catch(e){}</script>
 {% if request.endpoint in ['main.index','main.user','community.project_talk'] %}<script>(function(){var v;try{v=localStorage.getItem('liss-feed-view:v1')}catch(e){}if(v!=='cards'&&v!=='list')try{v=sessionStorage.getItem('liss-feed-view:v1')}catch(e){}if(v==='cards'||v==='list')document.documentElement.dataset.feedView=v})();</script>{% endif %}
+<script>window.LissBackgroundSite={{ background_site_payload|tojson }};</script>
 {% for asset in asset_urls('background-head') %}<script src="{{ asset }}" blocking="render"></script>{% endfor %}
 {% if request.endpoint in ['main.index', 'main.edit', 'community.project_talk'] and current_user.is_authenticated %}
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/easymde-2.21.0/easymde.min.css') }}">
 {% endif %}
 {% for asset in asset_urls('styles') + asset_urls('discussions') %}<link rel="stylesheet" href="{{ asset }}">{% endfor %}
+{% for asset in asset_urls('background-review-styles') %}<link rel="stylesheet" href="{{ asset }}">{% endfor %}
 {% if request.endpoint == 'main.post' %}{% for asset in asset_urls('thread-styles') %}<link rel="stylesheet" href="{{ asset }}">{% endfor %}{% endif %}
 {% for asset in asset_urls('transitions-head') %}<script src="{{ asset }}" blocking="render"></script>{% endfor %}
 {% endblock %}
@@ -70,6 +72,7 @@
   {% block page_content %}{% endblock %}
 </main>
 {% include '_footer.html' %}
+{% include '_background_review.html' %}
 {% endblock %}
 {% block scripts %}
 {{ super() }}
@@ -90,4 +93,5 @@
 {% if request.endpoint == 'main.post' %}{% for asset in asset_urls('thread') %}<script src="{{ asset }}" defer></script>{% endfor %}{% endif %}
 {% if request.endpoint in ['main.index','main.user','community.project_talk'] %}{% for asset in asset_urls('feed') %}<script src="{{ asset }}" defer></script>{% endfor %}{% endif %}
 {% for asset in asset_urls('navigation') %}<script src="{{ asset }}" defer></script>{% endfor %}
+{% for asset in asset_urls('background-review') %}<script src="{{ asset }}" defer></script>{% endfor %}
 {% endblock %}

@@ -14,7 +14,7 @@ from flask import Flask
 
 from app import create_app, db
 from app.frontend_assets import install
-from app.models import Post, Role, User
+from app.models import Post, PostAppearance, Role, User
 from config import TestingConfig
 
 
@@ -132,10 +132,12 @@ class ResourceParser(HTMLParser):
         super().__init__()
         self.scripts = []
         self.styles = []
+        self.elements = []
         self.feed(page)
 
     def handle_starttag(self, tag, attributes):
         values = dict(attributes)
+        self.elements.append((tag, values))
         if tag == 'script' and values.get('src'):
             self.scripts.append(values['src'])
         if tag == 'link' and values.get('rel') == 'stylesheet' and values.get('href'):
@@ -204,6 +206,66 @@ class PageAssetTests(unittest.TestCase):
         self.assert_group(page, 'gallery', False)
         self.assert_group(page, 'writing', False)
         self.assertFalse(any('easymde' in url for url in page.scripts + page.styles))
+
+    def test_background_viewer_is_available_in_production_but_initially_hidden(self):
+        for local, path in ((False, '/'), (False, '/?background_review=1'),
+                            (True, '/'), (True, '/?background_review=1')):
+            with self.subTest(local=local, path=path):
+                self.app.config['LISS_LOCAL_PREVIEW'] = local
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 200)
+                html = response.get_data(as_text=True)
+                page = ResourceParser(html)
+                self.assert_group(page, 'background-review')
+                for url in self.group_urls('background-review-styles'):
+                    self.assertIn(url, page.styles)
+                viewers = [attributes for _, attributes in page.elements
+                           if 'data-background-viewer' in attributes]
+                self.assertEqual(len(viewers), 1)
+                self.assertIn('hidden', viewers[0])
+                entries = [attributes for tag, attributes in page.elements
+                           if tag == 'button' and 'data-background-viewer-start' in attributes]
+                self.assertEqual(len(entries), 1)
+                self.assertNotIn('hidden', entries[0])
+                self.assertNotIn('background-advanced', html)
+                self.assertNotIn('data-background-motion-note', html)
+                self.assertNotIn('data-background-note', html)
+                self.assertNotIn('background-viewer-hint', html)
+                self.assertTrue(any('data-background-credit' in attributes
+                                    for _, attributes in page.elements))
+                self.assertNotIn('data-review-save', html)
+                self.assertNotIn('data-review-export', html)
+                self.assertNotIn('本地候选', html)
+
+    def test_background_settings_and_hidden_viewer_are_on_reading_and_account_pages(self):
+        for path in (f'/post/{self.post_id}', '/user/asset-test', '/auth/login'):
+            with self.subTest(path=path):
+                page = self.page(path)
+                self.assert_group(page, 'background-review')
+                self.assertTrue(any('data-background-dialog' in attributes
+                                    for _, attributes in page.elements))
+                viewers = [attributes for _, attributes in page.elements
+                           if 'data-background-viewer' in attributes]
+                self.assertEqual(len(viewers), 1)
+                self.assertIn('hidden', viewers[0])
+
+    def test_background_controls_preserve_an_articles_explicit_colour_and_material(self):
+        with self.app.app_context():
+            db.session.add(PostAppearance(post_id=self.post_id,
+                theme_color='#cc7733', card_material='cork'))
+            db.session.commit()
+        for suffix in ('', '?background_review=1&scene=noctilucent-sea'):
+            with self.subTest(suffix=suffix):
+                page = self.page(f'/post/{self.post_id}{suffix}')
+                body = next(attributes for tag, attributes in page.elements if tag == 'body')
+                self.assertEqual(body['data-post-theme-color'], '#cc7733')
+                self.assertEqual(body['data-community-theme'], 'post')
+                self.assertTrue(any('data-background-dialog' in attributes
+                                    for _, attributes in page.elements))
+        with self.app.app_context():
+            appearance = db.session.get(PostAppearance, self.post_id)
+            self.assertEqual(appearance.theme_color, '#cc7733')
+            self.assertEqual(appearance.card_material, 'cork')
 
     def test_authenticated_composer_pages_load_editor_and_gallery(self):
         self.login()

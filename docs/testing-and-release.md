@@ -46,6 +46,8 @@ npm ci --ignore-scripts
 
 ## 前端资源构建
 
+统一检查同时运行 `python -B scripts/check_scene_assets.py --strict`，解码核对当前图片目录的响应式尺寸、字节数与缩略图，并检查运行源码引用。废弃派生图应先核对来源后归档到公开目录之外；不要将原图或超分 master 当成缓存清理。
+
 `assets/sources.json` 声明分组及原始顺序，`package-lock.json` 锁定构建依赖。开发者改动清单内 CSS/JS 后执行：
 
 ```powershell
@@ -94,8 +96,8 @@ npm run clean:assets -- --write
 ## 受控发布与迁移演练
 
 1. 冻结候选提交，确认工作区和当前线上提交，运行完整自动检查，并完成可用设备上的浏览器验收。检查日志对应这一个提交；修改后针对影响范围重验。
-2. 使用服务器原有管理配置，通过 SQLite backup API 创建一致快照，核验 `quick_check`，另行安全保存私有配置和固定 `SECRET_KEY`。保留原数据目录、Cookie 名和身份代次。
-3. 将快照放到私有本地目录，用当前源码升级副本并对照原表、原列和原行。输出目录必须是全新目录，里面含完整私有数据，不提交到 Git：
+2. 使用服务器原有管理配置，通过 `backup-public-demo --bundle --output <新目录.bundle>` 创建数据库及上传图片的完整快照。该命令使用 SQLite backup API、`quick_check`、逐文件 SHA-256 和数据库引用清单校验；已停用/软移除图片也保留，待确认上传与私有配置不进入快照。用 `restore-public-demo --input <目录.bundle> --check` 只读核验文件及目标冲突，再下载整个目录另存。另行安全保存私有配置和固定 `SECRET_KEY`。保留原数据目录、Cookie 名和身份代次。旧 SQLite 单文件模式继续支持，但引用上传图片时依赖目标目录中已保留的对应文件。
+3. 将快照放到私有本地目录，用当前源码升级副本并对照原表、原列和原行。下面的演练入口接收完整快照中的 `database.sqlite`；图片恢复另外在全新隔离持久目录中通过 `restore-public-demo --input <目录.bundle> --check` 和实际恢复验证。输出目录必须是全新目录，里面含完整私有数据，不提交到 Git：
 
 ```powershell
 .venv/Scripts/python -B scripts/rehearse_upgrade.py --snapshot <一致快照.sqlite> --output-dir <新的私有演练目录>
@@ -105,8 +107,8 @@ npm run clean:assets -- --write
 
 应核对演练实际发生了哪些迁移。已经是九项材质约束的 v32 快照只能证明现有材质数据保留，不能证明五项或八项目录的升级；缺少回复列的旧快照则可实际覆盖 `comments.parent_id/edited_at` 的新增和通知表建立。报告中的 `added_columns`、`added_tables`、`appearance_table_definition_changed` 与 `safety_backups_created` 用于区分这些范围，不把无操作准备写成所有历史迁移均通过。
 
-4. 对 `public-demo` 部署按既有 [部署维护流程](public-demo.md#一致备份与显式恢复) 更新指定候选提交、安装锁定依赖、运行准备命令并 Reload。普通非 `public-demo` Alembic 部署应用完整迁移链；外观迁移包含 `20261030_post_appearance`、`20261031_material_catalog`、`20261031_glass_finishes`，当前 head 以代码为准。
+4. 对 `public-demo` 部署按既有 [部署维护流程](public-demo.md#一致备份与显式恢复) 更新指定候选提交、安装锁定依赖（含图库处理使用的 Pillow）、运行准备命令并 Reload。图库增加 `background_catalog` 表；普通非 `public-demo` Alembic 部署应用完整迁移链，当前 head 以代码为准。发布前核对账户真实空间，图库预算不能代替整账户余量检查。
 5. 先运行匿名烟测，再由授权账号实际验收登录、旧文章/评论/关注、发帖/编辑/定向回复、未读提醒、个人评论纠错、后台确认、材质保存及 Reload 后保留。涉及邮件时使用授权收件箱实收验证；本地 outbox 不算真实送达。记录服务提交与结果。
-6. 保留发布前快照和上一源码版本。仅前端失败且旧代码兼容新增 schema 时，可以回退源码；需要恢复数据库时先备份当前新增内容，再按显式恢复流程执行，说明恢复会撤销旧 Cookie、快照后的内容不在恢复结果中。不要用清空数据或轮换密钥代替回退。
+6. 保留发布前完整快照和上一源码版本。仅前端失败且旧代码兼容新增 schema 时，可以回退源码；需要恢复时先完整备份当前新增内容，再按显式恢复流程执行，说明恢复会撤销旧 Cookie、快照后的内容不在恢复结果中。目录快照先验证所有文件再增加缺失图片，已有冲突会拒绝覆盖；数据库准备失败回退原库、原身份及本次新增文件。单文件旧快照恢复前会检查引用图片是否齐全。不要用清空数据或轮换密钥代替回退，也不要自动删掉快照之后新增的图片。
 
 本地演练不能证明生产空间、平台配额、邮件服务、DNS/HTTPS 或真实用户浏览器均可用。生产更新和内容操作在授权范围内单独执行，自动 CI 不承担这些动作。

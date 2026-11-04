@@ -1,0 +1,14 @@
+<section class="scene-review" data-background-viewer data-background-review hidden tabindex="-1" aria-label="背景观景模式">
+  <button class="scene-review-reveal" type="button" data-review-reveal hidden aria-expanded="false" aria-controls="community-background-viewer-dock" aria-label="展开观景面板" title="展开观景面板"><span>观景</span><span aria-hidden="true">⌃</span></button>
+  <div class="scene-review-dock" id="community-background-viewer-dock" data-review-dock>
+    <div class="scene-review-current"><div class="scene-review-title"><strong data-review-title></strong><span data-review-count aria-label="背景位置"></span></div><small data-review-description></small></div>
+    <div class="scene-review-step"><button type="button" data-review-previous aria-label="上一个背景" title="上一个背景 · ←">←</button><button type="button" data-review-next aria-label="下一个背景" title="下一个背景 · →">→</button></div>
+    <div class="scene-review-actions">
+      <button type="button" data-review-clear aria-pressed="false">只看背景</button>
+      <details class="scene-review-details" data-review-details><summary>背景说明</summary><div class="scene-review-info"><h2 data-review-info-title></h2><p data-review-info-description></p><p class="scene-review-material" data-review-material></p><p class="scene-review-source" data-review-source></p><a data-review-credit hidden target="_blank" rel="noopener noreferrer"></a><small>← → 切换背景 · Esc 退出观景</small></div></details>
+      <button type="button" data-review-browse>选择背景</button>
+    </div>
+    <div class="scene-review-tools"><button class="scene-review-collapse" type="button" data-review-collapse aria-label="收起观景面板" title="收起观景面板">⌄</button><button class="scene-review-exit" type="button" data-review-exit aria-label="退出观景模式" title="退出观景模式 · Esc">×</button></div>
+  </div>
+  <p class="scene-review-status sr-only" data-review-status role="status" aria-live="polite"></p>
+</section>

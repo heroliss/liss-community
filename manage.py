@@ -63,29 +63,37 @@ def prepare_public_demo():
 
 @app.cli.command('backup-public-demo')
 @click.option('--output', required=True, type=click.Path(path_type=str))
-def backup_public_demo(output):
-    """Create a consistent SQLite snapshot; never overwrite an existing file."""
+@click.option('--bundle', is_flag=True, help='Include private uploaded images and SHA-256 manifest in a new directory.')
+def backup_public_demo(output, bundle):
+    """Create a verified snapshot; --bundle also retains private uploaded images."""
     sandbox = app.extensions.get('public_demo')
     if sandbox is None:
         raise click.ClickException('Requires FLASK_CONFIG=public-demo.')
     try:
         with sandbox.exclusive():
-            destination = sandbox.backup(output)
+            destination = sandbox.backup(output, bundle=bundle)
     except (OSError, ValueError) as error:
         raise click.ClickException(str(error)) from error
-    click.echo(f'Consistent SQLite backup saved: {destination}')
+    click.echo(f'Verified {"database and image bundle" if bundle else "SQLite backup"} saved: {destination}')
+    if not bundle:
+        click.echo('SQLite-only snapshot: use --bundle to also retain private uploaded background images.')
 
 
 @app.cli.command('restore-public-demo')
 @click.option('--input', 'source', required=True, type=click.Path(exists=True, path_type=str))
 @click.option('--yes', is_flag=True, help='Explicitly replace current data with this backup.')
-def restore_public_demo(source, yes):
+@click.option('--check', 'check_only', is_flag=True, help='Only verify snapshot, image hashes and destination conflicts; change nothing.')
+def restore_public_demo(source, yes, check_only):
     """DANGER: replace current data with a backup; revoke browser logins."""
     sandbox = app.extensions.get('public_demo')
-    if sandbox is None or not yes:
+    if sandbox is None or not (yes or check_only):
         raise click.ClickException('Requires FLASK_CONFIG=public-demo and explicit --yes; this replaces current data.')
     try:
         with sandbox.exclusive():
+            if check_only:
+                sandbox.inspect_restore(source)
+                click.echo('Backup and destination verified. Check only: no content or files were restored.')
+                return
             safety = sandbox.restore(source)
     except (OSError, ValueError) as error:
         raise click.ClickException(str(error)) from error

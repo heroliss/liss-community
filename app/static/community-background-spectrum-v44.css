@@ -1,0 +1,9 @@
+/* Patterned variants retain the original spectrum's purple/teal/peach fields. */
+.scene44-pattern{position:absolute;inset:0;display:block;width:100%;height:100%;overflow:visible;pointer-events:none;animation:scene44-leaves 43s ease-in-out infinite alternate paused}
+[data-spectrum-pattern=spectrum-ripples] .scene44-pattern{animation-name:scene44-ripples;animation-duration:51s}
+[data-spectrum-pattern][data-scene-motion=running] .scene44-pattern{animation-play-state:running}
+[data-spectrum-pattern][data-scene-motion=paused] .scene44-pattern{animation-play-state:paused}
+@keyframes scene44-leaves{from{transform:translate(-1px,-2px);opacity:.88}to{transform:translate(3px,3px);opacity:1}}
+@keyframes scene44-ripples{from{transform:translate(-2px,1px);opacity:.83}to{transform:translate(2px,-2px);opacity:1}}
+.background-thumb-spectrum-botanical,.background-thumb-spectrum-ripples{background:radial-gradient(ellipse at 75% 10%,#7963d5b8,transparent 68%),radial-gradient(ellipse at 70% 100%,#3ab6a5a3,transparent 67%),radial-gradient(ellipse at 0 55%,#df88788c,transparent 67%),#172634}
+@media(prefers-reduced-motion:reduce),(prefers-reduced-data:reduce){.scene44-pattern{animation:none!important}}

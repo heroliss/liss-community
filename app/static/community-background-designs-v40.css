@@ -1,0 +1,41 @@
+/* These rules address only the redesigned candidates. Approved backgrounds
+   keep their current geometry, pigments and motion. */
+.community-procedural-scene[data-scene-revision=v40] { opacity:1; }
+.background-thumb { position:relative;overflow:hidden; }
+.background-thumb > img,.background-thumb > canvas { position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover; }
+/* Pale new photographs need dark ink on uncovered copy. The photograph and
+   foreground card materials keep their own colours in both interface themes. */
+:root[data-theme] body.community-room:has(>.community-atmosphere[data-scene-tone=light]) :is(.studio-introduction,.portal-intro,.portal-story-note,.reader-navigation,.feed-toolbar,.discussion-heading,.project-discussion-heading,.community-aside .aside-about,.community-aside .aside-note,.crystal-writing>.page-heading) { --text:#173c36;--muted:#3c6259;--accent:#246c59;--accent-hover:#174f42;--accent-ink:#eff7ef;--focus:#1e6959;--room-warm:#246c59;color:var(--text); }
+:root[data-theme] body.community-room:has(>.community-atmosphere[data-scene-tone=light]) :is(.studio-introduction h1,.studio-introduction>p,.studio-introduction .quiet-link,.portal-intro h1,.portal-intro>p,.portal-story-note,.discussion-heading h2,.discussion-heading>span,.project-discussion-heading,.crystal-writing>.page-heading h1,.feed-toolbar a,.feed-toolbar>span,.community-aside .aside-about,.community-aside .aside-note) { text-shadow:0 1px 5px #f4f8ee40; }
+:root[data-theme] body.community-room:has(>.community-atmosphere:is([data-scene-tone=light],[data-scene-tone=dark])) .studio-introduction { position:relative;isolation:isolate; }
+:root[data-theme] body.community-room:has(>.community-atmosphere:is([data-scene-tone=light],[data-scene-tone=dark])) .studio-introduction::before { content:'';position:absolute;inset:-55px -75px;z-index:-1;pointer-events:none;border-radius:50%;background:radial-gradient(ellipse closest-side at 42% 48%,#0715239e,#07152354 56%,transparent 100%); }
+:root[data-theme] body.community-room:has(>.community-atmosphere[data-scene-tone=light]) .studio-introduction::before { background:radial-gradient(ellipse closest-side at 42% 48%,#f2f5eec2,#f2f5ee82 52%,transparent 100%); }
+:root[data-theme] body.community-room:has(>.community-atmosphere:is([data-scene-tone=light],[data-scene-tone=dark])) .feed-toolbar { padding:8px 12px;border:1px solid #d8eee520;border-radius:11px;background:#10262d8c;backdrop-filter:blur(9px); }
+:root[data-theme] body.community-room:has(>.community-atmosphere[data-scene-tone=light]) .feed-toolbar { background:#edf3eaa1;border-color:#edf5e959; }
+@media(max-width:600px) { :root[data-theme] body.community-room:has(>.community-atmosphere:is([data-scene-tone=light],[data-scene-tone=dark])) .studio-introduction::before { inset:-40px -12px; } }
+:root[data-theme] body.community-room:has(>.community-atmosphere[data-scene-tone=light]) .comment-form .form-group>label { color:#244e43;text-shadow:0 1px 4px #f4f8ee66; }
+.scene40-paint,.scene40-water,.scene40-overlay { position:absolute;inset:0;display:block;width:100%;height:100%; }
+.scene40-overlay { overflow:visible;pointer-events:none; }
+.scene40-overlay [class^=scene40-] { animation-play-state:paused; }
+.scene40-contour-current { animation:scene40-contour-flow 38s linear infinite paused; }
+.scene40-prism-ray { transform-origin:80% 30%;animation:scene40-prism-ray 29s ease-in-out infinite alternate paused; }
+.scene40-orbit-hand { animation:scene40-orbit-hand 160s linear infinite paused; }
+.scene40-paper-light { animation:scene40-light-walk 43s ease-in-out infinite alternate paused; }
+.scene40-dune-light { animation:scene40-dune-light 37s ease-in-out infinite alternate paused; }
+.scene40-mirror-light { animation:scene40-mirror-light 31s ease-in-out infinite alternate paused; }
+.scene40-metal-light { animation:scene40-light-walk 33s ease-in-out infinite alternate-reverse paused; }
+.scene40-glaze-light { animation:scene40-glaze-light 41s ease-in-out infinite alternate paused; }
+.scene40-leather-light { animation:scene40-light-walk 56s ease-in-out infinite alternate paused; }
+.scene40-cork-light { animation:scene40-light-walk 67s ease-in-out infinite alternate-reverse paused; }
+.scene40-slate-light { animation:scene40-slate-light 27s ease-in-out infinite alternate paused; }
+.scene40[data-scene-motion=running] .scene40-overlay [class^=scene40-] { animation-play-state:running; }
+@keyframes scene40-contour-flow { to { stroke-dashoffset:-472; } }
+@keyframes scene40-prism-ray { from { opacity:.35;transform:translate(-8px,2px); } to { opacity:.8;transform:translate(9px,-3px); } }
+@keyframes scene40-orbit-hand { to { transform:rotate(360deg); } }
+@keyframes scene40-light-walk { from { transform:translate(-12px,-8px);opacity:.10; } to { transform:translate(13px,12px);opacity:.24; } }
+@keyframes scene40-dune-light { from { opacity:.25;transform:translate(-4px,0); } to { opacity:.7;transform:translate(6px,3px); } }
+@keyframes scene40-mirror-light { from { transform:translateX(-38px);opacity:.24; } to { transform:translateX(48px);opacity:.52; } }
+@keyframes scene40-glaze-light { from { transform:translate(-8px,-11px);opacity:.12; } to { transform:translate(9px,8px);opacity:.28; } }
+@keyframes scene40-slate-light { from { opacity:.12; } to { opacity:.7; } }
+@media(prefers-reduced-motion:reduce) { .scene40-overlay [class^=scene40-] { animation:none!important; } }
+@media(forced-colors:active) { .scene40 { display:none!important; } }

@@ -2,19 +2,37 @@
 <button type="button" class="icon-button background-open" data-background-open hidden aria-haspopup="dialog" aria-controls="community-background-dialog" aria-label="选择背景" title="选择背景"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m4 17 5-6 4 4 3-3 5 5"/><circle cx="16" cy="8" r="1.5"/></svg><span>背景</span></button>
 <span class="background-announcement" data-background-announcement role="status" aria-live="polite"></span>
 <dialog class="background-dialog" id="community-background-dialog" data-background-dialog aria-labelledby="background-title">
-  <div class="background-dialog-heading"><div><h2 id="background-title">窗外的风景</h2><p>选一种适合这次阅读的背景。</p></div><button type="button" class="icon-button" data-background-close aria-label="关闭背景选择">×</button></div>
-  <div class="background-gallery"><fieldset class="background-choices"><legend>在浏览器中绘制 · 无需图片下载</legend>
-    {% for id,title,description in [('mist','柔光留白','稀疏 · 安静柔光'),('line','流线素描','低密度 · 细线留白'),('contour','山形等高','中密度 · 连续地形'),('prism','棱镜折面','中密度 · 连续分面'),('orbital','轨道手记','中密度 · 星轨刻度'),('paper','纸间山丘','低密度 · 暖灰叠景'),('ribbons','流彩织带','丰富 · 柔彩交织'),('constellation','星图余白','低密度 · 稀疏星点'),('spectrum','柔彩色域','低密度 · 多彩留白'),('dunes','层峦暖沙','中密度 · 远近山脊'),('mirror-hall','镜廊微光','透视 · 镜影光带'),('tideglass','潮汐玻璃','水纹 · 透光焦散'),('etched-metal','银箔刻痕','金属 · 拉丝折光'),('porcelain','釉面流光','陶瓷 · 温润弧面'),('leather','皮革压纹','皮革 · 暖褐缝线'),('cork-relief','软木浮雕','软木 · 有机颗粒'),('slate','板岩层光','岩板 · 冷灰切面')] %}
-    <label class="background-choice"><input type="radio" name="liss_background_v24" value="{{ id }}"><span class="background-thumb background-thumb-{{ id }}" aria-hidden="true"></span><span class="background-choice-copy"><strong>{{ title }}</strong><small>{{ description }}</small></span></label>
-    {% endfor %}
-  </fieldset>
-  <fieldset class="background-choices background-choices-images"><legend>窗外影像与画卷 · 按需载入</legend>
-    {% for id,title,description in [('coast','欧泊海岸','晶透海岸 · 按需载入'),('mineral-scroll','晶石长卷','暖光与水面 · 纵向画卷'),('ink-scroll','雾谷月色','月夜山水 · 纵向画卷'),('earthrise','地月之间','NASA / Apollo 8 · 实景照片')] %}
-    <label class="background-choice"><input type="radio" name="liss_background_v24" value="{{ id }}"{% if id == 'coast' %} checked{% endif %}><span class="background-thumb background-thumb-{{ id }}" aria-hidden="true"></span><span class="background-choice-copy"><strong>{{ title }}</strong><small>{{ description }}</small></span></label>
-    {% endfor %}
-  </fieldset></div>
-  <div class="background-options"><label data-background-quality-row>图片细节<select data-background-quality aria-label="图片细节"><option value="auto">按屏幕省流</option><option value="high">高清优先</option></select></label><label class="background-motion"><input type="checkbox" data-background-scroll checked><span>背景跟随滚动</span></label></div>
-  <p class="background-motion-note" data-background-motion-note>长卷仅以页面约 5.5% 的速度移动，关闭后保持原位。</p><p class="background-note" data-background-note>仅载入当前选中的图片。</p><a class="background-credit" data-background-credit hidden target="_blank" rel="noopener noreferrer"></a>
-  <div class="background-dialog-actions"><button type="button" class="quiet-link" data-background-close>暂时保持</button><button type="button" class="button" data-background-apply>使用这个背景</button></div>
+  <div class="background-dialog-heading"><div><h2 id="background-title">窗外的风景</h2><div class="background-random-settings" data-background-random-settings hidden><label title="从站外进入时换一张，站内浏览与刷新保持不变"><input type="checkbox" data-background-random-enabled aria-description="从站外进入时换一张，站内浏览与刷新保持不变"><span>来访时随机</span></label><button type="button" data-background-random-browse aria-expanded="false">随机范围 <span data-background-random-count></span><span aria-hidden="true"> ↗</span></button></div><p class="background-random-status" data-background-random-status role="status" aria-live="polite" hidden></p></div><button type="button" class="icon-button" data-background-close aria-label="关闭背景选择">×</button></div>
+  <div class="background-browser-tools">
+    <label class="background-search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input type="search" data-background-search aria-label="搜索背景" placeholder="搜索名称或主题" autocomplete="off" spellcheck="false"></label>
+    <div class="background-filter-row"><div class="background-filters" role="group" aria-label="背景分类"><button type="button" data-background-filter="all" aria-pressed="true">全部 <span data-background-filter-count="all"></span></button><button type="button" data-background-filter="image" aria-pressed="false">影像 <span data-background-filter-count="image"></span></button><button type="button" data-background-filter="vector" aria-pressed="false">绘制 <span data-background-filter-count="vector"></span></button></div><span class="background-results" data-background-results role="status" aria-live="polite"></span></div>
+    <div class="background-pool-tools" data-background-pool-tools hidden><button type="button" data-background-pool-back>← 返回背景</button><div role="group" aria-label="随机范围操作"><button type="button" data-background-pool-all>全选</button><button type="button" data-background-pool-none>清空</button><button type="button" data-background-pool-default>恢复站点默认</button></div></div>
+  </div>
+  <div class="background-layout">
+    <div class="background-gallery" aria-label="背景列表">
+      <fieldset class="background-choices background-choices-images"><legend>影像</legend>
+        {% for id,title,description in [('crimson-camellia', '绛色一枝', '暗处的一朵绛红山茶，柔光掠过花瓣'),('dew-fern', '雨叶近影', '蕨叶舒展在深绿里，露珠留着一点天光'),('cedar-after-rain', '杉林雨径', '雨后的杉林深处，一点暖光穿过薄雾'),('moss-stone', '苔石微境', '低处的苔藓与湿石，藏着细小的金绿光泽'),('alpine-blue-hour', '雪岭暮蓝', '雪岭停在暮蓝天色下，远处留一片空阔'),('cloud-sailing', '云海深航', '暮蓝天空下，白灰云海向远处缓缓展开'),('moonlit-grass', '月下草坡', '月色落在开阔草坡上，小树静静立在远处'),('ember-cup', '陶盏余温', '一只陶盏放在暗木上，釉边留着琥珀余光'),('obsidian-shell', '珠贝暗潮', '暗岩上的一枚珠母贝，微微泛出紫银光泽'),('folded-silk', '绸光低回', '深紫绸缎舒展成宽褶，暖光沿边缘低回'),('mineral-ink', '矿色沉墨', '暗青与赭色的矿物颜料，在水墨间缓缓沉开'),('amber-rain', '雨窗琥珀', '雨滴停在暗蓝窗面上，远处散着琥珀灯光'),('opal-ice-shelf','彩冰映海','蓝青海水与透光彩冰'),('white-ice-shelf','白冰澄蓝','澄蓝海水与柔白冰缘'),('deepwater-hush','深水微明','深青水下与疏朗波面'),('blue-hour-caustics','暮蓝水镜','暮蓝水下与柔和折光'),('quiet-aquamarine','澄青浅影','烟青水下与安静倒影'),('tidal-still','静湾流光','雾青静水与柔金天光'),('satin-atrium','雾光庭廊','弧面玻璃与开阔水光'),('sea-glass-study','烟青曲光','烟青曲面与杏色折光'),('coast','欧泊海岸','晶透海岸'),('mineral-scroll','晶湾微光','两岸晶石与暗水倒影'),('ink-scroll','雾谷月色','月夜山水'),('earthrise','地月之间','NASA / Apollo 8')] %}
+        <label class="background-choice"><input type="radio" name="liss_background_v24" value="{{ id }}"{% if id == 'coast' %} checked{% endif %}><span class="background-thumb background-thumb-{{ id }}" aria-hidden="true"></span><span class="background-choice-copy"><strong>{{ title }}</strong><small>{{ description }}</small></span></label>
+        {% endfor %}
+      </fieldset>
+      <fieldset class="background-choices background-choices-vector"><legend>绘制</legend>
+        {% for id,title,description in [('glass-weave','雾织玻璃','雾青折面与香槟微光'),('mercury-tide','银湾回澜','灰青镜湾与银色反射'),('opal-strata','柔晶层岸','冷暖交叠的透明岸线'),('mist','柔光留白','安静柔光'),('line','流线素描','细线留白'),('contour','山形等高','青绿地形'),('prism','棱镜折面','冷暖折光'),('orbital','轨道手记','星轨刻度'),('paper','纸间山丘','暖灰叠景'),('ribbons','流彩织带','柔彩交织'),('constellation','星图余白','稀疏星点'),('spectrum','柔彩色域','多彩留白'),('spectrum-botanical','柔彩叶影','柔彩底色与透光叶影'),('spectrum-ripples','柔彩浮纹','柔彩底色与玻璃宽弧'),('dunes','层峦暖沙','远近山脊'),('mirror-hall','镜廊微光','镜影光带'),('tideglass','潮汐玻璃','透光焦散'),('etched-metal','银箔刻痕','金属拉丝'),('porcelain','釉面流光','温润弧面'),('leather','皮革压纹','暖褐缝线'),('cork-relief','软木浮雕','有机颗粒'),('slate','板岩层光','冷灰切面')] %}
+        <label class="background-choice"><input type="radio" name="liss_background_v24" value="{{ id }}"><span class="background-thumb background-thumb-{{ id }}" aria-hidden="true"></span><span class="background-choice-copy"><strong>{{ title }}</strong><small>{{ description }}</small></span></label>
+        {% endfor %}
+      </fieldset>
+      <div class="background-empty" data-background-empty hidden><p>没有找到匹配的背景。</p><button type="button" data-background-reset>清空搜索与筛选</button></div>
+      <fieldset class="background-pool-choices" data-background-pool-choices hidden><legend class="sr-only">参与随机的图片</legend></fieldset>
+    </div>
+    <aside class="background-selection" aria-label="所选背景设置">
+      <div class="background-selection-content">
+        <div class="background-selection-preview" data-background-preview aria-hidden="true"></div>
+        <div class="background-selection-copy"><div class="background-selection-status"><span data-background-selection-state></span><button type="button" data-background-locate aria-label="定位所选背景">定位</button></div><h3 data-background-selection-title></h3><p data-background-selection-description></p></div>
+        <div class="background-options"><label data-background-quality-row><span>图片细节</span><select data-background-quality aria-label="图片细节"><option value="auto">按屏幕省流</option><option value="high">高清优先</option></select></label><label class="background-motion"><input type="checkbox" data-background-scroll checked><span>跟随页面缓慢移动</span></label></div>
+        <a class="background-credit" data-background-credit hidden target="_blank" rel="noopener noreferrer"></a>
+      </div>
+      <button type="button" class="background-viewer-start" data-background-viewer-start>开启观景模式 <span aria-hidden="true">↗</span></button>
+    </aside>
+  </div>
+  <div class="background-dialog-actions"><span>仅保存在当前浏览器</span><button type="button" class="quiet-link" data-background-close>取消</button><button type="button" class="button" data-background-apply>使用这个背景</button></div>
 </dialog>
 {% endmacro %}

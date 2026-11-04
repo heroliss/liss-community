@@ -22,6 +22,7 @@ def isolated_environment() -> dict[str, str]:
     blocked = {
         'SECRET_KEY', 'DATABASE_URL', 'TEST_DATABASE_URL', 'DEV_DATABASE_URL',
         'FLASK_CONFIG', 'FLASK_APP', 'FLASKY_ADMIN', 'PYTHONWARNINGS',
+        'BACKGROUND_MAX_STORAGE_BYTES',
     }
     environment = {
         key: value for key, value in os.environ.items()
@@ -132,6 +133,8 @@ def main() -> int:
                 npm_command = [node, str(npm_cli), 'run', 'check:assets']
             if not run('generated-assets', npm_command):
                 raise RuntimeError('Generated assets are stale or invalid. Run npm run build, review the tracked outputs, and rerun checks.')
+            if not run('published-scenes', [sys.executable, '-B', 'scripts/check_scene_assets.py', '--strict']):
+                raise RuntimeError('Background catalogue or public scene assets are invalid; see retained log.')
             js_files = sorted(path for path in (REPO / 'app' / 'static').rglob('*.js')
                               if 'vendor' not in path.parts and 'bundles' not in path.parts)
             js_files += sorted((REPO / 'scripts').glob('*.cjs'))

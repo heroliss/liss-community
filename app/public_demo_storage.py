@@ -50,7 +50,8 @@ def backup_database(source, output):
     return output
 
 
-def restore_database(source, destination):
+def restore_database(source, destination, *, rotate_identity=True,
+                     expected_source=None, validate_snapshot=None):
     """Replace the database through SQLite, revoking all pre-restore logins."""
     source = inspect_backup(source)
     destination = Path(destination).resolve()
@@ -60,20 +61,42 @@ def restore_database(source, destination):
     os.close(descriptor)
     prepared = Path(filename)
     try:
-        with closing(sqlite3.connect(source.as_uri() + '?mode=ro', uri=True)) as original:
-            with closing(sqlite3.connect(prepared)) as staged:
-                original.backup(staged)
-                # Rotate identity in the staging snapshot, so data + identity
-                # arrive in one SQLite backup transaction, even after a crash.
+        if expected_source is not None:
+            # A bundle contains a closed immutable SQLite snapshot. Freeze its
+            # exact bytes and verify the earlier manifest before consuming it;
+            # never restore a source changed since the bundle was inspected.
+            from .public_demo_bundle import file_info
+            with source.open('rb') as original, prepared.open('wb') as staged_file:
+                remaining = expected_source['bytes']
+                while block := original.read(min(1024*1024, remaining+1)):
+                    if len(block) > remaining:
+                        raise ValueError('Backup database integrity changed before restoration.')
+                    staged_file.write(block)
+                    remaining -= len(block)
+                if remaining:
+                    raise ValueError('Backup database integrity changed before restoration.')
+            if file_info(prepared) != expected_source:
+                raise ValueError('Backup database integrity changed before restoration.')
+        else:
+            with closing(sqlite3.connect(source.as_uri() + '?mode=ro', uri=True)) as original:
+                with closing(sqlite3.connect(prepared)) as staged:
+                    original.backup(staged)
+        inspect_backup(prepared)
+        if validate_snapshot is not None:
+            validate_snapshot(prepared)
+        with closing(sqlite3.connect(prepared)) as staged:
+            # Rotate identity in the staging snapshot, so data + identity
+            # arrive in one SQLite backup transaction, even after a crash.
+            if rotate_identity:
                 staged.execute('CREATE TABLE IF NOT EXISTS public_demo_state '
                                '(id INTEGER PRIMARY KEY CHECK (id=1), '
                                'identity_epoch TEXT NOT NULL, created_at REAL NOT NULL)')
                 staged.execute('INSERT INTO public_demo_state (id, identity_epoch, created_at) VALUES (1, ?, ?) '
                                'ON CONFLICT(id) DO UPDATE SET identity_epoch=excluded.identity_epoch',
                                (secrets.token_urlsafe(24), time.time()))
-                staged.commit()
-                with closing(sqlite3.connect(destination)) as restored:
-                    staged.backup(restored)
+            staged.commit()
+            with closing(sqlite3.connect(destination)) as restored:
+                staged.backup(restored)
     finally:
         for owned in (prepared, Path(str(prepared) + '-wal'), Path(str(prepared) + '-shm')):
             owned.unlink(missing_ok=True)

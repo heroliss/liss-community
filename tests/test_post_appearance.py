@@ -504,7 +504,9 @@ class AppearanceMigrationTests(unittest.TestCase):
         config = AlembicConfig()
         config.set_main_option('script_location', str(Path(__file__).resolve().parents[1] / 'migrations'))
         scripts = ScriptDirectory.from_config(config)
-        self.assertEqual(scripts.get_heads(), ['20261031_reflective_materials'])
+        self.assertEqual(scripts.get_heads(), ['20261102_background_catalog'])
+        self.assertEqual(scripts.get_revision('20261102_background_catalog').down_revision,
+                         '20261031_reflective_materials')
         self.assertEqual(scripts.get_revision('20261031_reflective_materials').down_revision,
                          '20261031_discussion_replies')
         self.assertEqual(scripts.get_revision('20261031_discussion_replies').down_revision,

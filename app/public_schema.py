@@ -9,6 +9,22 @@ import time
 from .public_demo_storage import backup_database
 
 
+def migrate_background_catalog_schema(database):
+    """Add only the managed catalogue table, with a safety snapshot for old stores."""
+    database = Path(database)
+    if not database.is_file():
+        return
+    with closing(sqlite3.connect(database)) as connection:
+        tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if 'background_catalog' in tables or 'users' not in tables:
+            return
+        backup_database(database, database.parent / ('before-background-catalog-'
+            + time.strftime('%Y%m%d-%H%M%S')+'-'+secrets.token_hex(3)+'.sqlite'))
+        connection.execute('CREATE TABLE background_catalog (id INTEGER PRIMARY KEY '
+            'CHECK(id=1), revision INTEGER NOT NULL DEFAULT 1, data TEXT NOT NULL, updated_at DATETIME NOT NULL)')
+        connection.commit()
+
+
 def migrate_account_kinds(database):
     database = Path(database)
     if not database.is_file():

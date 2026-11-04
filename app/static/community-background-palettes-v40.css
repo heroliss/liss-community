@@ -1,0 +1,18 @@
+/* Interface pigments follow the selected view. Article cards keep the colours
+   they already own; their explicit theme variables take priority over inheritance. */
+body.community-room[data-background-palette]:not([data-community-theme]) {
+  --accent:var(--scenic-accent);--accent-hover:var(--scenic-hover);--accent-ink:var(--scenic-ink);--accent-soft:var(--scenic-soft);--focus:var(--scenic-accent);
+  --text:var(--scenic-text);--muted:var(--scenic-muted);--subtle:var(--scenic-subtle);--room-warm:var(--scenic-warm);--reader-accent:var(--scenic-accent);
+}
+body.community-room[data-background-palette]:not([data-community-theme]) :is(.site-header,.site-footer,.background-dialog) { --bg:var(--scenic-background);--surface:var(--scenic-surface);--line:var(--scenic-line); }
+:root[data-theme] body.community-room[data-background-palette][data-background-reading] :is(.studio-introduction,.portal-intro,.portal-story-note,.reader-navigation,.feed-toolbar,.discussion-heading,.project-discussion-heading,.community-aside .aside-about,.community-aside .aside-note,.crystal-writing>.page-heading) {
+  --text:var(--scenic-reading-text);--muted:var(--scenic-reading-muted);--accent:var(--scenic-reading-accent);--accent-hover:var(--scenic-reading-hover);--accent-ink:var(--scenic-reading-ink);--focus:var(--scenic-reading-accent);--room-warm:var(--scenic-reading-warm);color:var(--text);
+}
+:root[data-theme] body.community-room[data-background-palette][data-background-reading] :is(.studio-introduction h1,.studio-introduction>p,.studio-introduction .quiet-link,.portal-intro h1,.portal-intro>p,.portal-story-note,.discussion-heading h2,.discussion-heading>span,.project-discussion-heading,.crystal-writing>.page-heading h1,.feed-toolbar a,.feed-toolbar>span,.community-aside .aside-about,.community-aside .aside-note) { text-shadow:0 1px 5px var(--scenic-reading-halo-edge); }
+:root[data-theme] body.community-room[data-background-palette][data-background-reading] .comment-form .form-group>label { color:var(--scenic-reading-text);text-shadow:0 1px 4px var(--scenic-reading-halo-edge); }
+:root[data-theme] body.community-room[data-background-palette][data-background-reading]:has(>.community-atmosphere[data-scene-art=image]) .studio-introduction::before { background:radial-gradient(ellipse closest-side at 42% 48%,var(--scenic-reading-halo),var(--scenic-reading-halo-edge) 52%,transparent 100%); }
+:root[data-theme] body.community-room[data-background-palette][data-background-reading]:has(>.community-atmosphere[data-scene-art=image]) .feed-toolbar { background:var(--scenic-reading-panel);border-color:color-mix(in srgb,var(--scenic-reading-accent) 18%,transparent); }
+:root[data-theme] .scene-review[data-palette-ready] { --review-bg:color-mix(in srgb,var(--scenic-surface) 92%,transparent);--review-line:color-mix(in srgb,var(--scenic-accent) 27%,transparent);--review-ink:var(--scenic-text);--review-muted:var(--scenic-muted); }
+.scene-review-current > div { display:flex;align-items:center;min-width:0; }
+.scene-review-palette { display:inline-flex;gap:3px;margin-left:8px;vertical-align:1px; }
+.scene-review-palette i { width:6px;height:6px;border-radius:50%;box-shadow:0 0 0 1px #b7c3be38; }
