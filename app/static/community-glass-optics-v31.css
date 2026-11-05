@@ -10,8 +10,12 @@
   --glass-optic-face:radial-gradient(ellipse at 20% 5%,color-mix(in srgb,var(--appearance-accent,var(--accent)) 15%,transparent),transparent 67%),linear-gradient(140deg,#d9f0e624,#8bb3b747 55%,#c0dad92e);
   --glass-optic-receiver:linear-gradient(180deg,#081b275e,#081b2747 28% 65%,#07172473);
 }
+/* Light clear glass lets a little more of the scene through than before; the
+   face stays dense enough for muted text to keep 4.5:1 over the darkest
+   gallery photographs, and a slightly wider blur calms busy detail. */
 :root[data-theme=light] body.community-room [data-material=glass] {
-  --glass-optic-face:radial-gradient(ellipse at 16% 4%,color-mix(in srgb,var(--appearance-accent,var(--accent)) 6%,transparent),transparent 58%),linear-gradient(140deg,#ffffffbd,#f3faf5b8 62%,#edf7f2b8);
+  --glass-optic-blur:6px;
+  --glass-optic-face:radial-gradient(ellipse at 16% 4%,color-mix(in srgb,var(--appearance-accent,var(--accent)) 6%,transparent),transparent 58%),linear-gradient(140deg,#ffffffb3,#f3faf5ab 62%,#edf7f2ae);
   --glass-optic-receiver:linear-gradient(180deg,#ffffff16,transparent 28% 68%,#ffffff24);
   --muted:#3b4a46;--subtle:#3b4a46;
 }
@@ -23,6 +27,15 @@
 :root[data-theme=light] body.community-room :is(article.post,[data-post-theme-card],[data-appearance-preview])[data-theme-color]:not([data-theme-color=''])[data-material=glass] {
   --muted:#3b4a46;--subtle:#3b4a46;
 }
+
+/* Chromium draws a blurred backdrop that sits inside a preserve-3d shell with a
+   visible diagonal seam across the face. The glass shell therefore composes its
+   leaves in one plane; the card itself still tilts in 3D. Flattened leaves paint
+   in DOM order, so the crisp rim is lifted above the later WebGL coating. */
+/* [data-depth-kind] matches the specificity of the shared preserve-3d shell rule
+   in community-materials.css; this file loads later and therefore wins. */
+.community-room [data-material=glass][data-depth-kind] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell { transform-style:flat; }
+.community-room [data-material=glass][data-depth-kind] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim { z-index:1; }
 
 /* Repeat the existing nonempty-theme guard deliberately: the crystal theme
    rule is more specific than an ordinary finish selector, including in light. */

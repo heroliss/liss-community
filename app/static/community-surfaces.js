@@ -11,7 +11,7 @@
   if (/\/bundles\/$/.test(assetBase.pathname)) assetBase = new URL('../', assetBase);
   var textureURL = new URL('textures/material-v22/normal-roughness.png', assetBase).href;
   var lifetime = new AbortController(), dispose = null;
-  var metrics = { version: 'room-material-v31', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'material-specific-flat-chamfer-or-soft-shoulder', shapeProfiles: ['crystal-plane','ceramic-rim','paper-sheet','folded-metal','leather-pad','cork-cut','slate-cleft'], transmission: 'native-backdrop', edgeSampling: false, antialias: 'analytic-rounded-coverage', lighting: 'upper-left-area-key+ambient', pigment: 'shared-css-gpu', materialContrast: 'intrinsic-grain-in-reading-budget', materialKinds: 7, materialChoices: 8, glassFinishes: 2, atlasSources: 4, contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
+  var metrics = { version: 'room-material-v56', glassOutline: 'clip-path-sdf', encoding: 'srgb8-sdr', dither: 'stable-object-space', bevelNormal: 'material-specific-flat-chamfer-or-soft-shoulder', shapeProfiles: ['crystal-plane','ceramic-rim','paper-sheet','folded-metal','leather-pad','cork-cut','slate-cleft'], transmission: 'native-backdrop', edgeSampling: false, antialias: 'analytic-rounded-coverage', lighting: 'upper-left-area-key+ambient', pigment: 'shared-css-gpu', materialContrast: 'intrinsic-grain-in-reading-budget', materialKinds: 7, materialChoices: 8, glassFinishes: 2, atlasSources: 4, contexts: 0, frames: 0, tiles: 0, copies: 0, textureReady: false, lost: false, failures: 0, lastError: null, active: 0, maxAtlasPixels: 0 };
   var inspectState = function () { return Object.assign({}, metrics); };
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
   var vertex = [
@@ -27,7 +27,10 @@
     'uniform mat3 uWorld;',
     'uniform vec4 uCorners;',
     'uniform vec3 uBase,uAccent;',
-    'uniform float uKind,uMode,uAccentMix,uReadingLimit,uFrost;',
+    'uniform float uKind,uMode,uAccentMix,uReadingLimit,uFrost,uEdgeCount;',
+    // Up to eight outward edge lines (nx,ny,offset) of the glass cut outline in
+    // CSS pixels. Without them the rounded-rectangle face contour is used.
+    'uniform vec3 uEdges[8];',
     'const float PI=3.14159265;',
     'float sq(float x){return x*x;}',
     'vec3 linearRGB(vec3 value){return mix(value/12.92,pow((value+.055)/1.055,vec3(2.4)),step(vec3(.04045),value));}',
@@ -38,6 +41,21 @@
     ' return normalize(uWorld*vec3(y.x,cx*y.y-sx*y.z,sx*y.y+cx*y.z));',
     '}',
     'vec3 fresnel(float cosine,vec3 f0){return f0+(1.-f0)*pow(1.-cosine,5.);}',
+    // Signed distance (px, negative inside) and outward normal (CSS axes) of the
+    // real face outline, so chamfered cuts catch the same edge light as sides.
+    'vec3 glassOutline(vec2 p){',
+    ' if(uEdgeCount<.5){',
+    '  vec2 q=p-uSize*.5;vec2 side=vec2(q.x<0.?-1.:1.,q.y<0.?-1.:1.);',
+    '  float radius=q.x<0.?(q.y<0.?uCorners.x:uCorners.w):(q.y<0.?uCorners.y:uCorners.z);',
+    '  radius=min(radius,min(uSize.x,uSize.y)*.5);',
+    '  vec2 d=abs(q)-(uSize*.5-vec2(radius)),o=max(d,vec2(0.));',
+    '  vec2 n=length(o)>.0001?normalize(o):(d.x>d.y?vec2(1.,0.):vec2(0.,1.));',
+    '  return vec3(n*side,length(o)+min(max(d.x,d.y),0.)-radius);',
+    ' }',
+    ' float best=-1e5;vec2 normal=vec2(0.,-1.);',
+    ' for(int i=0;i<8;i++){float d=dot(uEdges[i].xy,p)-uEdges[i].z;if(d>best){best=d;normal=uEdges[i].xy;}}',
+    ' return vec3(normal,best);',
+    '}',
     // Object-space, not time-based grain: it breaks 8-bit contouring without
     // sparkling when the pointer or camera is at rest. This remains SDR.
     'float dither(vec2 p){return fract(52.9829189*fract(dot(floor(p),vec2(.06711056,.00583715))))-.5;}',
@@ -76,6 +94,12 @@
     ' float bevel=max(edgeWeight.x,edgeWeight.y);',
     ' vec2 bevelNormal=vec2((uv.x<.5?-1.:1.)*edgeWeight.x,(uv.y<.5?1.:-1.)*edgeWeight.y);',
     ' float bevelLength=length(bevelNormal);bevelNormal=bevelLength>.0001?bevelNormal/bevelLength:vec2(0.);',
+    ' if(uKind<.5){',
+    '  vec3 outline=glassOutline(uv*uSize);float inside=max(-outline.z,0.);',
+    '  edgeDistance=vec2(inside);bevel=(1.-smoothstep(bevelWidth-.55,bevelWidth+.55,inside))*.78;',
+    // Tangent space is Y-up; the outline normal is measured on CSS axes.
+    '  bevelNormal=vec2(outline.x,-outline.y);bevelLength=1.;',
+    ' }',
     ' float normalDepth=uKind<.5?.13:uKind<1.5?.40:uKind<2.5?.035:uKind<3.5?.12:uKind<4.5?.24:uKind<5.5?.075:.14;',
     // A handled paper sheet is flat except for its small bottom-right curl.
     // A full-height crease used to make even paper look like a bent panel.
@@ -117,6 +141,16 @@
     // veil. Native backdrop diffusion supplies transmission, in both modes.
     '  float satinReflection=.018+grazing*.075+min(energy,.5)*.025+softbox*.026;',
     '  opacity=clamp(mix(faceReflection+rim,satinReflection+rim*.48,uFrost),0.,.44);',
+    // A thick cut edge gathers the key light and returns it a few pixels into
+    // the face; edges turned away refract the darker room instead. Both decay
+    // within ~10px, so the reading area keeps its existing budget.
+    '  float toward=dot(bevelNormal,normalize(vec2(-.70,.71)));',
+    '  float pipe=exp(-edgeDistance.x/mix(6.5,10.,uFrost));',
+    '  float piped=pipe*(.02+max(toward,0.)*mix(.17,.09,uFrost))*mix(1.,.55,uMode);',
+    '  color=mix(color,warm,clamp(piped*2.4,0.,.4));opacity=min(opacity+piped,.5);',
+    '  float dark=pipe*max(-toward,0.)*mix(.21,.11,uFrost)*mix(1.,.62,uMode)*(1.-opacity);',
+    '  vec3 deep=mix(vec3(.012,.045,.065),vec3(.20,.30,.32),uMode);',
+    '  color=(color*opacity+deep*dark)/max(opacity+dark,.0001);opacity+=dark;',
     ' }else if(uKind<1.5){',
     // Ceramic is a thick domed glaze: a wide soft pool with a rounded shoulder,
     // while the matte pits use the already loaded normal/roughness atlas.
@@ -340,6 +374,8 @@
         var palette = lightMode ? [[.78,.86,.91],[.72,.84,.66],[.87,.79,.61],[.63,.72,.81],[.77,.67,.57],[.85,.75,.57],[.69,.73,.77]] : [[.12,.20,.28],[.10,.25,.17],[.25,.21,.13],[.16,.22,.30],[.29,.17,.12],[.34,.26,.14],[.17,.21,.25]];
         scene.kind = kind; scene.base = parseColor(style.getPropertyValue('--material-base'),palette[kind]);scene.world=worldNormal(scene.host);
         scene.frosted = kind===0 && scene.host.dataset.glassFinish==='frosted' ? 1 : 0;
+        var face = kind===0 && scene.shell.querySelector(':scope > .material-base');
+        scene.outline = face ? polygonOutline(getComputedStyle(face).clipPath) : null;
         scene.finish = kind===0 ? (scene.frosted ? 'frosted' : 'clear') : null;
         var custom = !!scene.host.dataset.themeColor;
         // A draft/page hue must not recolor another author's unthemed post.
@@ -362,6 +398,40 @@
       pigments.forEach(function(scene){scene.host.style.setProperty('--surface-pigment','rgb('+scene.base.map(function(c){return Math.round(c*255);}).join(',')+')');});
       metadataDirty = false;
     }
+    // A computed polygon() clip such as "calc(100% - 64px) 0px" becomes
+    // per-axis (fraction, px) pairs; anything else keeps the rounded contour.
+    function polygonOutline(value) {
+      var match = /^polygon\((.*)\)$/.exec(String(value || '').trim()); if (!match) return null;
+      var term = function (token) {
+        var m;
+        if (token === '0') return [0,0];
+        if ((m = /^(-?[\d.]+)px$/.exec(token))) return [0,+m[1]];
+        if ((m = /^(-?[\d.]+)%$/.exec(token))) return [+m[1]/100,0];
+        if ((m = /^calc\((-?[\d.]+)% ([+-]) (-?[\d.]+)px\)$/.exec(token))) return [+m[1]/100,(m[2]==='-'?-1:1)*+m[3]];
+        return null;
+      };
+      var points = match[1].split(',').map(function (pair) {
+        var tokens = pair.trim().match(/calc\([^()]*\)|-?[\d.]+(?:px|%)?/g) || [];
+        if (tokens.length !== 2) return null;
+        var x = term(tokens[0]), y = term(tokens[1]); return x && y ? [x,y] : null;
+      });
+      return points.length >= 3 && points.length <= 8 && points.every(Boolean) ? points : null;
+    }
+    var outlineEdges = new Float32Array(24);
+    function outlineUniform(scene) {
+      for (var i = 0; i < 8; i++) { outlineEdges[i*3] = outlineEdges[i*3+1] = 0; outlineEdges[i*3+2] = 1e5; }
+      if (!scene.outline) return 0;
+      var points = scene.outline.map(function (p) { return [p[0][0]*scene.width+p[0][1],p[1][0]*scene.height+p[1][1]]; });
+      var area = 0, count = 0;
+      points.forEach(function (a,i) { var b = points[(i+1)%points.length]; area += a[0]*b[1]-b[0]*a[1]; });
+      points.forEach(function (a,i) {
+        var b = points[(i+1)%points.length], dx = b[0]-a[0], dy = b[1]-a[1], length = Math.hypot(dx,dy);
+        if (length < .01) return;
+        var nx = (area > 0 ? dy : -dy)/length, ny = (area > 0 ? -dx : dx)/length;
+        outlineEdges[count*3] = nx; outlineEdges[count*3+1] = ny; outlineEdges[count*3+2] = nx*a[0]+ny*a[1]; count++;
+      });
+      return count;
+    }
     function readLayout() {
       scenes.forEach(function (scene) {
         if (!scene.visible) return;
@@ -382,7 +452,7 @@
       var texture = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,texture);
       gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-      var uniforms = {}; ['uMap','uSize','uAngles','uWorld','uLight','uTileSize','uCorners','uBase','uAccent','uKind','uMode','uAccentMix','uReadingLimit','uFrost'].forEach(function (name) { uniforms[name] = gl.getUniformLocation(program,name); });
+      var uniforms = {}; ['uMap','uSize','uAngles','uWorld','uLight','uTileSize','uCorners','uBase','uAccent','uKind','uMode','uAccentMix','uReadingLimit','uFrost','uEdges','uEdgeCount'].forEach(function (name) { uniforms[name] = gl.getUniformLocation(program,name); });
       return { program: program, buffer: buffer, texture: texture, position: gl.getAttribLocation(program,'aPosition'), uniforms: uniforms, ready: false };
     }
     function uploadMap() {
@@ -414,6 +484,7 @@
         gl.uniform2f(u.uLight,(scene.lx-50)/50,(50-scene.ly)/50); gl.uniform3fv(u.uBase,scene.base); gl.uniform3fv(u.uAccent,scene.accent);
         gl.uniform1f(u.uKind,scene.kind); gl.uniform1f(u.uMode,lightMode?1:0); gl.uniform1f(u.uAccentMix,scene.accentMix);gl.uniform1f(u.uReadingLimit,scene.readingLimit);
         gl.uniform1f(u.uFrost,scene.frosted);
+        var edges = outlineUniform(scene); gl.uniform3fv(u.uEdges,outlineEdges); gl.uniform1f(u.uEdgeCount,edges);
         gl.drawArrays(gl.TRIANGLES,0,6); metrics.tiles++;
       });
       items.forEach(function (scene,index) {
