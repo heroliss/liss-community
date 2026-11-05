@@ -46,6 +46,15 @@ def create_app(config_name):
         from .owner_identity import install as install_owner_identity
         install_owner_identity(app)
 
+    @app.after_request
+    def security_headers(response):
+        # No page is meant to be framed: refuse embedding so write buttons cannot
+        # be click-jacked, and keep cross-site referrers to the bare origin.
+        response.headers.setdefault('X-Frame-Options', 'DENY')
+        response.headers.setdefault('Content-Security-Policy', "frame-ancestors 'none'")
+        response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+        return response
+
     if not app.debug and not app.testing and not app.config['SSL_DISABLE']:
         @app.before_request
         def require_https():

@@ -1,5 +1,11 @@
 # Changelog
 
+## 未发布
+
+- 所有响应加入 `X-Frame-Options: DENY`、`Content-Security-Policy: frame-ancestors 'none'` 与 `Referrer-Policy: strict-origin-when-cross-origin`，防止站点被嵌入后诱导点击写入按钮，跨站只透露来源域名；已有响应自行设置的同名头保持不变。
+- `production` / `heroku` 配置缺少 `SECRET_KEY` 或仍使用源码中的开发默认值时拒绝启动。`public-demo` 原有的 32 字符要求不变。
+- `WTForms` 限定为 `>=3.2.2,<3.4`：表单直接使用元组形式的 `SelectField` 选项，3.4 将移除该写法。
+
 ## 2.0.0 · 2026-11-05
 
 阶段版本：可选择的背景、站内连续的随机画面与可维护的图库。

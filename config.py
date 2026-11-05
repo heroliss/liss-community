@@ -23,8 +23,11 @@ def database_url(name, default):
     return url
 
 
+DEVELOPMENT_SECRET_KEY = '据说这里要写个复杂的字符串？hard to guess string'
+
+
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or '据说这里要写个复杂的字符串？hard to guess string'
+    SECRET_KEY = os.environ.get('SECRET_KEY') or DEVELOPMENT_SECRET_KEY
     SSL_DISABLE = True
     MAIL_SERVER = 'smtp.126.com'
     MAIL_PORT = 994
@@ -90,6 +93,12 @@ class ProductionConfig(Config):
     @classmethod
     def init_app(cls, app):
         Config.init_app(app)
+        # The public source contains the development fallback, so it would make
+        # every production session and token forgeable.
+        secret = os.environ.get('SECRET_KEY') or app.config.get('SECRET_KEY')
+        if secret in (None, '', DEVELOPMENT_SECRET_KEY):
+            raise RuntimeError('production requires its own SECRET_KEY environment variable.')
+        app.config['SECRET_KEY'] = secret
 
         # email errors to the administrators
         import logging
