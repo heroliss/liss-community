@@ -1,3 +1,9 @@
+# Text files use LF in the repository and in every checkout, whatever the local
+# core.autocrlf setting; binaries are detected automatically. Later rules win,
+# so the byte-for-byte exceptions below keep their exact bytes.
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
 
 app/static/*.css text eol=lf
 app/static/*.js text eol=lf
