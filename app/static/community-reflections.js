@@ -8,7 +8,7 @@
   var reduce = matchMedia('(prefers-reduced-motion: reduce)'), coarse = matchMedia('(pointer: coarse)'), forced = matchMedia('(forced-colors: active)');
   var observer = null, mutations = null, suspended = false, failedEnvironment = '';
   var environment = {image:'none',a:'',b:'',c:''};
-  var metrics = {version:'optical-surfaces-v45',mounted:0,frames:0,ripples:0,environment:'sky',activeRipples:0};
+  var metrics = {version:'optical-surfaces-v56',mounted:0,frames:0,ripples:0,environment:'sky',activeRipples:0};
   function clamp(value,min,max) { return Math.max(min,Math.min(max,value)); }
   function moving() { return !suspended && !document.hidden && !reduce.matches && !coarse.matches && !forced.matches; }
   function schedule() { if (!frame && moving()) frame = requestAnimationFrame(update); }
@@ -49,8 +49,9 @@
     node.style.setProperty('--ripple-size',(pressed?198:152)+'px');
     node.style.setProperty('--ripple-force',pressed?'.84':'.5');
     var item={node:node,timer:0};state.rings.add(item);metrics.ripples++;metrics.activeRipples++;
-    item.timer=setTimeout(function () { eraseRing(state,item); },1450);
-    node.addEventListener('animationend',function () { eraseRing(state,item); },{once:true,signal:state.abort.signal});
+    // Three staggered rings: the innermost (::after) finishes last, about 1.85s in.
+    item.timer=setTimeout(function () { eraseRing(state,item); },1950);
+    node.addEventListener('animationend',function (event) { if (event.pseudoElement==='::after') eraseRing(state,item); },{signal:state.abort.signal});
     state.ripple.appendChild(node);state.lastRipple=now;state.lastPoint={x:x,y:y};
   }
   function point(state,event,pressed) {

@@ -34,8 +34,13 @@
    in DOM order, so the crisp rim is lifted above the later WebGL coating. */
 /* [data-depth-kind] matches the specificity of the shared preserve-3d shell rule
    in community-materials.css; this file loads later and therefore wins. */
-.community-room [data-material=glass][data-depth-kind] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell { transform-style:flat; }
-.community-room [data-material=glass][data-depth-kind] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim { z-index:1; }
+.community-room :is([data-material=glass],[data-material=water])[data-depth-kind] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell { transform-style:flat; }
+.community-room :is([data-material=glass],[data-material=water])[data-depth-kind] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-rim { z-index:1; }
+/* Water's optical leaves (added by community-reflections.js) also stay above the
+   coating in the flattened shell, in their authored order. */
+.community-room [data-material=water][data-depth-kind] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-reflection { z-index:1; }
+.community-room [data-material=water][data-depth-kind] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-wear { z-index:2; }
+.community-room [data-material=water][data-depth-kind] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-ripple-layer { z-index:3; }
 
 /* Repeat the existing nonempty-theme guard deliberately: the crystal theme
    rule is more specific than an ordinary finish selector, including in light. */

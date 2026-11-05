@@ -3,11 +3,11 @@
   "tool": "esbuild@0.28.2",
   "groups": {
     "styles": {
-      "file": "bundles/styles.2100b1405ccbfeec.css",
-      "sha256": "2100b1405ccbfeec5dd15512f7180630c2896eaf55e2fc1b24b73db7b7166bdb",
-      "bytes": 413293,
-      "sourceBytes": 458425,
-      "gzipBytes": 70634,
+      "file": "bundles/styles.f81d3e7efaec8368.css",
+      "sha256": "f81d3e7efaec83680392752d9d8d5b6216cfff8c96042085fb33f07f31d33ad3",
+      "bytes": 413726,
+      "sourceBytes": 459779,
+      "gzipBytes": 70639,
       "sources": {
         "liss.css": "faf70844bf3ed140d4104b54947329f4e2211c9db10197d1e2ff3b60cdf083f1",
         "community-room.css": "c534de6dfb70ac1ad93696081bf51224da45571ab0a04079b592c348cdbfe160",
@@ -31,12 +31,12 @@
         "community-image-viewer.css": "0f6b5e37d00659ee7cef7cb8b9e676965285a2abfce7ea8ca05f17b5102279b1",
         "community-reading-v28.css": "8ad86c27d39c73c5c63535c386b0cc036c483f75244e064460b96e57605ee317",
         "community-shapes-v30.css": "58e01752d3bec8251198ae1de0a528b28b2b330e844654dba813e9820d769440",
-        "community-glass-optics-v31.css": "d64e7da429dc5604f552ef2b53c8fbdd5a865670d116338c9d249f88b95e8fb2",
+        "community-glass-optics-v31.css": "19fa25f3bdb1811edbf7a97f71303b7aadab8c387c03ee4b627e8ca312dc957b",
         "community-edges-v32.css": "90c5bfff2897919a5873c685518719257647fb9dbcea82c8fb8a72fc58539bfb",
         "community-navigation-v32.css": "1f566245260d880c4d87ba61388e0d90758e298fe312eb8f19839297a8331051",
         "community-feed.css": "d678d98f8655d40199d13dd3624a5079bdda2c7f9cfc4fef957698151d687b91",
         "community-footer.css": "3787bb1a85d9e6ae0cebe45606334f49a9e36a2a12081dc294ac09d65460d207",
-        "community-reflections.css": "4ca3b3214ad139e3e4927cb7e1cc042c78c99c46d5e1f0df91813d570e877767",
+        "community-reflections.css": "8e6ae7b98b2a53a117d7f5bf01ef20b0e653ee9630f6ff6193fd7f95008d7058",
         "community-background-designs-v40.css": "e539674eaee351450867c83af80e730ad265bdb122f5a177d18d13c089937d29",
         "community-background-defaults-v43.css": "92e73fa3269cd9fa85b36e467c07e8786374218839f25a4382e2d41a66a9fd0d",
         "community-background-spectrum-v44.css": "80cbc864eab924eb03c049e1ee7a602457e73f5b689401e3d7fe4eb46a99cd4d",
@@ -67,11 +67,11 @@
       }
     },
     "runtime": {
-      "file": "bundles/runtime.456751af3ed21bbb.js",
-      "sha256": "456751af3ed21bbb125abea9258d31e60bc6869060e0998694911e8151368679",
-      "bytes": 127692,
-      "sourceBytes": 193853,
-      "gzipBytes": 43803,
+      "file": "bundles/runtime.334c8e235367d33e.js",
+      "sha256": "334c8e235367d33ee9b3020b78dd31b710e6af21b73dbbdbe2a0c86a56a0d3f2",
+      "bytes": 127716,
+      "sourceBytes": 193970,
+      "gzipBytes": 43821,
       "sources": {
         "liss.js": "8c4f18b62a1f013ff0a24fd9f9a5021842fa53449b98c93045081bd55eafec45",
         "community-theme.js": "c8cfb16239c3ddae04ea40f9ed032e51de943ca003ea0c857ba9739f3bf7c61b",
@@ -85,7 +85,7 @@
         "community-background-previews-v49.js": "72e296338d639b47d4109db2e4a920eee582418936e9b0801bda8e0536d3df25",
         "community-atmosphere.js": "018cc43e7042e8fb8ea9206c036a089e49590a96884d800085f193f10ad9605f",
         "community-surfaces.js": "8a2057c5eca700a68ce93b9c4d5dabd5ef356ff50af00a89c31317c39e5a4f5c",
-        "community-reflections.js": "1e9d7cecff5c800d6a190fa000d0fda1158166eba7374eaeb48ec0c78dfd3e56",
+        "community-reflections.js": "56f683c4441db6fa5ff3325132dda59340f3e735b29d6078ce82c7d8597087ed",
         "community-crystal.js": "3a4c6f3edfefc288b0c3a1c153f649feb10d46fbdf8a58a4039e0864efa0722e",
         "community-experience.js": "cf807aa19cd483c86e867e890c8c5b3780742007c512632abe9b2fd7f7555e40"
       }

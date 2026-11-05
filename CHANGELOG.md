@@ -8,6 +8,8 @@
 - 频率限制按真实访客区分：PythonAnywhere 的 `REMOTE_ADDR` 是负载均衡器内网地址，原先所有访客共用一份写入、登录与邮件限额。新增只作用于来源地址的 `LIHOU_FORWARDED_FOR_HOPS`，WSGI 样例设为 1，只采信平台保证的 `X-Forwarded-For` 最后一项，不采信协议头；原 `LIHOU_PROXY_HOPS` 行为不变。后台概览显示当前识别到的来源地址，便于部署后核对。
 - 移除仓库中 2016 年的 `chromedriver.exe`（ChromeDriver 2.26，只支持 Chrome 53–55）。可选的旧 Selenium 测试由 Selenium 4 自动匹配驱动，`.gitignore` 防止再次提交驱动程序。
 - 玻璃：外壳改为平面合成，消除 Chromium 在 3D 外壳中给模糊正面留下的斜向接缝。着色器按真实切角轮廓计算斜面，并加入沿边缘的导光与背光折射带。浅色晶透玻璃更透一些，次要文字在最暗背景上仍保持 4.5:1。详见 [v56](docs/community-v56.md)。
+- 镜面与水面：水面外壳同样改为平面合成；涟漪改为三道依次扩散的同心环（波峰与波谷），不再使用 `backdrop-filter`；镜面倒影铺到边缘，并加入背银镜子的淡淡副像。
+- 项目讨论目录加入「盘序 · Windows 磁盘清理助手」（`/projects/panxu/talk/`）。
 
 ## 2.0.0 · 2026-11-05
 

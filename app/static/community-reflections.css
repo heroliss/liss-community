@@ -76,6 +76,20 @@
   transform:translate3d(calc(var(--optical-x,0px) * -.45),calc(var(--optical-y,0px) * -.45),0);
 }
 .community-room [data-optical-image=true] .material-reflection { opacity:var(--optical-scene-opacity); }
+/* A mirror does not fade towards its frame: the reflection reaches the edges and
+   grows slightly stronger there (grazing reflectance), while the centre keeps the
+   reading budget through the darker base below. */
+.community-room [data-material=mirror] .material-reflection {
+  -webkit-mask-image:radial-gradient(ellipse 72% 68% at 50% 46%,#000a 0%,#000b 55%,#000 100%);
+  mask-image:radial-gradient(ellipse 72% 68% at 50% 46%,#000a 0%,#000b 55%,#000 100%);
+}
+/* Back-silvered glass: the front surface adds a faint second image, offset by the
+   pane's thickness. It follows the same parallax, a few pixels behind. */
+.community-room [data-material=mirror] .material-wear::after {
+  content:'';position:absolute;inset:-14%;border-radius:inherit;opacity:.24;
+  background-image:var(--optical-scene-image,none);background-size:cover;background-position:50% 38%;
+  transform:translate3d(calc(var(--optical-x,0px) * 1.08 + 3px),calc(var(--optical-y,0px) * 1.08 + 4px),0) scaleX(-1);
+}
 .community-room [data-material=water] .material-reflection::before {
   transform:translate3d(var(--optical-x,0px),var(--optical-y,0px),0) scale(1,-1.08);
   filter:blur(.65px);background-position:50% 24%;
@@ -129,38 +143,36 @@
   transform:translate3d(calc(var(--optical-x,0px) * .55),calc(var(--optical-y,0px) * .45),0);
 }
 .community-room .material-ripple-layer { transform:translateZ(.9px); }
+/* A disturbance leaves three concentric rings that expand one after another. Each
+   ring is a lit crest beside a darker trough, foreshortened like a pool seen at a
+   slant. Plain gradients only: no backdrop is re-sampled while the rings move. */
 .community-room .material-ripple {
-  position:absolute;display:block;width:var(--ripple-size,170px);height:calc(var(--ripple-size,170px) * .49);
-  margin-left:calc(var(--ripple-size,170px) * -.5);margin-top:calc(var(--ripple-size,170px) * -.245);
-  border-radius:49% 53% 47% 51% / 52% 47% 53% 48%;
-  background:radial-gradient(ellipse 78% 47% at 47% 52%,transparent 49%,#1d55621e 55%,#a9d8ce25 61%,transparent 70%),
-    radial-gradient(ellipse 46% 25% at 59% 48%,transparent 52%,#b4e5d31a 62%,transparent 74%);
-  -webkit-mask-image:conic-gradient(from 27deg at 50% 50%,transparent 0deg,#000a 39deg,#000 84deg,transparent 117deg 175deg,#0009 207deg,#000 249deg,transparent 281deg 328deg,#0008 349deg,transparent 360deg);
-  mask-image:conic-gradient(from 27deg at 50% 50%,transparent 0deg,#000a 39deg,#000 84deg,transparent 117deg 175deg,#0009 207deg,#000 249deg,transparent 281deg 328deg,#0008 349deg,transparent 360deg);
-  animation:optical-water-shiver 1.25s cubic-bezier(.16,.54,.28,1) forwards;
+  --ripple-crest:#d9fff36b;--ripple-trough:#022a3552;--ripple-glint:#f4fffbb0;
+  position:absolute;display:block;width:var(--ripple-size,170px);height:calc(var(--ripple-size,170px) * .46);
+  margin-left:calc(var(--ripple-size,170px) * -.5);margin-top:calc(var(--ripple-size,170px) * -.23);
+  border-radius:50%;
+  background:radial-gradient(closest-side,transparent 72%,var(--ripple-trough) 80%,var(--ripple-crest) 87%,transparent 95%);
+  -webkit-mask-image:conic-gradient(from 18deg,#000 0deg,#000a 70deg,#000 130deg,#0008 200deg,#000 260deg,#000b 320deg,#000 360deg);
+  mask-image:conic-gradient(from 18deg,#000 0deg,#000a 70deg,#000 130deg,#0008 200deg,#000 260deg,#000b 320deg,#000 360deg);
+  opacity:0;animation:optical-water-ring 1.5s cubic-bezier(.12,.62,.3,1) forwards;
 }
 .community-room .material-ripple::before,.community-room .material-ripple::after {
-  content:'';position:absolute;border-radius:inherit;
+  content:'';position:absolute;inset:0;border-radius:50%;opacity:0;
+  background:radial-gradient(closest-side,transparent 70%,var(--ripple-trough) 79%,var(--ripple-crest) 86%,transparent 94%);
+  animation:optical-water-ring 1.5s cubic-bezier(.12,.62,.3,1) forwards;
 }
-.community-room .material-ripple::before {
-  inset:16% 13%;
-  background:linear-gradient(174deg,transparent 35%,#bceadd20 46%,#13566825 56%,transparent 68%);
-  -webkit-backdrop-filter:blur(.4px) brightness(1.035) saturate(1.055);
-  backdrop-filter:blur(.4px) brightness(1.035) saturate(1.055);
-  -webkit-mask-image:radial-gradient(ellipse at 47% 52%,transparent 28%,#0008 50%,transparent 77%);
-  mask-image:radial-gradient(ellipse at 47% 52%,transparent 28%,#0008 50%,transparent 77%);
-}
+.community-room .material-ripple::before { animation-delay:.17s; }
+/* The innermost ring also carries a small specular glint on its far crest. */
 .community-room .material-ripple::after {
-  inset:28% 24%;
-  background:repeating-linear-gradient(174deg,transparent 0 4px,#c9e9da12 5px,transparent 7px 12px);
-  -webkit-mask-image:radial-gradient(ellipse at center,transparent 22%,#0009 57%,transparent 79%);
-  mask-image:radial-gradient(ellipse at center,transparent 22%,#0009 57%,transparent 79%);
+  animation-delay:.34s;
+  background:radial-gradient(ellipse 18% 9% at 40% 18%,var(--ripple-glint),transparent 72%),
+    radial-gradient(closest-side,transparent 68%,var(--ripple-trough) 78%,var(--ripple-crest) 85%,transparent 93%);
 }
-@keyframes optical-water-shiver {
-  0% { transform:scale(.44,.6) rotate(-3deg);opacity:0; }
-  17% { opacity:var(--ripple-force,.54); }
-  65% { opacity:calc(var(--ripple-force,.54) * .52); }
-  100% { transform:scale(1.11,1.17) rotate(2deg);opacity:0; }
+@keyframes optical-water-ring {
+  0% { transform:scale(.18);opacity:0; }
+  14% { opacity:var(--ripple-force,.54); }
+  60% { opacity:calc(var(--ripple-force,.54) * .55); }
+  100% { transform:scale(1.08);opacity:0; }
 }
 .material-chip-mirror { background:linear-gradient(140deg,#e7f4ef,#6f939b 24%,#bacfd3 37%,#3e5966 66%,#cadfe0);border:1px solid #d3e8df99;border-radius:3px; }
 .material-chip-water { background:radial-gradient(ellipse at 28% 35%,transparent 15%,#d6ffef8c 18%,transparent 23% 36%,#b0efe56b 40%,transparent 45%),linear-gradient(155deg,#a7ddd467,#245b6c9e);border:1px solid #abe0d38a;border-radius:7px 4px 8px 3px; }
@@ -177,7 +189,7 @@
   background:radial-gradient(ellipse at 48% 47%,#eff9f35c,transparent 76%),var(--material-base);
   box-shadow:inset 2px 3px 5px #f4fff8ad,inset -2px -4px 8px #2d6d7129,0 0 0 .5px #5e9b9d6b;
 }
-:root[data-theme=light] .community-room .material-ripple { background:radial-gradient(ellipse 78% 47% at 47% 52%,transparent 49%,#257b7d24 55%,#659e8a28 61%,transparent 70%),radial-gradient(ellipse 46% 25% at 59% 48%,transparent 52%,#467e7020 62%,transparent 74%); }
+:root[data-theme=light] .community-room .material-ripple { --ripple-crest:#ffffffa8;--ripple-trough:#2a6f7638;--ripple-glint:#ffffffd0; }
 :root[data-theme=light] .community-room .material-ripple::before { background:linear-gradient(174deg,transparent 35%,#bde2c721 46%,#26707928 56%,transparent 68%); }
 .community-room :is([data-material=mirror],[data-material=water])[data-depth-kind=reader] { --material-radius:16px 20px 22px 14px; }
 @media(max-width:600px) {

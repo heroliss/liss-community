@@ -50,9 +50,11 @@ app.advance(350);app.pointer(app.water,242,111);app.flush();
 check('travel threshold suppresses tiny movement after throttle',app.inspect().activeRipples===2);
 for(let i=0;i<9;i++){app.pointer(app.water,50+i*30,90,true);app.flush();}
 check('a long gesture keeps at most two live ripples',app.inspect().activeRipples===2&&app.water.shell.children[2].children.length===2&&app.timers.size===2);
-app.water.shell.children[2].children[0].fire('animationend');
+app.water.shell.children[2].children[0].fire('animationend',{pseudoElement:''});
+check('the outer ring ending keeps the later rings alive',app.inspect().activeRipples===2&&app.timers.size===2);
+app.water.shell.children[2].children[0].fire('animationend',{pseudoElement:'::after'});
 check('animation completion frees ripple and timer',app.inspect().activeRipples===1&&app.timers.size===1);
-app.advance(1800);
+app.advance(2000);
 check('bounded timeout also cleans cancelled animations',app.inspect().activeRipples===0&&app.timers.size===0);
 app.pointer(app.water,130,120,true);app.preference('(prefers-reduced-motion: reduce)',true);app.flush();
 check('reduced motion clears existing rings and cancels pointer work',app.inspect().activeRipples===0&&app.water.shell.style.getPropertyValue('--optical-x')==='0.00px');
