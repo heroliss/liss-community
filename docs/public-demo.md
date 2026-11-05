@@ -123,7 +123,7 @@ PY
 5. 开启 **Force HTTPS** 并 Reload，核对 HTTP 跳转与 HTTPS Cookie。
 6. 每月检查 Web 有效期，按平台提示续期。
 
-WSGI 保留服务器 `REMOTE_ADDR`；只有明确代理合同后才调整 `LIHOU_PROXY_HOPS`。本机 HTTP 预览可设 `LIHOU_DEMO_COOKIE_SECURE=0`，公网保持默认 HTTPS Cookie。
+访客写入、登录和邮件的频率限制按来源地址计数。PythonAnywhere 的 `REMOTE_ADDR` 是平台负载均衡器的内网地址，直接使用会让所有访客共用同一份限额：一个人连续输错密码就能让其他人暂时无法登录。平台[只保证 `X-Forwarded-For` 的最后一项](https://help.pythonanywhere.com/pages/WebAppClientIPAddresses/)是它实际收到请求的地址，因此 WSGI 样例设置 `LIHOU_FORWARDED_FOR_HOPS=1`，只采信这一项（客户端自填的前几项被忽略），协议头未经平台说明，`LIHOU_PROXY_HOPS` 仍为 0。更新已有 WSGI 文件时同步加入这一行并 Reload，然后在后台“概览”核对：显示你的公网地址并标为“按访客区分”即生效；若显示 10.* 等内网地址并提示“所有访客共用限额”，说明设置尚未生效。其他部署只有在明确代理会覆盖或追加这些头时才调整这两个值。本机 HTTP 预览可设 `LIHOU_DEMO_COOKIE_SECURE=0`，公网保持默认 HTTPS Cookie。
 
 官方资料：[免费账户](https://help.pythonanywhere.com/pages/FreeAccountsFeatures/)、[2026 调整](https://blog.pythonanywhere.com/221/)、[Flask](https://help.pythonanywhere.com/pages/Flask/)、[SQLite](https://help.pythonanywhere.com/pages/KindsOfDatabases/)。
 

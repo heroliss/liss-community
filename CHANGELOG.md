@@ -5,6 +5,8 @@
 - 所有响应加入 `X-Frame-Options: DENY`、`Content-Security-Policy: frame-ancestors 'none'` 与 `Referrer-Policy: strict-origin-when-cross-origin`，防止站点被嵌入后诱导点击写入按钮，跨站只透露来源域名；已有响应自行设置的同名头保持不变。
 - `production` / `heroku` 配置缺少 `SECRET_KEY` 或仍使用源码中的开发默认值时拒绝启动。`public-demo` 原有的 32 字符要求不变。
 - `WTForms` 限定为 `>=3.2.2,<3.4`：表单直接使用元组形式的 `SelectField` 选项，3.4 将移除该写法。
+- 频率限制按真实访客区分：PythonAnywhere 的 `REMOTE_ADDR` 是负载均衡器内网地址，原先所有访客共用一份写入、登录与邮件限额。新增只作用于来源地址的 `LIHOU_FORWARDED_FOR_HOPS`，WSGI 样例设为 1，只采信平台保证的 `X-Forwarded-For` 最后一项，不采信协议头；原 `LIHOU_PROXY_HOPS` 行为不变。后台概览显示当前识别到的来源地址，便于部署后核对。
+- 移除仓库中 2016 年的 `chromedriver.exe`（ChromeDriver 2.26，只支持 Chrome 53–55）。可选的旧 Selenium 测试由 Selenium 4 自动匹配驱动，`.gitignore` 防止再次提交驱动程序。
 
 ## 2.0.0 · 2026-11-05
 

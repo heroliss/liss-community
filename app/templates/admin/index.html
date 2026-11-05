@@ -8,6 +8,10 @@
   <a href="{{ url_for('admin.users') }}"><span>用户</span><strong>{{ stats.users }}</strong><small>{{ stats.registered_users }} 账号 · {{ stats.guests }} 访客 · {{ stats.admins }} 位有效管理员</small></a>
   <a href="{{ url_for('admin.users', status='disabled') }}"><span>已停用用户</span><strong>{{ stats.disabled_users }}</strong><small>保留内容与账号</small></a>
 </div>
+<p class="admin-protection" data-client-address="{{ client_address.kind }}">{{ ui.icon('lock') }}<span>频率限制识别你的来源地址为 <code>{{ client_address.address }}</code>
+  {%- if client_address.kind == 'public' %} <span class="admin-status is-positive">按访客区分</span>
+  {%- elif client_address.kind == 'local' %} <span class="admin-status">本机访问</span>
+  {%- else %} <span class="admin-status is-warning">所有访客共用限额</span> 这是代理或内网地址：请按部署指南设置 <code>LIHOU_FORWARDED_FOR_HOPS</code> 后重载。{% endif %}</span></p>
 <section class="admin-section" aria-labelledby="quick-heading"><div class="admin-section-head"><h2 id="quick-heading">常用管理</h2></div><div class="admin-quicklinks">
   <a href="{{ url_for('admin.posts') }}">{{ ui.icon('book') }}<span><strong>整理文章</strong><small>查找、预览与管理文章显示</small></span>{{ ui.icon('arrow') }}</a>
   <a href="{{ url_for('admin.comments') }}">{{ ui.icon('comment') }}<span><strong>查看讨论</strong><small>结合文章上下文管理评论</small></span>{{ ui.icon('arrow') }}</a>

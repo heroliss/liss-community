@@ -178,9 +178,15 @@ class PublicDemoConfig(DemoConfig):
         proxy_hops = int(os.environ.get('LIHOU_PROXY_HOPS', '0'))
         if not 0 <= proxy_hops <= 2:
             raise RuntimeError('LIHOU_PROXY_HOPS must be 0, 1 or 2.')
-        if proxy_hops:
+        # Rate limits key on the client address. Behind a load balancer that only
+        # vouches for the address it appends to X-Forwarded-For (PythonAnywhere),
+        # trust that entry without also trusting X-Forwarded-Proto.
+        forwarded_for_hops = int(os.environ.get('LIHOU_FORWARDED_FOR_HOPS', str(proxy_hops)))
+        if not 0 <= forwarded_for_hops <= 2:
+            raise RuntimeError('LIHOU_FORWARDED_FOR_HOPS must be 0, 1 or 2.')
+        if proxy_hops or forwarded_for_hops:
             from werkzeug.middleware.proxy_fix import ProxyFix
-            app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxy_hops, x_proto=proxy_hops,
+            app.wsgi_app = ProxyFix(app.wsgi_app, x_for=forwarded_for_hops, x_proto=proxy_hops,
                                    x_host=0, x_port=0, x_prefix=0)
 
 

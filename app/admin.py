@@ -179,6 +179,23 @@ def search_like(value):
     return '%' + value.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
 
 
+def client_address_status():
+    """How the per-visitor rate limits currently see this request's sender."""
+    import ipaddress
+    address = request.remote_addr or ''
+    try:
+        parsed = ipaddress.ip_address(address)
+    except ValueError:
+        return {'address': address or '未知', 'kind': 'unknown'}
+    if parsed.is_loopback:
+        kind = 'local'
+    elif parsed.is_global:
+        kind = 'public'
+    else:
+        kind = 'proxy'  # A private or balancer address: every visitor would share one quota.
+    return {'address': address, 'kind': kind}
+
+
 @admin.get('/', strict_slashes=False)
 def index():
     stats = dict(posts=Post.query.count(), hidden_posts=Post.query.filter_by(hidden=True).count(),
@@ -189,6 +206,7 @@ def index():
         guests=User.query.filter_by(account_kind='guest').count(),
         disabled_users=User.query.filter_by(disabled=True, merged_into_id=None).count(), admins=active_admin_count())
     return render_template('admin/index.html', admin_section='index', stats=stats,
+        client_address=client_address_status(),
         recent_audit=AdminAudit.query.order_by(AdminAudit.id.desc()).limit(8).all())
 
 

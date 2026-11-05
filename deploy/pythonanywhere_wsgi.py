@@ -29,8 +29,13 @@ for name in ('LISS_EMAIL_ACCOUNTS', 'LISS_MAIL_PROVIDER', 'LISS_MAIL_API_KEY',
 os.environ['FLASK_CONFIG'] = 'public-demo'
 os.environ['LISS_DATA_DIR'] = str(account / 'lihou-demo-data')  # Existing persistent storage.
 os.environ['LIHOU_DEMO_DIR'] = os.environ['LISS_DATA_DIR']
-# Keep the WSGI server's REMOTE_ADDR. Change only after verifying proxy headers.
+# PythonAnywhere's REMOTE_ADDR is its load balancer, which would make every
+# visitor share one rate-limit quota. The balancer appends the address it
+# received the request from as the last X-Forwarded-For entry, the only entry
+# it guarantees (help.pythonanywhere.com/pages/WebAppClientIPAddresses/), so
+# trust exactly one hop. The scheme header is undocumented and stays untrusted.
 os.environ['LIHOU_PROXY_HOPS'] = '0'
+os.environ['LIHOU_FORWARDED_FOR_HOPS'] = '1'
 sys.path.insert(0, str(project))
 
 from manage import app as application  # noqa: E402,F401

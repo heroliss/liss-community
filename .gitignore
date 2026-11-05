@@ -50,3 +50,6 @@ portfolio/
 verification/
 .playwright-cli/
 .taste-skill/
+
+# Selenium 4 resolves a matching driver itself; never commit driver binaries.
+chromedriver*
