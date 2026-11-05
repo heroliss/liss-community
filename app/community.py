@@ -68,6 +68,7 @@ PROJECTS = {
     'outpost': ('Outpost', 'Unity 波次防守游戏'),
     'gomoku': ('Gomoku v3', '五子棋与搜索引擎实验'),
     'dubforge': ('DubForge', 'AI 视频译制工作台'),
+    'panxu': ('盘序', 'Windows 磁盘清理助手'),
     'ssframework': ('SSFramework', 'Unity 模块化框架'),
     'eazybuildpipeline': ('EazyBuildPipeline', 'Unity 资源与构建工具'),
     'intelligence-index-cost-linear': ('Intelligence × Cost', 'AI 能力与费用可视化'),

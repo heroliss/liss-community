@@ -24,7 +24,7 @@
 
 历史迭代分别记录在 [v19](docs/design-reading-room.md)、[v20](docs/design-material-studio.md)、[v21](docs/community-v21.md)、[v22](docs/community-v22.md)、[v23](docs/community-v23.md)、[v24](docs/community-v24.md)、[v25](docs/community-v25.md)、[v26](docs/community-v26.md)、[v27](docs/community-v27.md)、[v28](docs/community-v28.md)、[v29](docs/community-v29.md)、[v30](docs/community-v30.md)、[v31](docs/community-v31.md)、[v32](docs/community-v32.md)。旧报告只证明对应源码和记录范围。
 
-作品展厅由 Astro 构建并部署到 [Liss Works](https://heroliss.github.io/liss-works/)，旧 `/works/` 入口重定向并保留路径。社区导航可以进入作品，23 项作品（包括玻璃海）各自有 `/projects/<slug>/talk/` 讨论页；这里发表的讨论属于真实文章，可在文章流阅读、继续评论并由原作者编辑。原文章保留，关联表只记录项目关系。
+作品展厅由 Astro 构建并部署到 [Liss Works](https://heroliss.github.io/liss-works/)，旧 `/works/` 入口重定向并保留路径。社区导航可以进入作品，24 项作品（包括玻璃海和盘序）各自有 `/projects/<slug>/talk/` 讨论页；这里发表的讨论属于真实文章，可在文章流阅读、继续评论并由原作者编辑。原文章保留，关联表只记录项目关系。
 
 ## 网站管理
 
