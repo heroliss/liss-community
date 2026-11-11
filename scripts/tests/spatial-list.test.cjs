@@ -221,7 +221,7 @@ test('paused mode switches publish the new static pose without old transform res
 test('card motion, card title locks and unopted-in pages keep their original behavior', () => {
   for (const options of [{ mode: 'cards' }, { mode: 'list', optIn: false }]) {
     const f = fixture(options); f.move(1, 1);
-    near(f.value('--depth-ry'), 11.04); near(f.value('--depth-rx'), -5.76); near(f.value('--depth-x'), 16); near(f.value('--depth-z'), 18);
+    near(f.value('--depth-ry'), 14.9); near(f.value('--depth-rx'), -7.78); near(f.value('--depth-x'), 19.2); near(f.value('--depth-z'), 21.6);
     const yaw = f.finalYaw(); f.move(.15, .5, f.link); near(f.finalYaw(), yaw); telemetry(f);
   }
   const detail = fixture({ detail: true }); detail.move(1, 1); near(detail.value('--depth-ry'), 0); near(detail.value('--depth-x'), 0);

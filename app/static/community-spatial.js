@@ -14,9 +14,9 @@
   var poseNames = ['--depth-pose-rx','--depth-pose-ry','--depth-pose-rz',
     '--depth-pose-mobile-rx','--depth-pose-mobile-ry','--depth-pose-mobile-rz'];
   var profiles = {
-    edition:[5.76,11.04,16,10,18,.96], reply:[4.32,7.36,10,7,12,.64], image:[6.48,12.88,18,10,16,.64],
+    edition:[7.78,14.9,19.2,12,21.6,0.96], reply:[5.83,9.94,12,8.4,14.4,0.64], image:[8.75,17.39,21.6,12,19.2,0.64],
     reader:[0,0,0,0,0,0], workspace:[0,0,0,0,0,0],
-    identity:[5.04,9.2,14,9,12,.68], ledge:[5.76,11.04,13,9,14,.48], crystal:[6.48,12.88,17,12,22,.72]
+    identity:[6.8,12.42,16.8,10.8,14.4,0.68], ledge:[7.78,14.9,15.6,10.8,16.8,0.48], crystal:[8.75,17.39,20.4,14.4,26.4,0.72]
   };
   function clamp(value,min,max) { return Math.max(min,Math.min(max,value)); }
   function stablePostPose(identifier) {

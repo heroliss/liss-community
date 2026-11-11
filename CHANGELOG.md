@@ -2,6 +2,8 @@
 
 ## 未发布
 
+- 玻璃质感：Chromium 不为 preserve-3d 链中的元素绘制 backdrop，玻璃与水面卡片此前实际只是半透明叠色。这两类卡片的相机平面改为平面合成，透视写进卡片自身的 `perspective()`，倾斜仍是真实 3D；晶透模糊 4→12px、磨砂 18→28px，并新增边缘折射带、冷暖色散、内部散射和跟随指针的焦散高光（`community-glass-depth-v56.css`）。水面模糊 2→5px。
+- 卡片指针倾斜幅度整体加强约 35%（文章卡最大约 15° 偏转）。
 - 所有响应加入 `X-Frame-Options: DENY`、`Content-Security-Policy: frame-ancestors 'none'` 与 `Referrer-Policy: strict-origin-when-cross-origin`，防止站点被嵌入后诱导点击写入按钮，跨站只透露来源域名；已有响应自行设置的同名头保持不变。
 - `production` / `heroku` 配置缺少 `SECRET_KEY` 或仍使用源码中的开发默认值时拒绝启动。`public-demo` 原有的 32 字符要求不变。
 - `WTForms` 限定为 `>=3.2.2,<3.4`：表单直接使用元组形式的 `SelectField` 选项，3.4 将移除该写法。

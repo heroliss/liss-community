@@ -3,11 +3,11 @@
   "tool": "esbuild@0.28.2",
   "groups": {
     "styles": {
-      "file": "bundles/styles.f81d3e7efaec8368.css",
-      "sha256": "f81d3e7efaec83680392752d9d8d5b6216cfff8c96042085fb33f07f31d33ad3",
-      "bytes": 413726,
-      "sourceBytes": 459779,
-      "gzipBytes": 70639,
+      "file": "bundles/styles.236c8b97604f3097.css",
+      "sha256": "236c8b97604f3097fa8414caa3e70b223b9cb85ac94998d7df6a809b79aea572",
+      "bytes": 418971,
+      "sourceBytes": 466838,
+      "gzipBytes": 71415,
       "sources": {
         "liss.css": "faf70844bf3ed140d4104b54947329f4e2211c9db10197d1e2ff3b60cdf083f1",
         "community-room.css": "c534de6dfb70ac1ad93696081bf51224da45571ab0a04079b592c348cdbfe160",
@@ -37,6 +37,7 @@
         "community-feed.css": "d678d98f8655d40199d13dd3624a5079bdda2c7f9cfc4fef957698151d687b91",
         "community-footer.css": "3787bb1a85d9e6ae0cebe45606334f49a9e36a2a12081dc294ac09d65460d207",
         "community-reflections.css": "8e6ae7b98b2a53a117d7f5bf01ef20b0e653ee9630f6ff6193fd7f95008d7058",
+        "community-glass-depth-v56.css": "62ff35582bcb449db7352beec8b93614458faa83b160a285a84c65bc5438dac2",
         "community-background-designs-v40.css": "e539674eaee351450867c83af80e730ad265bdb122f5a177d18d13c089937d29",
         "community-background-defaults-v43.css": "92e73fa3269cd9fa85b36e467c07e8786374218839f25a4382e2d41a66a9fd0d",
         "community-background-spectrum-v44.css": "80cbc864eab924eb03c049e1ee7a602457e73f5b689401e3d7fe4eb46a99cd4d",
@@ -67,16 +68,16 @@
       }
     },
     "runtime": {
-      "file": "bundles/runtime.334c8e235367d33e.js",
-      "sha256": "334c8e235367d33ee9b3020b78dd31b710e6af21b73dbbdbe2a0c86a56a0d3f2",
-      "bytes": 127716,
-      "sourceBytes": 193970,
-      "gzipBytes": 43821,
+      "file": "bundles/runtime.8a188cf1967ad55f.js",
+      "sha256": "8a188cf1967ad55f28faeec5c004f5a71b30f1001f401694fd53d31aa91abae8",
+      "bytes": 127747,
+      "sourceBytes": 194007,
+      "gzipBytes": 43835,
       "sources": {
         "liss.js": "8c4f18b62a1f013ff0a24fd9f9a5021842fa53449b98c93045081bd55eafec45",
         "community-theme.js": "c8cfb16239c3ddae04ea40f9ed032e51de943ca003ea0c857ba9739f3bf7c61b",
         "community-room.js": "73b7625bfaed4a8121a5d8c3137bf795d92731561c0861073492101282040c34",
-        "community-spatial.js": "3df5b8957bd64bbf3d94c747dd4d5b0487e11dec09764a521185a427e711de27",
+        "community-spatial.js": "1b86e946d3ed970d1c02e7e6ab3f0111334e140945e4e70527af30dc2e10b002",
         "community-background-water-v40.js": "d019e46efdaed545b6c792633fb58d3fa5c22eae47bd980d8cb11bd2a9d4be3c",
         "community-background-designs-v40.js": "d4f25ef0bed60a20b640f7a88ac8c607fe8851dab54e32fcf2f1b7f5c6b59847",
         "community-background-defaults-v43.js": "cb4661d6d04c9e11c277fff86dd1d7f57e44a1bb0f9d15c73a74ef4745167e12",

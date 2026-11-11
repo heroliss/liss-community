@@ -1,0 +1,91 @@
+/* Glass body v56: the face used to read as plain tinted transparency. A thick
+   slab instead (1) diffuses the scene more, (2) gathers light into a brighter,
+   more saturated refraction band just inside its outline, (3) splits that band
+   into faint warm/cool fringes and (4) scatters a little light inside the body.
+   Everything stays native CSS composition: no sampled backdrop copy, and the
+   reading face keeps the densities that the 4.5:1 text checks rely on. */
+:root[data-theme] body.community-room [data-material=glass] {
+  --glass-optic-blur:12px;--glass-optic-saturation:1.38;--glass-optic-brightness:1.04;
+  --glass-band:15px;--glass-band-blur:2px;--glass-band-lift:1.32;--glass-band-saturation:1.75;
+  --glass-scatter:#c9f4ff14;--glass-fringe-warm:#ffb8d826;--glass-fringe-cool:#8ff0ff2e;--glass-caustic:#eafffb26;
+}
+:root[data-theme] body.community-room [data-material=glass][data-glass-finish=frosted] {
+  --glass-optic-blur:28px;--glass-optic-saturation:1.16;--glass-optic-brightness:1.06;
+  --glass-band:22px;--glass-band-blur:9px;--glass-band-lift:1.2;--glass-band-saturation:1.3;
+  --glass-scatter:#e4fbff1f;--glass-fringe-warm:#ffd2e41a;--glass-fringe-cool:#b7f5ff21;--glass-caustic:#f2fffb2e;
+}
+:root[data-theme=light] body.community-room [data-material=glass] {
+  --glass-optic-blur:14px;--glass-optic-brightness:1.02;--glass-band-lift:1.08;
+  --glass-scatter:#ffffff38;--glass-fringe-warm:#ff9cc72b;--glass-fringe-cool:#5fd8f033;--glass-caustic:#ffffff66;
+}
+
+/* Root cause of the "plain transparency": Chromium paints no backdrop at all for
+   an element nested in a preserve-3d chain, so the face showed the scene crisp.
+   Translucent bodies therefore compose their camera planes flat and carry the
+   camera inside the surface's own transform; the card still tilts in true
+   perspective, and the native blur under it is finally visible. */
+.community-room :is([data-material=glass],[data-material=water])[data-depth-host]:not([data-depth-kind=workspace]):not([data-depth-kind=reader]) > .depth-scroll,
+.community-room :is([data-material=glass],[data-material=water])[data-depth-host]:not([data-depth-kind=workspace]):not([data-depth-kind=reader]) > .depth-scroll > .depth-arrival,
+.community-room :is([data-material=glass],[data-material=water])[data-depth-host]:not([data-depth-kind=workspace]):not([data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface { transform-style:flat; }
+.community-room :is([data-material=glass],[data-material=water])[data-depth-host]:not([data-depth-kind=workspace]):not([data-depth-kind=reader]) > .depth-scroll > .depth-arrival > .depth-surface {
+  transform:perspective(var(--depth-camera,1500px))
+    translate3d(var(--depth-x,0px),var(--depth-y,0px),calc(var(--depth-z,0px) + var(--reply-lift,0px)))
+    rotateX(calc(var(--depth-rest-rx) + var(--depth-rx,0deg)))
+    rotateY(calc(var(--depth-rest-ry) + var(--depth-ry,0deg))) rotateZ(var(--depth-rest-rz));
+}
+
+/* Wider native blur on the face, now with a touch of gathered light. */
+:root[data-theme] body.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base,
+:root[data-theme] body.community-room [data-theme-color]:not([data-theme-color=''])[data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  -webkit-backdrop-filter:blur(var(--glass-optic-blur)) saturate(var(--glass-optic-saturation)) brightness(var(--glass-optic-brightness));
+  backdrop-filter:blur(var(--glass-optic-blur)) saturate(var(--glass-optic-saturation)) brightness(var(--glass-optic-brightness));
+  box-shadow:
+    inset 0 1px 0 #e6fff833,
+    inset 0 -1px 0 #02101833,
+    inset 1.5px 0 0 -.5px var(--glass-fringe-warm),
+    inset -1.5px 0 0 -.5px var(--glass-fringe-cool),
+    inset 0 0 26px -4px var(--glass-scatter),
+    inset 0 -18px 30px -24px var(--glass-fringe-cool);
+}
+
+/* The refraction band: the slab is thickest optically at its rim, so the scene
+   seen through the edge is brighter and more saturated than through the face.
+   Two soft linear masks build the band, the inherited radius clips its corners. */
+.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-refraction {
+  display:block;z-index:1;transform:translateZ(.3px);
+  -webkit-backdrop-filter:blur(var(--glass-band-blur)) brightness(var(--glass-band-lift)) saturate(var(--glass-band-saturation));
+  backdrop-filter:blur(var(--glass-band-blur)) brightness(var(--glass-band-lift)) saturate(var(--glass-band-saturation));
+  background:
+    radial-gradient(ellipse 70% 42% at var(--depth-light-x,30%) 0%,var(--glass-caustic),transparent 70%),
+    radial-gradient(ellipse 60% 36% at calc(100% - var(--depth-light-x,30%)) 100%,var(--glass-fringe-cool),transparent 72%);
+  -webkit-mask-image:
+    linear-gradient(90deg,#000,#0000 var(--glass-band),#0000 calc(100% - var(--glass-band)),#000),
+    linear-gradient(180deg,#000,#0000 var(--glass-band),#0000 calc(100% - var(--glass-band)),#000);
+  mask-image:
+    linear-gradient(90deg,#000,#0000 var(--glass-band),#0000 calc(100% - var(--glass-band)),#000),
+    linear-gradient(180deg,#000,#0000 var(--glass-band),#0000 calc(100% - var(--glass-band)),#000);
+  -webkit-mask-composite:source-over;mask-composite:add;
+}
+/* A moving caustic: the face catches a soft highlight that follows the same
+   pointer light as the rim, so tilting the card visibly sweeps light across it.
+   The theme tint that this pseudo-element used to carry alone is kept below it. */
+.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::before,
+.community-room [data-material=glass][data-theme-color]:not([data-theme-color='']) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::before {
+  content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:
+    radial-gradient(ellipse 48% 62% at var(--depth-light-x,30%) var(--depth-light-y,22%),var(--glass-caustic),transparent 72%),
+    radial-gradient(ellipse at var(--depth-light-x,30%) 12%,color-mix(in srgb,var(--appearance-accent,transparent) 8%,transparent),transparent 76%);
+}
+
+/* Water stays the clearest body, but now diffuses enough to read as a medium. */
+.community-room [data-material=water] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  -webkit-backdrop-filter:blur(5px) saturate(1.3) brightness(1.03);backdrop-filter:blur(5px) saturate(1.3) brightness(1.03);
+}
+
+@media(max-width:600px) {
+  :root[data-theme] body.community-room [data-material=glass] { --glass-optic-blur:8px;--glass-band:11px; }
+  :root[data-theme] body.community-room [data-material=glass][data-glass-finish=frosted] { --glass-optic-blur:18px;--glass-band:15px; }
+}
+@media(prefers-reduced-transparency:reduce) {
+  .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-refraction { display:none; }
+}
