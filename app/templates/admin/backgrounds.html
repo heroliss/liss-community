@@ -1,36 +1,96 @@
 {% extends "admin/base.html" %}
-{% block head %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='admin-backgrounds.css') }}?v=20261112-1">{% endblock %}
+{% block head %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='admin-backgrounds.css') }}?v=20261112-2">{% endblock %}
 {% block admin_label %}背景图库{% endblock %}
 {% block admin_content %}
 {% set catalog = background_catalog %}{% set errors = errors|default({}) %}{% set upload = upload_values|default({}) %}
+{% set live = catalog.entries|rejectattr('deleted')|list %}
 <div class="abg-workspace" data-background-library>
-  <header class="admin-heading abg-heading"><div><h1>背景图库</h1><p>整理图片、展示顺序与默认随机名单。</p></div><a class="button button-secondary" href="#background-upload" data-open-upload>添加图片</a></header>
+  <header class="abg-hero">
+    <div class="abg-hero-copy">
+      <h1>背景图库</h1>
+      <p>照片、上传图片和绘制背景都在这里。打开「随机」的背景，会在访客从站外进入时随机出现一张。</p>
+    </div>
+    <dl class="abg-stats">
+      <div><dt>照片</dt><dd>{{ live|length }}</dd></div>
+      <div><dt>绘制</dt><dd>{{ catalog.scenes|length }}</dd></div>
+      <div class="is-pool"><dt>随机名单</dt><dd data-pool-count>{{ catalog.poolIds|length }}</dd></div>
+      <div><dt>已删除</dt><dd data-deleted-count>{{ catalog.entries|length - live|length }}</dd></div>
+    </dl>
+    <a class="button abg-add" href="#background-upload" data-open-upload><span aria-hidden="true">＋</span>添加图片</a>
+  </header>
+
+  <details id="background-upload" class="abg-upload"{% if upload and errors %} open{% endif %}>
+    <summary><span>上传新图片</span><small>PNG、JPEG 或 WebP，不超过 20 MiB</small></summary>
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('admin.preview') }}" data-background-upload>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="kind" value="backgrounds"><input type="hidden" name="action" value="upload"><input type="hidden" name="catalog_revision" value="{{ catalog.revision }}"><input type="hidden" name="return_to" value="{{ url_for('admin.backgrounds') }}">
+      <div class="abg-upload-layout">
+        <label class="abg-dropzone" for="background-image" data-dropzone>
+          <img alt="待添加图片的预览" data-upload-preview hidden>
+          <span class="abg-dropzone-copy"><strong>拖入图片，或点击选择</strong><span data-upload-file-info>至少 320 × 180 像素</span></span>
+          <input id="background-image" type="file" name="image" accept="image/png,image/jpeg,image/webp" required data-upload-image>
+        </label>
+        {{ admin_ui.field_errors(errors, 'image') }}
+        <div class="abg-upload-fields">
+          <label for="background-upload-title">名称<input id="background-upload-title" name="title" value="{{ upload.get('title','') }}" maxlength="80" required data-upload-title></label>{{ admin_ui.field_errors(errors, 'title') }}
+          <label for="background-upload-description">描述<textarea id="background-upload-description" name="description" maxlength="240" rows="2">{{ upload.get('description','') }}</textarea></label>{{ admin_ui.field_errors(errors, 'description') }}
+          <div class="abg-field-pair">
+            <label for="background-upload-palette">主题配色<select id="background-upload-palette" name="palette_key">{% for palette in catalog.paletteChoices %}<option value="{{ palette.id }}"{% if palette.id == upload.get('palette_key','coast') %} selected{% endif %}>{{ palette.title }}</option>{% endfor %}</select></label>
+            <label for="background-upload-pool">默认随机<select id="background-upload-pool" name="include_pool"><option value="1"{% if upload.get('include_pool','1') in [true, '1', 1] %} selected{% endif %}>加入名单</option><option value="0"{% if upload.get('include_pool','1') in [false, '0', 0] %} selected{% endif %}>暂不加入</option></select></label>
+          </div>{{ admin_ui.field_errors(errors, 'palette_key') }}
+          <p class="abg-field-help">保留原图，另外生成适合网页的版本；不会自动 AI 超分。</p>
+          <button class="button" type="submit">预览添加</button>
+        </div>
+      </div>
+    </form>
+  </details>
+
   {% if errors %}<div class="admin-error-box" role="alert"><p>请检查以下内容，尚未保存。</p><ul>{% for name, message in errors.items() %}<li>{{ message if message is string else message|join(' ') }}</li>{% endfor %}</ul></div>{% endif %}
   <form method="post" action="{{ url_for('admin.preview') }}" class="abg-catalog-form" data-background-catalog>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="kind" value="backgrounds"><input type="hidden" name="action" value="update"><input type="hidden" name="catalog_revision" value="{{ catalog.revision }}"><input type="hidden" name="return_to" value="{{ url_for('admin.backgrounds') }}">
-    <div class="abg-random-settings">
-      <div><label for="background-random" title="默认名单对跟随站点设置的用户生效">默认随机背景</label><p>从站外进入时抽取一次，站内浏览保持不变。</p></div>
-      <select id="background-random" name="random_enabled" data-random-enabled><option value="1"{% if catalog.randomEnabled %} selected{% endif %}>开启</option><option value="0"{% if not catalog.randomEnabled %} selected{% endif %}>关闭</option></select>
-      <div class="abg-pool-summary"><span>随机名单 <strong data-pool-count>{{ catalog.poolIds|length }}</strong> 张</span><div><button type="button" class="abg-text-button" data-pool-all hidden>全选可用图片</button><button type="button" class="abg-text-button" data-pool-clear hidden>清空名单</button></div></div>
-    </div>
-    <fieldset class="abg-drawn-pool"><legend>绘制背景（无图片文件，可加入默认随机）</legend>
-      {% for scene in catalog.drawnScenes %}<label class="abg-pool-label"><input type="checkbox" name="pool_ids" value="{{ scene.id }}"{% if scene.inPool %} checked{% endif %} data-background-pool data-drawn-pool>{{ scene.title }}</label>{% endfor %}
-    </fieldset>
-    <p class="abg-notice" data-empty-pool hidden role="status">名单为空，保存后将关闭默认随机。</p>
-    {{ admin_ui.field_errors(errors, 'random_enabled') }}{{ admin_ui.field_errors(errors, 'pool_ids') }}{{ admin_ui.field_errors(errors, 'ordered_ids') }}
+
+    <section class="abg-random" aria-labelledby="abg-random-title">
+      <div class="abg-random-head">
+        <div><h2 id="abg-random-title">默认随机</h2><p>访客从站外进入时，从名单里抽一张；站内浏览保持不变。只对跟随站点设置的访客生效，自己选过背景的访客不受影响。</p></div>
+        <label class="abg-random-state" for="background-random">状态<select id="background-random" name="random_enabled" data-random-enabled><option value="1"{% if catalog.randomEnabled %} selected{% endif %}>开启</option><option value="0"{% if not catalog.randomEnabled %} selected{% endif %}>关闭</option></select></label>
+      </div>
+      <div class="abg-pool-strip" data-pool-strip hidden></div>
+      <p class="abg-notice" data-empty-pool hidden role="status">名单为空，保存后将关闭默认随机。</p>
+      <div class="abg-pool-actions" data-pool-actions hidden>
+        <button type="button" class="abg-chip-button" data-pool-action="add-shown">当前显示的全部加入</button>
+        <button type="button" class="abg-chip-button" data-pool-action="remove-shown">当前显示的全部移出</button>
+        <button type="button" class="abg-chip-button" data-pool-action="aurora">只用极光系列绘制背景</button>
+        <button type="button" class="abg-chip-button" data-pool-action="clear">清空名单</button>
+      </div>
+      {{ admin_ui.field_errors(errors, 'random_enabled') }}{{ admin_ui.field_errors(errors, 'pool_ids') }}{{ admin_ui.field_errors(errors, 'ordered_ids') }}
+    </section>
+
     <div class="abg-toolbar" data-background-filters hidden>
-      <label class="abg-search" for="background-search">搜索图片<input id="background-search" type="search" autocomplete="off" placeholder="名称、描述或编号" data-background-search></label>
-      <label for="background-filter">显示<select id="background-filter" data-background-filter><option value="available">图库</option><option value="enabled">已启用</option><option value="disabled">已停用</option><option value="pool">随机名单</option><option value="deleted">已删除</option><option value="all">全部</option></select></label>
+      <div class="abg-tabs" role="group" aria-label="显示范围">
+        {% for value, label in [('available','全部'),('photos','照片'),('scenes','绘制'),('pool','随机名单'),('disabled','已停用'),('deleted','已删除')] %}
+        <button type="button" data-filter-value="{{ value }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ label }}<span data-filter-count="{{ value }}"></span></button>
+        {% endfor %}
+      </div>
+      <label class="abg-search" for="background-search"><span class="abg-visually-hidden">搜索背景</span><input id="background-search" type="search" autocomplete="off" placeholder="搜索名称、描述或编号" data-background-search></label>
       <p class="abg-result-count" role="status" aria-live="polite" aria-atomic="true" data-result-count></p>
     </div>
+
+    <h2 class="abg-section-title" data-section-title="photos">照片与上传<span>在「编辑」里调整顺序与取景；删除只停止展示，原图保留，可以恢复</span></h2>
     <div class="abg-gallery" data-background-grid>
       {% for entry in catalog.entries %}
       {% set row = namespace(error=false, field='title') %}{% for key in ['title','description','palette','enabled','deleted','anchorX','anchorY','mobileAnchorX'] %}{% if errors.get(key ~ '_' ~ entry.id) %}{% if not row.error %}{% set row.field=key %}{% endif %}{% set row.error=true %}{% endif %}{% endfor %}
       <article class="abg-item{% if entry.deleted %} is-deleted{% elif not entry.enabled %} is-disabled{% endif %}" data-background-item data-background-id="{{ entry.id }}" data-source-kind="{{ entry.sourceKind }}" data-preview-url="{{ entry.previewUrl }}" data-source-width="{{ entry.sourceWidth }}" data-source-height="{{ entry.sourceHeight }}" data-background-error="{{ 'true' if row.error else 'false' }}" data-error-field="{{ row.field }}">
         <input type="hidden" name="ordered_ids" value="{{ entry.id }}">
-        <div class="abg-visual"><img src="{{ entry.thumbnailUrl }}" width="360" height="240" alt="" loading="lazy" decoding="async"><button type="button" class="abg-open" data-edit-background hidden aria-label="编辑 {{ entry.title }}"><span>编辑</span></button></div>
-        <div class="abg-caption"><span class="abg-position" data-background-position>{{ loop.index }}</span><h2 data-background-title>{{ entry.title }}</h2><span class="abg-state" data-background-state{% if not entry.deleted and entry.enabled %} hidden{% endif %}>{{ '已删除' if entry.deleted else '已停用' }}</span><span class="abg-modified" data-background-modified hidden>待保存</span></div>
-        <div class="abg-card-footer"><label class="abg-pool-label"><input type="checkbox" name="pool_ids" value="{{ entry.id }}"{% if entry.inPool %} checked{% endif %} data-background-pool>默认随机</label><span>{{ '上传' if entry.sourceKind == 'upload' else '内置' }}</span></div>
+        <div class="abg-visual">
+          <img src="{{ entry.thumbnailUrl }}" width="360" height="240" alt="" loading="lazy" decoding="async">
+          <button type="button" class="abg-open" data-edit-background hidden aria-label="编辑 {{ entry.title }}"><span>编辑</span></button>
+          <label class="abg-pool-toggle"><input type="checkbox" name="pool_ids" value="{{ entry.id }}"{% if entry.inPool %} checked{% endif %} data-background-pool><span>随机</span></label>
+          <span class="abg-badge">{{ '上传' if entry.sourceKind == 'upload' else '照片' }}</span>
+        </div>
+        <div class="abg-caption"><span class="abg-position" data-background-position>{{ loop.index }}</span><h3 data-background-title>{{ entry.title }}</h3><span class="abg-state" data-background-state{% if not entry.deleted and entry.enabled %} hidden{% endif %}>{{ '已删除' if entry.deleted else '已停用' }}</span><span class="abg-modified" data-background-modified hidden>待保存</span></div>
+        <div class="abg-actions" data-card-actions hidden>
+          <button type="button" class="abg-action" data-quick="enabled">停用</button>
+          <button type="button" class="abg-action is-danger" data-quick="deleted">删除</button>
+        </div>
         <details class="abg-native-fields" data-background-fields{% if errors.get('title_' ~ entry.id) or errors.get('description_' ~ entry.id) or errors.get('palette_' ~ entry.id) %} open{% endif %}>
           <summary>编辑名称与设置</summary>
           <label for="bg-title-{{ entry.id }}">名称<input id="bg-title-{{ entry.id }}" name="title_{{ entry.id }}" value="{{ entry.title }}" maxlength="80" required data-background-field="title"></label>{{ admin_ui.field_errors(errors, 'title_' ~ entry.id) }}
@@ -45,23 +105,27 @@
       </article>
       {% endfor %}
     </div>
-    <div class="abg-empty" data-background-empty hidden><h2>没有找到图片</h2><p>试试其他关键词或显示范围。</p><button class="abg-text-button" type="button" data-reset-filters>清除筛选</button></div>
-    {% if not catalog.entries %}<div class="abg-empty"><h2>图库还没有图片</h2><p>添加一张图片，开始整理背景。</p></div>{% endif %}
-    <footer class="abg-savebar"><div><strong data-background-dirty>尚未修改</strong><span>预览并确认后生效</span></div><button type="submit" class="button">预览变更</button></footer><p class="abg-announcement" role="status" aria-live="polite" aria-atomic="true" data-background-announcement></p>
+    {% if not catalog.entries %}<div class="abg-empty"><h2>图库还没有照片</h2><p>添加一张图片，开始整理背景。</p></div>{% endif %}
+
+    <h2 class="abg-section-title" data-section-title="scenes">绘制背景<span>没有图片文件，随浅色与深色主题自动变化</span></h2>
+    <div class="abg-gallery" data-scene-grid>
+      {% for scene in catalog.scenes %}
+      <article class="abg-item abg-scene" data-scene-item data-scene-id="{{ scene.id }}" data-aurora="{{ 'true' if scene.aurora else 'false' }}" data-search="{{ scene.title }} {{ scene.description }} {{ scene.id }}">
+        <div class="abg-visual">
+          <canvas class="background-thumb background-thumb-{{ scene.id }}" width="360" height="240" data-scene-canvas data-style="{{ scene.id }}" aria-hidden="true"></canvas>
+          <label class="abg-pool-toggle"><input type="checkbox" name="pool_ids" value="{{ scene.id }}"{% if scene.inPool %} checked{% endif %} data-background-pool data-scene-pool><span>随机</span></label>
+          <span class="abg-badge">{{ '极光' if scene.aurora else '绘制' }}</span>
+        </div>
+        <div class="abg-caption"><h3>{{ scene.title }}</h3><span class="abg-modified" data-background-modified hidden>待保存</span></div>
+        <p class="abg-scene-note">{{ scene.description }}</p>
+      </article>
+      {% endfor %}
+    </div>
+    <div class="abg-empty" data-background-empty hidden><h2>没有找到背景</h2><p>试试其他关键词或显示范围。</p><button class="abg-chip-button" type="button" data-reset-filters>清除筛选</button></div>
+
+    <footer class="abg-savebar"><div><strong data-background-dirty>尚未修改</strong><span>预览并确认后才会生效</span></div><button type="submit" class="button">预览变更</button></footer><p class="abg-announcement" role="status" aria-live="polite" aria-atomic="true" data-background-announcement></p>
   </form>
-  <details id="background-upload" class="abg-upload"{% if upload and errors %} open{% endif %}>
-    <summary>添加图片<span>PNG、JPEG 或 WebP</span></summary>
-    <form method="post" enctype="multipart/form-data" action="{{ url_for('admin.preview') }}" data-background-upload>
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="kind" value="backgrounds"><input type="hidden" name="action" value="upload"><input type="hidden" name="catalog_revision" value="{{ catalog.revision }}"><input type="hidden" name="return_to" value="{{ url_for('admin.backgrounds') }}">
-      <div class="abg-upload-layout"><div class="abg-upload-preview"><img alt="待添加图片的预览" data-upload-preview hidden><label for="background-image">选择图片<input id="background-image" type="file" name="image" accept="image/png,image/jpeg,image/webp" required data-upload-image></label><p data-upload-file-info>不超过 20 MiB，至少 320 × 180 像素。</p>{{ admin_ui.field_errors(errors, 'image') }}</div>
-      <div class="abg-upload-fields"><label for="background-upload-title">名称<input id="background-upload-title" name="title" value="{{ upload.get('title','') }}" maxlength="80" required></label>{{ admin_ui.field_errors(errors, 'title') }}
-        <label for="background-upload-description">描述<textarea id="background-upload-description" name="description" maxlength="240" rows="2">{{ upload.get('description','') }}</textarea></label>{{ admin_ui.field_errors(errors, 'description') }}
-        <label for="background-upload-palette">主题配色<select id="background-upload-palette" name="palette_key">{% for palette in catalog.paletteChoices %}<option value="{{ palette.id }}"{% if palette.id == upload.get('palette_key','coast') %} selected{% endif %}>{{ palette.title }}</option>{% endfor %}</select></label>{{ admin_ui.field_errors(errors, 'palette_key') }}
-        <label for="background-upload-pool">默认随机名单<select id="background-upload-pool" name="include_pool"><option value="1"{% if upload.get('include_pool','1') in [true, '1', 1] %} selected{% endif %}>加入</option><option value="0"{% if upload.get('include_pool','1') in [false, '0', 0] %} selected{% endif %}>不加入</option></select></label>
-        <p class="abg-field-help">保留原图，生成适合网页的版本；不会自动 AI 超分。</p><button class="button button-secondary" type="submit">预览添加</button>
-      </div></div>
-    </form>
-  </details>
+
   <dialog class="abg-editor" data-background-editor aria-labelledby="background-editor-title">
     <form method="dialog" data-background-editor-form>
       <header><h2 id="background-editor-title">编辑背景</h2><button type="button" class="abg-close" aria-label="关闭编辑" data-close-editor>{{ ui.icon('close') }}</button></header>
@@ -72,10 +136,10 @@
         <div class="abg-field-pair"><label for="background-edit-enabled">展示<select id="background-edit-enabled" data-editor-field="enabled"><option value="1">启用</option><option value="0">停用</option></select></label><label for="background-edit-deleted">图库状态<select id="background-edit-deleted" data-editor-field="deleted"><option value="0">保留 / 恢复</option><option value="1">删除，保留原图</option></select></label></div>
         <div class="abg-position-control"><label for="background-edit-position">展示位置<input id="background-edit-position" type="number" min="1" max="{{ catalog.entries|length }}" step="1" required data-editor-position></label><div><button type="button" class="button button-secondary" data-move-position="-1">上移</button><button type="button" class="button button-secondary" data-move-position="1">下移</button></div></div>
         <details class="abg-composition" data-editor-composition><summary>画面位置</summary><div class="abg-field-pair"><label for="background-edit-anchor-x">桌面水平（%）<input id="background-edit-anchor-x" type="number" min="0" max="100" step="any" required data-editor-field="anchorX" data-anchor-percent></label><label for="background-edit-anchor-y">垂直（%）<input id="background-edit-anchor-y" type="number" min="0" max="100" step="any" required data-editor-field="anchorY" data-anchor-percent></label></div><label for="background-edit-mobile-anchor">手机水平（%）<input id="background-edit-mobile-anchor" type="number" min="0" max="100" step="any" required data-editor-field="mobileAnchorX" data-anchor-percent></label><p class="abg-field-help">50% 表示居中。只调整取景，保留原图。</p></details>
-        <p class="abg-field-help">删除或停用会移出随机名单；恢复后可重新勾选。</p>
+        <p class="abg-field-help">删除或停用会移出随机名单；恢复后可重新加入。</p>
       </div></div><footer><span>暂存于本页，仍需预览确认。</span><button type="submit" class="button">保留修改</button></footer>
     </form>
   </dialog>
 </div>
 {% endblock %}
-{% block scripts %}{{ super() }}<script src="{{ url_for('static', filename='admin-backgrounds.js') }}?v=20261112-1" defer></script>{% endblock %}
+{% block scripts %}{{ super() }}<script src="{{ url_for('static', filename='admin-backgrounds.js') }}?v=20261112-2" defer></script>{% endblock %}

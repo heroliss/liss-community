@@ -31,14 +31,10 @@ ID = re.compile(r'[a-z][a-z0-9-]{0,79}\Z')
 STAGE = re.compile(r'stage-[a-f0-9]{32}\Z')
 FILE = re.compile(r'(?:image-(?:[0-9]{2,5})|thumb)\.webp\Z')
 INTERNAL = {'enabled', 'deleted', 'paletteKey', 'sourceKind', '_storage', '_native'}
-# Canvas-drawn scenes (community-background-aurora-v60.js). They have no files and
-# no catalogue entry, but may sit in the site's default random list.
-DRAWN_SCENES = (('aurora-veil', '极光夜幕'), ('prism-nebula', '棱镜星云'), ('bokeh-night', '夜色光斑'),
-                ('tide-glow', '夜港辉光'), ('silk-flow', '丝光流彩'), ('crystal-cavern', '晶洞微光'),
-                ('dusk-dunes', '暮色沙丘'), ('deep-current', '深海光束'), ('neon-rain', '霓虹雨夜'),
-                ('lantern-field', '灯笼星野'))
-DRAWN_IDS = tuple(name for name, _ in DRAWN_SCENES)
-DRAWN_TITLES = dict(DRAWN_SCENES)
+# The aurora set drawn for the v60 design (community-background-aurora-v60.js).
+DRAWN_IDS = ('aurora-veil', 'prism-nebula', 'bokeh-night', 'tide-glow', 'silk-flow', 'crystal-cavern',
+             'dusk-dunes', 'deep-current', 'neon-rain', 'lantern-field')
+SCENE = re.compile(r"(?:'([a-z0-9-]+)'|([a-z][a-z0-9-]*)):\{id:'([a-z0-9-]+)',title:'([^']*)',description:'([^']*)',kind:'vector'([^}]*)\}")
 
 
 class BackgroundCatalog(db.Model):
@@ -82,6 +78,31 @@ def seed_data(copy_data=True):
         cached = dict(entries=entries, palettes=palettes)
         current_app.extensions['background_seed'] = cached
     return copy.deepcopy(cached) if copy_data else cached
+
+
+def scene_data():
+    """Built-in drawn scenes from the client catalogue. They have no files or
+    catalogue rows, but any of them may sit in the site's default random list."""
+    cached = current_app.extensions.get('background_scenes')
+    if cached is None:
+        source = (Path(current_app.static_folder)/'community-backgrounds.js').read_text(encoding='utf-8')
+        cached = []
+        for match in SCENE.finditer(source):
+            key, name = match.group(1) or match.group(2), match.group(3)
+            if key == name and all(scene['id'] != name for scene in cached):
+                cached.append(dict(id=name, title=match.group(4), description=match.group(5),
+                                   aurora=name in DRAWN_IDS))
+        assert {scene['id'] for scene in cached} >= set(DRAWN_IDS)
+        current_app.extensions['background_scenes'] = cached
+    return cached
+
+
+def scene_ids():
+    return {scene['id'] for scene in scene_data()}
+
+
+def scene_titles():
+    return {scene['id']: scene['title'] for scene in scene_data()}
 
 
 def initial_document():
@@ -135,7 +156,7 @@ def public_entry(entry):
 def public_payload():
     data = document()
     active = [entry for entry in data['entries'] if entry_available(entry)]
-    available = {entry['id'] for entry in active} | set(DRAWN_IDS)
+    available = {entry['id'] for entry in active} | scene_ids()
     pool = [name for name in data['poolIds'] if name in available]
     sandbox = current_app.extensions.get('public_demo')
     revision = catalog_row().revision if sandbox and sandbox.initialized else 0
@@ -174,9 +195,9 @@ def admin_context(data=None):
             entry['previewUrl'] = url_for('admin.background_asset', image_id=entry['id'], filename=Path(preview).name)
         entry['sourceWidth'] = entry.get('originalWidth', entry['width'])
         entry['sourceHeight'] = entry.get('originalHeight', entry['height'])
-    drawn = [dict(id=name, title=title, inPool=name in data['poolIds']) for name, title in DRAWN_SCENES]
+    scenes = [dict(scene, inPool=scene['id'] in data['poolIds']) for scene in scene_data()]
     return dict(revision=row.revision, entries=data['entries'], randomEnabled=data['randomEnabled'],
-                poolIds=data['poolIds'], paletteChoices=palette_choices(), drawnScenes=drawn)
+                poolIds=data['poolIds'], paletteChoices=palette_choices(), scenes=scenes)
 
 
 def text_value(value, label, maximum, required=False, multiline=False):
@@ -195,7 +216,7 @@ def flag(form, key):
 
 
 def normalize_pool(data):
-    available = {entry['id'] for entry in data['entries'] if entry['enabled'] and not entry['deleted']} | set(DRAWN_IDS)
+    available = {entry['id'] for entry in data['entries'] if entry['enabled'] and not entry['deleted']} | scene_ids()
     data['poolIds'] = list(dict.fromkeys(name for name in data['poolIds'] if name in available))
     if not data['poolIds']:
         data['randomEnabled'] = False  # The preview explicitly includes this state change.
@@ -243,7 +264,7 @@ def parse_update(form):
         data['randomEnabled'] = flag(form, 'random_enabled')
     except CatalogError as error:
         errors['random_enabled'] = str(error)
-    selected_pool, known = form.getlist('pool_ids'), set(by_id) | set(DRAWN_IDS)
+    selected_pool, known = form.getlist('pool_ids'), set(by_id) | scene_ids()
     if not set(selected_pool).issubset(known):
         errors['pool_ids'] = '默认随机名单包含未知的图片。'
     data['poolIds'] = list(dict.fromkeys(name for name in selected_pool if name in known))
@@ -289,8 +310,8 @@ def operation(before, after, upload=None):
         rows.append(dict(label='图片排序', before=' → '.join(entry['title'] for entry in before['entries']),
                          after=' → '.join(entry['title'] for entry in after['entries'])))
     if before['poolIds'] != after['poolIds']:
-        old_titles = {**DRAWN_TITLES, **{entry['id']: entry['title'] for entry in before['entries']}}
-        new_titles = {**DRAWN_TITLES, **{entry['id']: entry['title'] for entry in after['entries']}}
+        old_titles = {**scene_titles(), **{entry['id']: entry['title'] for entry in before['entries']}}
+        new_titles = {**scene_titles(), **{entry['id']: entry['title'] for entry in after['entries']}}
         rows.append(dict(label='默认随机名单',
             before=f'{len(before["poolIds"])} 张：'+('、'.join(old_titles[name] for name in before['poolIds']) or '无'),
             after=f'{len(after["poolIds"])} 张：'+('、'.join(new_titles[name] for name in after['poolIds']) or '无')))

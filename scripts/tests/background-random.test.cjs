@@ -53,6 +53,9 @@ const env=environment(),ui=pickerFixture(env.doc),tab=new Map();env.sandbox.sess
 const settings=append(ui.dialog,'div',{'data-background-random-settings':''});const enabled=append(settings,'input',{type:'checkbox','data-background-random-enabled':''});const browse=append(settings,'button',{'data-background-random-browse':''});append(browse,'span',{'data-background-random-count':''});const message=append(ui.dialog,'p',{'data-background-random-status':''});
 const tools=append(ui.dialog,'div',{'data-background-pool-tools':''});for(const name of ['back','all','none','default'])append(tools,'button',{['data-background-pool-'+name]:''});const pool=append(ui.gallery,'fieldset',{'data-background-pool-choices':''});
 load(env,'community-background-palettes-v40.js');load(env,'community-background-candidates-v40.js');load(env,'community-background-visits-v55.js');load(env,'community-backgrounds.js');const api=env.win.LissBackgrounds,start=api.read().id;
+// An admin may put any built-in drawn scene in the site default, not only the aurora set.
+const vectorPool=visit({site:{defaultRandom:{enabled:true,ids:['mist']}}});assert.equal(vectorPool.controller.read().id,'mist');assert.deepEqual([...vectorPool.controller.read().randomPool],['mist']);
+checks.push('a site default list may name any built-in drawn scene');
 // v60: 51 photos plus 10 drawn aurora scenes can join the draw; the untouched site default is the aurora set.
 assert.equal(api.read().random,true);assert.equal(pool.querySelectorAll('input').length,61);assert.equal(env.writes.length,0);ui.opener.click();assert.equal(enabled.checked,true);browse.click();assert.equal(ui.dialog.dataset.backgroundPoolView,'true');
 ui.dialog.querySelector('[data-background-pool-none]').click();assert.equal(ui.dialog.querySelector('[data-background-apply]').disabled,true);assert.match(message.textContent,/至少/);assert.equal(api.read().randomPool.length,10);assert.equal(api.read().id,start);

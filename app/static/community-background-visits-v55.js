@@ -11,7 +11,10 @@
     // Random draws may use every image plus the drawn scenes marked eligible (v60).
     var photos=Object.keys(catalogue).filter(function(id){return catalogue[id].kind==='image';});
     var drawn=Object.keys(catalogue).filter(function(id){return catalogue[id].randomEligible===true;});
-    var images=photos.concat(drawn);
+    // Any other built-in scene the site's default list names may be drawn too.
+    var listed=Array.isArray((site.defaultRandom||{}).ids)?site.defaultRandom.ids:[];
+    var extra=Object.keys(catalogue).filter(function(id){return catalogue[id].kind!=='image'&&drawn.indexOf(id)===-1&&listed.indexOf(id)!==-1;});
+    var images=photos.concat(drawn,extra);
     var defaults=site.defaultRandom||{},sitePool=Array.isArray(defaults.ids)?images.filter(function(id){return defaults.ids.indexOf(id)!==-1;}):images.slice();
     // While the site default is still the untouched seed (every photo), the drawn
     // aurora set made for this design is the default; an admin's own list wins.

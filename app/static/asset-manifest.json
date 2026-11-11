@@ -47,15 +47,15 @@
       }
     },
     "background-head": {
-      "file": "bundles/background-head.e8b5c0e1338d9e13.js",
-      "sha256": "e8b5c0e1338d9e13d0fa2c82f7e92d6a215a33d4b50188bf5068b600f4ad918a",
-      "bytes": 87760,
-      "sourceBytes": 106983,
-      "gzipBytes": 21115,
+      "file": "bundles/background-head.8d6b562c4eb4d17c.js",
+      "sha256": "8d6b562c4eb4d17c0f9d2acc3290b7fc7e37f854c68ec89f23b3260508be99d4",
+      "bytes": 87940,
+      "sourceBytes": 107301,
+      "gzipBytes": 21167,
       "sources": {
         "community-background-palettes-v40.js": "4e085544543a556994654a72dbe58faa9541421f257433236b17bc94dbf7fd7d",
         "community-background-candidates-v40.js": "4094947fec258d316f1fc1397297efb6ed3e01d8ae2bcd43e0119aeaf52249a9",
-        "community-background-visits-v55.js": "3d30c20a615d76cc26c1ac4f156953e7c54f2d292ec1996c95df51c3257bdf1b",
+        "community-background-visits-v55.js": "62c038208227e37ebc8dfd36bbfd458c822737ed8e82165d094ca72aff1d1030",
         "community-backgrounds.js": "e11e5082d583ee1c9f81266ce7120f330fc2bdf39b268391b1a786c936921c9b"
       }
     },
