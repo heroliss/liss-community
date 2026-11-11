@@ -4,11 +4,11 @@
 {% set footer_guest_posting_open = footer_settings.get('guest_posting_open', true) %}
 {% set footer_write_url = none %}
 {% if current_user.can(Permission.WRITE_ARTICLES) and (not current_user.is_visitor|default(false) or footer_guest_posting_open) %}
-  {% set footer_write_url = url_for('main.index', _anchor='write') %}
+  {% set footer_write_url = url_for('main.write') %}
 {% elif not current_user.is_authenticated and config.get('PUBLIC_DEMO') and footer_guest_posting_open %}
-  {% set footer_write_url = url_for('public_demo.entry', next=url_for('main.index', _anchor='write')) %}
+  {% set footer_write_url = url_for('public_demo.entry', next=url_for('main.write')) %}
 {% elif not current_user.is_authenticated and not config.get('PUBLIC_DEMO') %}
-  {% set footer_write_url = url_for('auth.login', next=url_for('main.index', _anchor='write')) %}
+  {% set footer_write_url = url_for('auth.login', next=url_for('main.write')) %}
 {% endif %}
 <footer class="site-footer reading-footer" aria-label="站点导航与个人入口">
   <div class="page-shell reading-footer-wrap">

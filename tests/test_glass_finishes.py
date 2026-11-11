@@ -28,7 +28,7 @@ class GlassFinishHttpTests(unittest.TestCase):
         self.assertEqual(MATERIAL_CHOICES[:2], (('glass', '晶透玻璃'), ('frosted', '磨砂玻璃')))
         self.assertEqual(MATERIAL_CHOICES[-1], ('auto', '随站点安排'))
         identifier = self.create('frosted')
-        for target in ('/', '/projects/ssframework/talk/', f'/edit/{identifier}'):
+        for target in ('/write', '/projects/ssframework/talk/', f'/edit/{identifier}'):
             with self.subTest(target=target):
                 source = self.client.get(target).get_data(as_text=True)
                 choices = re.findall(r'name="appearance_material" value="([a-z]+)"', source)

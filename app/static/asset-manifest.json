@@ -3,11 +3,11 @@
   "tool": "esbuild@0.28.2",
   "groups": {
     "styles": {
-      "file": "bundles/styles.27086732eb7f83ba.css",
-      "sha256": "27086732eb7f83badf709a75b4de58939d577abb78b4dc56432315fbe9acd2f9",
-      "bytes": 446729,
-      "sourceBytes": 499707,
-      "gzipBytes": 76530,
+      "file": "bundles/styles.d86d8dc348852dda.css",
+      "sha256": "d86d8dc348852ddaaa1bd0133957131b11aba0eefdd0d035d8f8bf79818f5fc9",
+      "bytes": 458298,
+      "sourceBytes": 512922,
+      "gzipBytes": 78359,
       "sources": {
         "liss.css": "faf70844bf3ed140d4104b54947329f4e2211c9db10197d1e2ff3b60cdf083f1",
         "community-room.css": "c534de6dfb70ac1ad93696081bf51224da45571ab0a04079b592c348cdbfe160",
@@ -38,7 +38,7 @@
         "community-footer.css": "3787bb1a85d9e6ae0cebe45606334f49a9e36a2a12081dc294ac09d65460d207",
         "community-reflections.css": "8e6ae7b98b2a53a117d7f5bf01ef20b0e653ee9630f6ff6193fd7f95008d7058",
         "community-glass-depth-v56.css": "f11ea1d0225d2e7ef0ab4d70d33d343878e44c644db65dd47c5d0313b332e697",
-        "community-aurora-v60.css": "aa41854e3a5904de415151b345c4670895cfcff9134269a2793ebe2cc9e5bdc7",
+        "community-aurora-v60.css": "0412a45a0a7b1b0393b07b8359ecc13aec4546caf7b6a4872e370e00a559878a",
         "community-background-aurora-v60.css": "e3b4cb98f124b006b5f9ac43417edacaaa4802adb4bc62793ff1534731d31d4f",
         "community-background-designs-v40.css": "e539674eaee351450867c83af80e730ad265bdb122f5a177d18d13c089937d29",
         "community-background-defaults-v43.css": "92e73fa3269cd9fa85b36e467c07e8786374218839f25a4382e2d41a66a9fd0d",
@@ -70,11 +70,11 @@
       }
     },
     "runtime": {
-      "file": "bundles/runtime.40c6294fb7b608b2.js",
-      "sha256": "40c6294fb7b608b2485ac204b26dffe5c2f1b5a85b5a18bf4c7fe8b03a7e3d1c",
-      "bytes": 146931,
-      "sourceBytes": 221529,
-      "gzipBytes": 50154,
+      "file": "bundles/runtime.eab4c0e96e4ace0c.js",
+      "sha256": "eab4c0e96e4ace0c8700532fe214bb132e4cfaf349e7bc11208e1be6200fe02b",
+      "bytes": 147735,
+      "sourceBytes": 223060,
+      "gzipBytes": 50414,
       "sources": {
         "liss.js": "8c4f18b62a1f013ff0a24fd9f9a5021842fa53449b98c93045081bd55eafec45",
         "community-theme.js": "c8cfb16239c3ddae04ea40f9ed032e51de943ca003ea0c857ba9739f3bf7c61b",
@@ -92,7 +92,7 @@
         "community-reflections.js": "56f683c4441db6fa5ff3325132dda59340f3e735b29d6078ce82c7d8597087ed",
         "community-crystal.js": "3a4c6f3edfefc288b0c3a1c153f649feb10d46fbdf8a58a4039e0864efa0722e",
         "community-experience.js": "cf807aa19cd483c86e867e890c8c5b3780742007c512632abe9b2fd7f7555e40",
-        "community-aurora.js": "1e619f0ee7b84e9bfcb4cb25d5450fa54ca2be56fb5b98d120dd1e01b2906a20"
+        "community-aurora.js": "f4d545104ee6e880dad70bd08a217e04af956a5d08eaf7b4142ae25da24cb689"
       }
     },
     "gallery": {

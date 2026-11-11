@@ -93,6 +93,32 @@
     });
   });
 
+  // Writing page: a prompt (from a chip here or ?prompt= from the article list)
+  // becomes the first line of an empty editor, with the cursor after it.
+  var studio = document.querySelector('[data-write-studio]');
+  if (studio) {
+    var editorOf = function () { var node = studio.querySelector('.CodeMirror'); return node && node.CodeMirror; };
+    var usePrompt = function (text, force) {
+      var tries = 0;
+      (function attempt() {
+        var editor = editorOf(), textarea = studio.querySelector('textarea[name=body]');
+        if (!editor && tries++ < 40) { setTimeout(attempt, 75); return; }
+        if (editor) {
+          if (editor.getValue().trim() && !force) { editor.focus(); return; }
+          editor.setValue(text); editor.focus(); editor.setCursor(editor.lineCount(), 0);
+        } else if (textarea && (!textarea.value.trim() || force)) { textarea.value = text; textarea.focus(); }
+      }());
+    };
+    studio.querySelectorAll('[data-write-prompt]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var editor = editorOf(), current = editor ? editor.getValue().trim() : '';
+        var known = [].map.call(studio.querySelectorAll('[data-write-prompt]'), function (b) { return b.dataset.writePrompt; });
+        usePrompt(button.dataset.writePrompt, !current || known.indexOf(current) !== -1);
+      });
+    });
+    try { var initial = new URLSearchParams(location.search).get('prompt'); if (initial) usePrompt(initial.slice(0, 80), false); } catch (error) {}
+  }
+
   // The header and the orb slide away while reading down and return on the way up.
   var header = document.querySelector('.community-room .site-header');
   var orb = document.querySelector('[data-write-orb], .write-orb');

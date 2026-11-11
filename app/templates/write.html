@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% import "_forms.html" as forms with context %}
+{% import "_ui.html" as ui with context %}
+{% block title %}{{ super() }}写文章{% endblock %}
+{% block page_content %}
+<div class="write-studio" data-write-studio>
+  <header class="write-studio-head">
+    <a class="back-link" href="{{ url_for('main.index') }}">{{ ui.icon('back') }}返回文章</a>
+    <div class="write-studio-title">
+      <h1>写点什么</h1>
+      <p>一句话也可以是一篇文章。左边写，右边挑配色与材质，随时能预览；草稿会自动保存在这台设备上。</p>
+    </div>
+    {% if not closed %}
+    <div class="write-prompts" aria-label="不知道从哪开始？">
+      <span>不知道从哪开始？</span>
+      {% for chip in [('分享一个发现','今天发现了一个……'),('问一个问题','想请教大家……'),('记录今天','今天……'),('聊聊某个作品','用了一下……，感觉')] %}<button type="button" data-write-prompt="{{ chip[1] }}">{{ chip[0] }}</button>{% endfor %}
+    </div>
+    {% endif %}
+  </header>
+  {% if closed %}
+  <div class="write-closed">{{ ui.empty_state('访客发文暂时关闭', '仍可发表评论、编辑已有文章；创建账号后可以继续写文章。') }}</div>
+  {% else %}
+  {{ forms.render_form(form, '发布文章', 'writing-form write-studio-form', draft_scope=url_for('main.index'), layout='studio') }}
+  {% endif %}
+</div>
+{% endblock %}

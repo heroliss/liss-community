@@ -128,12 +128,12 @@ class FeedFooterTests(unittest.TestCase):
         writing = [href for href in page.footer_hrefs
                    if urlsplit(href).path == '/welcome' and urlsplit(href).query]
         self.assertEqual(len(writing), 1)
-        self.assertEqual(parse_qs(urlsplit(writing[0]).query), {'next': ['/#write']})
+        self.assertEqual(parse_qs(urlsplit(writing[0]).query), {'next': ['/write']})
 
     def test_visitor_footer_contains_private_navigation_and_identity_upgrade(self):
         page = self.page()
         self.assert_public_links(page)
-        for href in ('/#write', f'/user/{self.owner_username}', '/notifications',
+        for href in ('/write', f'/user/{self.owner_username}', '/notifications',
                      '/edit-profile', '/auth/register'):
             self.assertIn(href, page.footer_hrefs)
         self.assertNotIn('/auth/login', page.footer_hrefs)
@@ -145,13 +145,13 @@ class FeedFooterTests(unittest.TestCase):
         self.assert_public_links(page)
         for href in (f'/user/{self.owner_username}', '/notifications', '/edit-profile'):
             self.assertIn(href, page.footer_hrefs)
-        for href in ('/#write', '/auth/register'):
+        for href in ('/write', '/auth/register'):
             self.assertNotIn(href, page.footer_hrefs)
         anonymous = self.page(client=self.app.test_client())
         self.assert_public_links(anonymous)
         self.assertIn('/auth/login', anonymous.footer_hrefs)
         self.assertIn('/welcome', anonymous.footer_hrefs)
-        self.assertFalse(any(parse_qs(urlsplit(href).query).get('next') == ['/#write']
+        self.assertFalse(any(parse_qs(urlsplit(href).query).get('next') == ['/write']
                              for href in anonymous.footer_hrefs))
 
     def test_registered_account_keeps_writing_when_guest_and_registration_are_closed(self):
@@ -159,7 +159,7 @@ class FeedFooterTests(unittest.TestCase):
         self.settings(registration_open=False, guest_posting_open=False)
         page = self.page(client=client)
         self.assert_public_links(page)
-        for href in ('/#write', '/user/footer_account', '/notifications', '/edit-profile'):
+        for href in ('/write', '/user/footer_account', '/notifications', '/edit-profile'):
             self.assertIn(href, page.footer_hrefs)
         for href in ('/auth/login', '/auth/register', '/welcome'):
             self.assertNotIn(href, page.footer_hrefs)
@@ -339,7 +339,7 @@ class StandardFooterTests(unittest.TestCase):
         writing = [href for href in page.footer_hrefs
                    if urlsplit(href).path == '/auth/login' and urlsplit(href).query]
         self.assertEqual(len(writing), 1)
-        self.assertEqual(parse_qs(urlsplit(writing[0]).query), {'next': ['/#write']})
+        self.assertEqual(parse_qs(urlsplit(writing[0]).query), {'next': ['/write']})
 
 
 if __name__ == '__main__':

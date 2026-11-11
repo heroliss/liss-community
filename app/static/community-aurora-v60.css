@@ -199,3 +199,120 @@ html[data-theme=light] .community-room .site-footer.reading-footer { background:
 html[data-theme=light] .community-room .reading-footer-invite h2 { color:#13262e; }
 html[data-theme=light] .community-room .reading-footer-watermark { background:linear-gradient(180deg,#0b1f2a14,#0b1f2a02); -webkit-background-clip:text; background-clip:text; }
 @media(max-width:700px) { .community-room .reading-footer-invite { grid-template-columns:1fr; } .community-room .reading-footer-cta { grid-column:1; grid-row:auto; justify-self:start; margin-top:12px; } }
+
+/* ================= v63 writing studio ================= */
+/* The article list no longer carries the whole editor: a calm entry card leads to
+   /write, a focused page with the editor on the left and appearance + publish on
+   the right. The old flowing outline around the inline composer is gone (it was
+   drawn on the outer box while the card itself tilts in 3D, so it sat offset). */
+.community-room details.composer::before { content:none !important; animation:none !important; }
+
+.community-room .composer-entry { position:relative; display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:16px; margin:0 0 22px; padding:18px 20px; border-radius:20px; text-decoration:none !important; color:var(--text);
+  background:linear-gradient(120deg,color-mix(in srgb,var(--aurora-2) 12%,#0d151ed9),#0d151eb3 55%,color-mix(in srgb,var(--aurora-6) 10%,#0d151ec0));
+  border:1px solid #ffffff1c; box-shadow:0 20px 50px -30px #000, inset 0 1px #ffffff14;
+  -webkit-backdrop-filter:blur(18px) saturate(1.3); backdrop-filter:blur(18px) saturate(1.3); transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease; }
+.community-room .composer-entry:hover { transform:translateY(-2px); border-color:color-mix(in srgb,var(--aurora-2) 55%,#ffffff1c); box-shadow:0 26px 60px -30px #000,0 0 0 4px color-mix(in srgb,var(--aurora-2) 12%,transparent), inset 0 1px #ffffff1c; }
+.community-room .composer-entry-copy { display:grid; gap:3px; min-width:0; }
+.community-room .composer-entry-copy strong { font-size:17px; font-weight:600; color:#eef5f7; }
+.community-room .composer-entry-copy small { font-size:13px; color:#a9b7c2; }
+.community-room .composer-entry-go { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:999px; font-size:14px; font-weight:600; color:#061015; background:linear-gradient(100deg,var(--aurora-1),var(--aurora-2)); white-space:nowrap; }
+.community-room .composer-entry-go .icon { width:16px; height:16px; }
+html[data-theme=light] .community-room .composer-entry { background:linear-gradient(120deg,#ffffffd9,#f4f8fbcc); border-color:#0b1f2a1a; }
+html[data-theme=light] .community-room .composer-entry-copy strong { color:#13262e; }
+html[data-theme=light] .community-room .composer-entry-copy small { color:#4c5f6b; }
+@media(max-width:560px) { .community-room .composer-entry { grid-template-columns:auto minmax(0,1fr); } .community-room .composer-entry-go { grid-column:1/-1; justify-self:start; } }
+
+/* --- The studio page --- */
+.community-room .write-studio { width:min(1240px,100%); margin:0 auto; padding:18px 0 90px; }
+.community-room .write-studio-head { display:grid; gap:14px 28px; margin-bottom:24px; }
+.community-room .write-studio-head .back-link { justify-self:start; display:inline-flex; align-items:center; gap:6px; color:#a9b7c2; font-size:14px; }
+.community-room .write-studio-title h1 { margin:0 0 8px; font-size:clamp(34px,4.2vw,54px); font-weight:700; letter-spacing:-.03em; line-height:1.08;
+  background:linear-gradient(100deg,#f2f8f6 30%,var(--aurora-2) 70%,var(--aurora-4)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.community-room .write-studio-title p { margin:0; max-width:46em; color:#b6c3cd; font-size:15px; line-height:1.8; }
+.community-room .write-prompts { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.community-room .write-prompts > span { color:#8fa3b1; font-size:13px; margin-right:4px; }
+.community-room .write-prompts button { min-height:34px; padding:6px 14px; border-radius:999px; border:1px solid #ffffff1f; background:#ffffff0d; color:#dce6ec; font-size:13px; cursor:pointer; transition:border-color .2s ease,background .2s ease,transform .2s ease; }
+.community-room .write-prompts button:hover { border-color:var(--aurora-2); background:color-mix(in srgb,var(--aurora-2) 14%,transparent); transform:translateY(-1px); }
+.community-room .write-closed { max-width:640px; }
+
+.community-room form.write-studio-form { display:grid; grid-template-columns:minmax(0,1fr) minmax(300px,360px); gap:22px; align-items:start; margin:0; }
+.community-room .write-studio-form .write-main,
+.community-room .write-studio-form .post-appearance { border-radius:22px; border:1px solid #ffffff17; background:linear-gradient(160deg,#0f1822e6,#0b121ad9); box-shadow:0 30px 70px -40px #000, inset 0 1px #ffffff12;
+  -webkit-backdrop-filter:blur(20px) saturate(1.25); backdrop-filter:blur(20px) saturate(1.25); }
+.community-room .write-studio-form .write-main { min-width:0; padding:20px 22px 18px; }
+.community-room .write-studio-form .write-side { position:sticky; top:86px; display:grid; gap:14px; min-width:0; }
+
+/* Editor: roomier type, a calm toolbar and a clear writing surface. */
+.community-room .write-studio-form .writing-label { margin-bottom:10px; }
+.community-room .write-studio-form .writing-label label { font-size:15px; font-weight:600; color:#e8f0f3; }
+.community-room .write-studio-form .EasyMDEContainer .editor-toolbar { border:0; border-bottom:1px solid #ffffff14; border-radius:14px 14px 0 0; background:#ffffff08; padding:6px 8px; opacity:1; }
+.community-room .write-studio-form .EasyMDEContainer .editor-toolbar button { color:#c9d5dc !important; border-radius:8px; }
+.community-room .write-studio-form .EasyMDEContainer .editor-toolbar button:hover,
+.community-room .write-studio-form .EasyMDEContainer .editor-toolbar button.active { background:#ffffff14; border-color:transparent; }
+.community-room .write-studio-form .EasyMDEContainer .CodeMirror { min-height:min(58vh,620px); border:0; border-radius:0 0 14px 14px; background:#060b11b3; color:#eef4f6; font-size:17px; line-height:1.85; padding:10px 8px; }
+.community-room .write-studio-form .EasyMDEContainer .CodeMirror-scroll { min-height:min(56vh,600px) !important; }
+.community-room .write-studio-form .EasyMDEContainer .CodeMirror .CodeMirror-placeholder { color:#7f909c; }
+.community-room .write-studio-form .EasyMDEContainer .CodeMirror-cursor { border-left-color:var(--aurora-2); }
+.community-room .write-studio-form .editor-statusbar { color:#8fa3b1; }
+.community-room .write-studio-form textarea[name=body] { min-height:52vh; font-size:17px; line-height:1.85; }
+.community-room .write-studio-form .write-main .field-help,
+.community-room .write-studio-form .writing-draft { color:#9fb0bb; font-size:13px; }
+
+/* Side panel: appearance is always open here and reads top to bottom: preview,
+   colour, material. */
+.community-room .write-studio-form .post-appearance { padding:16px 16px 18px; margin:0; }
+.community-room .write-studio-form .post-appearance > summary { pointer-events:none; list-style:none; display:flex; align-items:baseline; gap:10px; padding:0 2px 12px; margin:0; border:0; }
+.community-room .write-studio-form .post-appearance > summary::-webkit-details-marker { display:none; }
+.community-room .write-studio-form .post-appearance > summary::after { content:none !important; display:none !important; }
+.community-room .write-studio-form .post-appearance > summary > span:first-child { font-size:15px; font-weight:600; color:#e8f0f3; }
+.community-room .write-studio-form .post-appearance .appearance-current { font-size:12px; color:#8fa3b1; }
+.community-room .write-studio-form .appearance-layout { display:flex; flex-direction:column; gap:14px; }
+.community-room .write-studio-form .appearance-sample-area { order:-1; margin:0; }
+.community-room .write-studio-form .appearance-intro { font-size:13px; color:#a9b7c2; margin:0 0 10px; }
+.community-room .write-studio-form .appearance-sample-note { display:none; }
+
+/* Preview card: the glass sits over a small night scene, so see-through materials
+   have something to show, and its text always stays readable. */
+.community-room .appearance-sample-area { position:relative; padding:18px; border-radius:16px; overflow:hidden; isolation:isolate;
+  background:radial-gradient(ellipse 70% 60% at 20% 20%,color-mix(in srgb,var(--aurora-2) 38%,transparent),transparent 70%),radial-gradient(ellipse 60% 70% at 85% 80%,color-mix(in srgb,var(--aurora-6) 36%,transparent),transparent 70%),linear-gradient(160deg,#0a1220,#05080f); }
+.community-room .appearance-sample-area::before { content:''; position:absolute; inset:0; z-index:-1; opacity:.5; background:repeating-linear-gradient(115deg,transparent 0 22px,#ffffff08 22px 23px); pointer-events:none; }
+.community-room .appearance-sample :is(h3,p,.appearance-sample-label,.appearance-sample-foot) { position:relative; z-index:4; text-shadow:0 1px 2px #0009,0 2px 14px #000a; }
+.community-room .appearance-sample h3 { color:#f6fafb !important; }
+.community-room .appearance-sample p { color:#e2eaee !important; }
+.community-room .appearance-sample :is(.appearance-sample-label,.appearance-sample-foot) { color:#cdd9df !important; }
+.community-room .appearance-sample:is([data-material=glass],[data-material=frosted],[data-material=water],[data-material=mirror]) .material-shell::after { content:''; position:absolute; inset:0; z-index:9; border-radius:inherit; pointer-events:none; background:linear-gradient(180deg,#0710189e,#07101873 60%,#07101840); }
+html[data-theme=light] .community-room .appearance-sample-area { background:radial-gradient(ellipse 70% 60% at 20% 20%,color-mix(in srgb,var(--aurora-2) 30%,transparent),transparent 70%),linear-gradient(160deg,#dbe6ee,#c7d5df); }
+
+/* Materials: visual tiles instead of a list of tiny radios. */
+.community-room .write-studio-form .appearance-materials { margin:0; padding:0; border:0; }
+.community-room .write-studio-form .appearance-materials legend { font-size:13px; font-weight:600; color:#cdd9df; margin-bottom:8px; }
+.community-room .write-studio-form .appearance-material-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.community-room .write-studio-form .appearance-material-options label { position:relative; display:grid; justify-items:center; gap:6px; margin:0; padding:10px 4px 8px; border-radius:12px; border:1px solid #ffffff14; background:#ffffff08; color:#c9d5dc; font-size:12px; text-align:center; cursor:pointer; transition:border-color .2s ease,background .2s ease,transform .2s ease; }
+.community-room .write-studio-form .appearance-material-options label:hover { border-color:#ffffff33; transform:translateY(-1px); }
+.community-room .write-studio-form .appearance-material-options input { position:absolute; opacity:0; pointer-events:none; }
+.community-room .write-studio-form .appearance-material-options .material-chip { width:34px; height:34px; border-radius:10px; box-shadow:0 6px 14px -8px #000; }
+.community-room .write-studio-form .appearance-material-options label:has(input:checked) { border-color:var(--aurora-2); background:color-mix(in srgb,var(--aurora-2) 14%,transparent); color:#fff; box-shadow:0 0 0 3px color-mix(in srgb,var(--aurora-2) 18%,transparent); }
+.community-room .write-studio-form .appearance-material-options label:has(input:focus-visible) { outline:2px solid var(--aurora-2); outline-offset:2px; }
+
+/* Publish: one clear action at the bottom of the side panel. */
+.community-room .write-studio-form .write-side .form-actions { display:grid; gap:8px; margin:0; padding:14px; border-radius:18px; border:1px solid #ffffff17; background:#0b121ad9; -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px); }
+.community-room .write-studio-form .write-side .form-actions .button { width:100%; min-height:50px; border:0; border-radius:14px; font-size:16px; font-weight:700; color:#061015; background:linear-gradient(100deg,var(--aurora-1),var(--aurora-2)); box-shadow:0 16px 36px -18px var(--aurora-2); }
+.community-room .write-studio-form .write-side .form-actions .button:hover { filter:brightness(1.06); transform:translateY(-1px); }
+html[data-theme=light] .community-room .write-studio-form :is(.write-main,.post-appearance,.write-side .form-actions) { background:linear-gradient(160deg,#ffffffe6,#f3f7fae0); border-color:#0b1f2a17; }
+html[data-theme=light] .community-room .write-studio-form .EasyMDEContainer .CodeMirror { background:#ffffffb3; color:#13262e; }
+html[data-theme=light] .community-room .write-studio-form .EasyMDEContainer .editor-toolbar button { color:#33505e !important; }
+html[data-theme=light] .community-room :is(.write-studio-title p,.write-studio-form .writing-label label,.write-studio-form .post-appearance > summary > span:first-child) { color:#24363f; }
+
+@media(max-width:960px) {
+  .community-room form.write-studio-form { grid-template-columns:1fr; }
+  .community-room .write-studio-form .write-side { position:static; }
+  .community-room .write-studio-form .write-side .form-actions { position:sticky; bottom:10px; z-index:5; }
+  .community-room .write-studio-form .EasyMDEContainer .CodeMirror { min-height:46vh; }
+}
+@media(max-width:560px) {
+  .community-room .write-studio-form .write-main { padding:14px 12px; }
+  .community-room .write-studio-form .appearance-material-options { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+/* Publish first: the action stays in view while the appearance options run below it. */
+.community-room .write-studio-form .write-side .form-actions { order:-1; }
+@media(max-width:960px) { .community-room .write-studio-form .write-side .form-actions { order:2; } }

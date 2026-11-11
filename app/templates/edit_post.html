@@ -3,5 +3,14 @@
 {% import "_ui.html" as ui with context %}
 {% block title %}{{ super() }}编辑文章{% endblock %}
 {% block page_content %}
-<div class="editor-page identity-editor crystal-writing"><div class="crystal-writing-object" aria-hidden="true"><span></span><span></span></div><a class="back-link" href="{{ url_for('main.index') }}">{{ ui.icon('back') }}返回文章列表</a><header class="page-heading"><div><h1>继续这篇文章</h1></div><p>把想说的写清楚，用预览或分屏随时查看排版。</p></header>{{ forms.render_form(form, '保存修改', 'writing-form') }}</div>
+<div class="write-studio editor-page identity-editor" data-write-studio>
+  <header class="write-studio-head">
+    <a class="back-link" href="{{ url_for('main.index') }}">{{ ui.icon('back') }}返回文章列表</a>
+    <div class="write-studio-title">
+      <h1>继续这篇文章</h1>
+      <p>把想说的写清楚，用预览或分屏随时查看排版；配色与材质在右边调整。</p>
+    </div>
+  </header>
+  {{ forms.render_form(form, '保存修改', 'writing-form write-studio-form', layout='studio') }}
+</div>
 {% endblock %}

@@ -344,19 +344,19 @@ class Sandbox:
                 abort(403)
             self.limit('write')
             return  # Reading private notifications does not create new content.
-        allowed = {'main.index', 'main.post', 'main.edit', 'main.edit_profile',
+        allowed = {'main.index', 'main.write', 'main.post', 'main.edit', 'main.edit_profile',
                    'main.follow', 'main.unfollow', 'community.project_talk', 'main.edit_comment'}
         if endpoint not in allowed or not self.participant():
             abort(403, description='请先以访客身份加入，或登录已有账号。')
         self.limit('write')
         self.check_storage()
-        if endpoint in {'main.index', 'main.edit', 'main.post', 'community.project_talk', 'main.edit_comment'}:
+        if endpoint in {'main.index', 'main.write', 'main.edit', 'main.post', 'community.project_talk', 'main.edit_comment'}:
             maximum = self.quota('MAX_COMMENT_BODY' if endpoint in {'main.post', 'main.edit_comment'} else 'MAX_BODY')
             if len(request.form.get('body', '')) > maximum:
                 abort(413, description=f'内容请控制在 {maximum} 字以内。')
         if endpoint == 'main.edit_profile' and len(request.form.get('about_me', '')) > self.quota('MAX_PROFILE_BODY'):
             abort(413, description=f'个人简介请控制在 {self.quota("MAX_PROFILE_BODY")} 字以内。')
-        if endpoint in {'main.index', 'community.project_talk'}:
+        if endpoint in {'main.index', 'main.write', 'community.project_talk'}:
             from .admin import settings_values
             if current_user.is_visitor and not settings_values()['guest_posting_open']:
                 abort(403, description='站点暂时关闭访客发文，评论与已有文章编辑仍可使用。')

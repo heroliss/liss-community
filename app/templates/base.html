@@ -23,7 +23,7 @@
 {% if request.endpoint in ['main.index','main.user','community.project_talk'] %}<script>(function(){var v;try{v=localStorage.getItem('liss-feed-view:v1')}catch(e){}if(v!=='cards'&&v!=='list')try{v=sessionStorage.getItem('liss-feed-view:v1')}catch(e){}if(v==='cards'||v==='list')document.documentElement.dataset.feedView=v})();</script>{% endif %}
 <script>window.LissBackgroundSite={{ background_site_payload|tojson }};</script>
 {% for asset in asset_urls('background-head') %}<script src="{{ asset }}" blocking="render"></script>{% endfor %}
-{% if request.endpoint in ['main.index', 'main.edit', 'community.project_talk'] and current_user.is_authenticated %}
+{% if request.endpoint in ['main.index', 'main.write', 'main.edit', 'community.project_talk'] and current_user.is_authenticated %}
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/easymde-2.21.0/easymde.min.css') }}">
 {% endif %}
 {% for asset in asset_urls('styles') + asset_urls('discussions') %}<link rel="stylesheet" href="{{ asset }}">{% endfor %}
@@ -38,13 +38,13 @@
   <a class="wordmark{% if public_site_name != 'Liss Community' %} site-custom-wordmark{% endif %}" href="{{ url_for('main.index') }}" aria-label="{{ public_site_name }} 首页" title="{{ public_site_name }}">{% if public_site_name == 'Liss Community' %}LISS{% else %}<span class="site-wordmark-text">{{ public_site_name }}</span>{% endif %}<span class="brand-dot" aria-hidden="true"></span><small class="brand-community">Community</small></a>
   <a class="nav-feed{% if request.endpoint in ['main.index','main.show_all','main.show_followed'] %} is-active{% endif %}" href="{{ url_for('main.index') }}">文章</a>
   <a class="nav-works" href="{{ url_for('community.portfolio') }}">作品</a>
-  {% set place_name = {'main.post':'阅读与讨论','main.edit':'写作台','main.user':'作者主页','main.edit_profile':'个人资料','auth.register':'创建账号'}.get(request.endpoint) %}{% if place_name %}<span class="nav-context">{{ place_name }}</span>{% endif %}
+  {% set place_name = {'main.post':'阅读与讨论','main.edit':'写作台','main.write':'写作台','main.user':'作者主页','main.edit_profile':'个人资料','auth.register':'创建账号'}.get(request.endpoint) %}{% if place_name %}<span class="nav-context">{{ place_name }}</span>{% endif %}
   <div class="nav-actions">
     <a class="nav-search icon-button" href="{{ url_for('main.search') }}" aria-label="搜索文章" title="搜索文章">{{ ui.icon('search') }}<span class="nav-label">搜索</span></a>
     {{ backgrounds.controls() }}
     <button class="icon-button theme-toggle" type="button" data-theme-toggle aria-label="切换为浅色主题" title="切换主题">{{ ui.icon('sun', 'theme-sun') }}{{ ui.icon('moon', 'theme-moon') }}</button>
     {% if current_user.is_authenticated %}
-    {% if not current_user.is_visitor|default(false) or guest_posting_open %}<a class="button button-small nav-write" href="{{ url_for('main.index') }}#write" aria-label="写文章">{{ ui.icon('edit') }}<span>写文章</span></a>{% endif %}
+    {% if not current_user.is_visitor|default(false) or guest_posting_open %}<a class="button button-small nav-write" href="{{ url_for('main.write') }}" aria-label="写文章">{{ ui.icon('edit') }}<span>写文章</span></a>{% endif %}
     <details class="account-menu"><summary aria-label="账户菜单{% if unread_reply_count %}，{{ unread_reply_count }} 条未读回复{% endif %}">{{ ui.avatar(current_user, 'avatar-small') }}<span class="account-name">{{ ui.author_name(current_user) }}</span>{% if unread_reply_count %}<span class="unread-count" aria-hidden="true">{{ '99+' if unread_reply_count > 99 else unread_reply_count }}</span>{% endif %}{{ ui.icon('chevron') }}</summary>
       <div class="account-dropdown"><p>{{ ui.author_name(current_user) }} {{ ui.identity_badge(current_user) }}</p>
         <a href="{{ url_for('main.user', username=current_user.username) }}">{{ ui.icon('user') }}我的主页</a>
@@ -74,9 +74,9 @@
 {% include '_footer.html' %}
 {# Aurora light over the background and a floating invitation to write. #}
 <div class="aurora-field" aria-hidden="true"><i class="aurora-a"></i><i class="aurora-b"></i><i class="aurora-c"></i><canvas class="aurora-particles" data-aurora-particles></canvas></div>
-{% if request.endpoint not in ['main.edit','auth.login','auth.register','public_demo.entry'] %}
+{% if request.endpoint not in ['main.edit','main.write','auth.login','auth.register','public_demo.entry'] %}
 {% if current_user.is_authenticated and current_user.can(Permission.WRITE_ARTICLES) and (not current_user.is_visitor|default(false) or guest_posting_open) %}
-<a class="write-orb" href="{{ url_for('main.index') }}#write" data-write-orb aria-label="写点什么">{{ ui.icon('edit') }}<span>写点什么</span></a>
+<a class="write-orb" href="{{ url_for('main.write') }}" data-write-orb aria-label="写点什么">{{ ui.icon('edit') }}<span>写点什么</span></a>
 {% elif not current_user.is_authenticated %}
 <a class="write-orb" href="{{ url_for('public_demo.entry') if config.get('PUBLIC_DEMO') else url_for('auth.register') }}" aria-label="加入交流">{{ ui.icon('comment') }}<span>加入交流</span></a>
 {% endif %}
@@ -88,13 +88,13 @@
 {{ moment.include_moment() }}
 {{ moment.locale("zh-cn") }}
 {% for asset in asset_urls('runtime') %}<script src="{{ asset }}" defer></script>{% endfor %}
-{% if request.endpoint in ['main.index','main.post','main.user','main.edit','main.search','community.project_talk'] %}{% for asset in asset_urls('gallery') %}<script src="{{ asset }}" defer></script>{% endfor %}{% endif %}
+{% if request.endpoint in ['main.index','main.post','main.user','main.write','main.edit','main.search','community.project_talk'] %}{% for asset in asset_urls('gallery') %}<script src="{{ asset }}" defer></script>{% endfor %}{% endif %}
 {% if (request.endpoint or '').startswith(('auth.', 'public_demo.')) or request.endpoint in ['main.edit_profile','main.edit_profile_admin'] %}{% for asset in asset_urls('portals') %}<script src="{{ asset }}" defer></script>{% endfor %}{% endif %}
 {% include '_writing_receipt.html' %}
-{% if request.endpoint in ['main.index', 'main.edit', 'community.project_talk', 'main.post', 'main.edit_comment'] and current_user.is_authenticated %}
+{% if request.endpoint in ['main.index', 'main.write', 'main.edit', 'community.project_talk', 'main.post', 'main.edit_comment'] and current_user.is_authenticated %}
 {% for asset in asset_urls('drafts') %}<script src="{{ asset }}" defer></script>{% endfor %}
 {% endif %}
-{% if request.endpoint in ['main.index', 'main.edit', 'community.project_talk'] and current_user.is_authenticated %}
+{% if request.endpoint in ['main.index', 'main.write', 'main.edit', 'community.project_talk'] and current_user.is_authenticated %}
 <script src="{{ url_for('static', filename='vendor/dompurify-3.4.17/purify.min.js') }}" defer></script>
 <script src="{{ url_for('static', filename='vendor/easymde-2.21.0/easymde.min.js') }}" defer></script>
 {% for asset in asset_urls('writing') %}<script src="{{ asset }}" defer></script>{% endfor %}

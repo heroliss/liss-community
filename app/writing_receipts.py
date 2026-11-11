@@ -11,6 +11,8 @@ def record_writing_receipt(store=True):
         receipt = {
             'owner': str(current_user.id), 'path': request.path, 'token': token,
         }
+        if request.endpoint == 'main.write':
+            receipt['scope'] = '/'
         if request.endpoint == 'main.post':
             # The route has validated the parent and article before committing.
             # Scope follows that target, never a client-supplied scope or page.

@@ -10,9 +10,9 @@
 {% block page_content %}
 <header class="studio-entry">
   <div class="studio-introduction"><h1>有些话，<br><span>想聊聊。</span></h1><p class="site-configured-tagline">{{ (site_settings|default({})).get('tagline', '记录日常，分享发现，和有趣的人聊一聊。') }}</p>
-    <div class="studio-entry-actions"><a class="button" href="{{ url_for('main.index') ~ '#write' if current_user.is_authenticated else (url_for('public_demo.entry') if config.get('PUBLIC_DEMO') else url_for('auth.register')) }}">写下你的想法 {{ ui.icon('edit') }}</a><a class="quiet-link" href="#article-feed">先听听大家在聊什么 {{ ui.icon('chevron') }}</a></div>
-    {% set prompt_href = url_for('main.index') ~ '#write' if current_user.is_authenticated else (url_for('public_demo.entry') if config.get('PUBLIC_DEMO') else url_for('auth.register')) %}
-    <div class="prompt-chips" aria-label="不知道写什么？试试这些">{% for chip in [('分享一个发现','今天发现了一个……'),('问一个问题','想请教大家……'),('记录今天','今天……'),('聊聊某个作品','用了一下……，感觉')] %}<a href="{{ prompt_href }}" data-prompt="{{ chip[1] }}" style="--i:{{ loop.index0 }}">{{ chip[0] }}</a>{% endfor %}</div>
+    <div class="studio-entry-actions"><a class="button" href="{{ url_for('main.write') if current_user.is_authenticated else (url_for('public_demo.entry', next=url_for('main.write')) if config.get('PUBLIC_DEMO') else url_for('auth.register')) }}">写下你的想法 {{ ui.icon('edit') }}</a><a class="quiet-link" href="#article-feed">先听听大家在聊什么 {{ ui.icon('chevron') }}</a></div>
+    {% set prompt_base = url_for('main.write') if current_user.is_authenticated else none %}
+    <div class="prompt-chips" aria-label="不知道写什么？试试这些">{% for chip in [('分享一个发现','今天发现了一个……'),('问一个问题','想请教大家……'),('记录今天','今天……'),('聊聊某个作品','用了一下……，感觉')] %}<a href="{{ url_for('main.write', prompt=chip[1]) if prompt_base else (url_for('public_demo.entry', next=url_for('main.write', prompt=chip[1])) if config.get('PUBLIC_DEMO') else url_for('auth.register')) }}" data-prompt="{{ chip[1] }}" style="--i:{{ loop.index0 }}">{{ chip[0] }}</a>{% endfor %}</div>
   </div>
   <div class="studio-conversation-model conversation-atelier" data-room-scene role="img" aria-label="两片立体玻璃对话框在不同深度相遇，表达一个想法与另一种视角的交流">
     <div class="atelier-backdrop" aria-hidden="true">
@@ -33,10 +33,14 @@
 <div class="crystal-promenade-object" aria-hidden="true"><span></span><span></span></div>
 <div class="feed-column">
   {% if current_user.can(Permission.WRITE_ARTICLES) and (not current_user.is_visitor|default(false) or guest_posting_open) %}
-  <details class="composer" id="write" data-room-scene{% if form.errors %} open{% endif %}>
-    <summary>{{ ui.avatar(current_user, 'avatar-small') }}<span>今天想聊点什么？<small>一句话也行，点开就能写</small></span>{{ ui.icon('edit') }}</summary>
+  {% if form.errors %}
+  <details class="composer" id="write" data-room-scene open>
+    <summary>{{ ui.avatar(current_user, 'avatar-small') }}<span>今天想聊点什么？<small>一句话也行</small></span>{{ ui.icon('edit') }}</summary>
     <div class="composer-content">{{ forms.render_form(form, '发布文章', 'writing-form') }}</div>
   </details>
+  {% else %}
+  <a class="composer-entry" id="write" href="{{ url_for('main.write') }}">{{ ui.avatar(current_user, 'avatar-small') }}<span class="composer-entry-copy"><strong>今天想聊点什么？</strong><small>一句话也行，去写作台慢慢写</small></span><span class="composer-entry-go">开始写 {{ ui.icon('arrow') }}</span></a>
+  {% endif %}
   {% elif current_user.is_authenticated and current_user.is_visitor|default(false) and not guest_posting_open %}<p class="form-notice" id="write">访客发文暂时关闭，仍可发表评论、编辑已有文章。</p>{% endif %}
   <div class="feed-toolbar" id="article-feed"><nav class="feed-tabs" aria-label="文章时间线"><a{% if not show_followed %} class="is-active" aria-current="page"{% endif %} href="{{ url_for('main.show_all') if current_user.is_authenticated else url_for('main.index') }}">最新文章</a>{% if current_user.is_authenticated %}<a{% if show_followed %} class="is-active" aria-current="page"{% endif %} href="{{ url_for('main.show_followed') }}">我的关注</a>{% endif %}</nav><div class="feed-toolbar-actions"><span class="feed-total">{{ pagination.total if pagination else posts|length }} 篇文章</span>{% include '_feed_view.html' %}</div></div>
   {% include '_posts.html' %}

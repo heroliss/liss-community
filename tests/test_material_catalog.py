@@ -69,7 +69,7 @@ class MaterialCatalogHttpTests(unittest.TestCase):
         with self.app.test_request_context('/'):
             self.assertEqual(PostForm().appearance_material.choices, list(MATERIAL_CHOICES))
         post_id = self.create('glass')
-        for target in ('/', '/projects/ssframework/talk/', f'/edit/{post_id}'):
+        for target in ('/write', '/projects/ssframework/talk/', f'/edit/{post_id}'):
             source = self.client.get(target).get_data(as_text=True)
             for material, label in NEW_MATERIALS.items():
                 with self.subTest(target=target, material=material):

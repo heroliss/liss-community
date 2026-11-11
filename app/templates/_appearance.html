@@ -4,7 +4,7 @@
 {% set color = form.appearance_color.data or '' %}
 {% set material = form.appearance_material.data or 'auto' %}
 {% set post_identifier = (display_page_theme|default({})).get('post_id') or 0 %}
-<details class="post-appearance" data-appearance-editor data-appearance-new="{{ 'true' if request.method == 'GET' and request.endpoint in ['main.index','community.project_talk'] else 'false' }}" data-appearance-auto-material="{{ ui.card_material(post_identifier) }}" data-appearance-auto-color="{{ (display_page_theme|default({})).get('automatic_color','') }}"{% if form.appearance_color.errors or form.appearance_material.errors %} open{% endif %}>
+<details class="post-appearance" data-appearance-editor data-appearance-new="{{ 'true' if request.method == 'GET' and request.endpoint in ['main.index','main.write','community.project_talk'] else 'false' }}" data-appearance-auto-material="{{ ui.card_material(post_identifier) }}" data-appearance-auto-color="{{ (display_page_theme|default({})).get('automatic_color','') }}"{% if form.appearance_color.errors or form.appearance_material.errors or request.endpoint in ['main.write','main.edit'] %} open{% endif %}>
   <summary><span>文章外观</span><span class="appearance-current" data-appearance-status>配色与材质</span></summary>
   <div class="appearance-layout">
     <div class="appearance-controls">

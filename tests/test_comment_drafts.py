@@ -49,7 +49,7 @@ class CommentDraftTests(unittest.TestCase):
         self.assertNotIn('data-writing-owner', anonymous)
 
     def test_article_drafts_retain_the_original_scope_and_editor_order(self):
-        page = self.client.get('/').get_data(as_text=True)
+        page = self.client.get('/write').get_data(as_text=True)
         self.assertIn('data-writing-scope="/"', page)
         draft = re.search(r'/static/(?:writing-drafts\.js|bundles/drafts\.)', page)
         editor = re.search(r'/static/(?:writing\.js|bundles/writing\.)', page)

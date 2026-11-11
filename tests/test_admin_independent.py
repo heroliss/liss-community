@@ -372,7 +372,7 @@ class AdminIndependentTests(unittest.TestCase):
         guest = self.app.test_client()
         self.assertIn('访客最多 2 篇', guest.get('/welcome').get_data(as_text=True))
         self.assertEqual(self.post(guest, '/welcome', token_path='/welcome').status_code, 302)
-        self.assertIn('访客 0 / 2 篇', guest.get('/').get_data(as_text=True))
+        self.assertIn('访客 0 / 2 篇', guest.get('/write').get_data(as_text=True))
         for number, path in enumerate(('/', '/projects/outpost/talk/')):
             self.assertEqual(self.post(guest, path, {'body': f'# Guest article {number}'}).status_code, 302)
         self.assertEqual(self.post(guest, '/', {'body': '# Beyond current quota'}).status_code, 429)

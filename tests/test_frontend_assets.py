@@ -269,7 +269,7 @@ class PageAssetTests(unittest.TestCase):
 
     def test_authenticated_composer_pages_load_editor_and_gallery(self):
         self.login()
-        for path in ('/', f'/edit/{self.post_id}', '/projects/outpost/talk/'):
+        for path in ('/write', f'/edit/{self.post_id}', '/projects/outpost/talk/'):
             with self.subTest(path=path):
                 page = self.page(path)
                 self.assert_group(page, 'writing')

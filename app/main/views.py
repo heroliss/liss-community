@@ -81,6 +81,30 @@ def index():
                            show_followed=show_followed, pagination=pagination)
 
 
+@main.route('/write', methods=['GET', 'POST'])
+def write():
+    """A focused page for a new article: editor on the left, appearance and publish on the right."""
+    if not current_user.is_authenticated:
+        if current_app.config.get('PUBLIC_DEMO'):
+            return redirect(url_for('public_demo.entry', next=url_for('.write')))
+        return redirect(url_for('auth.login', next=url_for('.write')))
+    if not current_user.can(Permission.WRITE_ARTICLES):
+        abort(403)
+    from ..admin import settings_values
+    closed = bool(getattr(current_user, 'is_visitor', False)) and not settings_values()['guest_posting_open']
+    form = PostForm()
+    if request.method == 'POST' and closed:
+        abort(403)
+    if not closed and form.validate_on_submit():
+        post = Post(body=form.body.data, author=current_user._get_current_object())
+        db.session.add(post)
+        form.save_appearance(post)
+        db.session.commit()
+        record_writing_receipt()
+        return redirect(url_for('.post', id=post.id))
+    return render_template('write.html', form=form, closed=closed)
+
+
 @main.route('/user/<username>')
 def user(username):
     user = profile_identity(username)
