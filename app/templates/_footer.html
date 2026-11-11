@@ -13,23 +13,27 @@
 <footer class="site-footer reading-footer" aria-label="站点导航与个人入口">
   <div class="page-shell reading-footer-wrap">
     <div class="reading-footer-panel">
+      <div class="reading-footer-invite">
+        <h2>想说点什么？</h2>
+        <p>一句话就够。很多好的讨论，都是从一个小问题开始的。</p>
+        {% if footer_write_url %}<a class="reading-footer-cta" href="{{ footer_write_url }}">写下第一句 {{ ui.icon('arrow') }}</a>{% endif %}
+      </div>
       <div class="reading-footer-main">
         <div class="reading-footer-intro">
           <a class="reading-footer-signature" href="{{ url_for('main.index') }}">{{ footer_settings.get('site_name', 'Liss Community') }}</a>
           <p class="site-configured-tagline">{{ footer_settings.get('tagline', '记录想法，分享发现，让对话继续。') }}</p>
         </div>
         <nav class="reading-footer-navigation" aria-labelledby="footer-explore-title">
-          <h2 id="footer-explore-title" class="sr-only">继续探索</h2>
+          <h2 id="footer-explore-title" class="reading-footer-heading">继续探索</h2>
           <ul>
             <li><a href="{{ url_for('community.writing_guide') }}">发文指南</a></li>
             <li><a href="{{ url_for('main.search') }}">搜索文章</a></li>
             <li><a href="{{ url_for('community.portfolio') }}">探索作品</a></li>
-            {% if footer_write_url %}<li><a href="{{ footer_write_url }}">写文章 {{ ui.icon('edit') }}</a></li>{% endif %}
           </ul>
         </nav>
         <section class="reading-footer-account" aria-labelledby="footer-account-title">
           {% if current_user.is_authenticated %}
-          <h2 id="footer-account-title" class="sr-only">你的空间</h2>
+          <h2 id="footer-account-title" class="reading-footer-heading">你的空间</h2>
           <a class="reading-footer-person" href="{{ url_for('main.user', username=current_user.username) }}">{{ ui.avatar(current_user, 'avatar-small') }}<span><strong>{{ ui.author_name(current_user) }}</strong>{{ ui.identity_badge(current_user) }}</span></a>
           <nav aria-label="我的账号"><ul>
             <li><a href="{{ url_for('main.notifications') }}">回复提醒{% if unread_reply_count %}<span class="reading-footer-unread">{{ '99+' if unread_reply_count > 99 else unread_reply_count }}<span class="sr-only"> 条未读</span></span>{% endif %}</a></li>
@@ -37,7 +41,7 @@
             {% if current_user.is_visitor|default(false) and footer_registration_open %}<li><a href="{{ url_for('auth.register') }}">保留为正式账号</a></li>{% endif %}
           </ul></nav>
           {% else %}
-          <h2 id="footer-account-title" class="sr-only">加入交流</h2>
+          <h2 id="footer-account-title" class="reading-footer-heading">加入交流</h2>
           <nav aria-label="加入社区"><ul>
             {% if config.get('PUBLIC_DEMO') %}<li><a href="{{ url_for('public_demo.entry') }}">以访客身份加入</a></li>{% endif %}
             <li><a href="{{ url_for('auth.login') }}">登录账号</a></li>
@@ -46,6 +50,7 @@
           {% endif %}
         </section>
       </div>
+      <span class="reading-footer-watermark" aria-hidden="true">LISS</span>
       <div class="reading-footer-bottom">
         <span class="reading-footer-mark">{% if site_owner|default(none) %}<a href="{{ url_for('main.user', username=site_owner.username) }}" aria-label="站点作者的主页">@Liss</a>{% else %}@Liss{% endif %}</span>
         <a class="reading-footer-top" href="#main-content"><span>回到顶部</span><span class="footer-top-orbit">{{ ui.icon('up') }}</span></a>

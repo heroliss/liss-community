@@ -29,6 +29,8 @@
     "community-footer.css",
     "community-reflections.css",
     "community-glass-depth-v56.css",
+    "community-aurora-v60.css",
+    "community-background-aurora-v60.css",
     "community-background-designs-v40.css",
     "community-background-defaults-v43.css",
     "community-background-spectrum-v44.css",
@@ -53,12 +55,14 @@
     "community-background-defaults-v43.js",
     "community-procedural.js",
     "community-background-spectrum-v44.js",
+    "community-background-aurora-v60.js",
     "community-background-previews-v49.js",
     "community-atmosphere.js",
     "community-surfaces.js",
     "community-reflections.js",
     "community-crystal.js",
-    "community-experience.js"
+    "community-experience.js",
+    "community-aurora.js"
   ],
   "gallery": [
     "community-gallery.js"

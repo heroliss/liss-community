@@ -89,3 +89,63 @@
 @media(prefers-reduced-transparency:reduce) {
   .community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-refraction { display:none; }
 }
+
+/* ---------- v61: light on dark ----------
+   On a dark room glass only reads as glass through the light it catches. Each
+   translucent body now carries: a front key light (a diagonal specular streak
+   and a lit top edge), light carried inside the slab (bright edges fading in,
+   a coloured bounce at the hem), a faint back light leaking round the outline,
+   and, for frosted glass, a milky scatter. The refraction band is brighter too.
+   Every layer follows the card's real outline, so cut corners stay dark. */
+.community-room :is([data-material=glass],[data-material=water],[data-material=mirror]) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-refraction { clip-path:var(--material-outline,none); }
+:root[data-theme] body.community-room [data-material=glass] { --glass-band:18px;--glass-band-lift:1.5;--glass-band-saturation:1.9;--glass-key:#ffffff2e;--glass-edge-light:#dff8ff3d;--glass-hem:color-mix(in srgb,var(--appearance-accent,#6ee8e3) 30%,transparent); }
+:root[data-theme] body.community-room [data-material=glass][data-glass-finish=frosted] { --glass-band-lift:1.32;--glass-key:#ffffff38;--glass-optic-brightness:1.12; }
+.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::before,
+.community-room [data-material=glass][data-theme-color]:not([data-theme-color='']) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::before {
+  background:
+    linear-gradient(116deg,transparent calc(6% + var(--glass-sweep)),var(--glass-key) calc(26% + var(--glass-sweep)),transparent calc(48% + var(--glass-sweep))),
+    linear-gradient(180deg,var(--glass-edge-light),transparent 13%),
+    linear-gradient(0deg,var(--glass-hem),transparent 26%),
+    linear-gradient(90deg,#d6f4ff17,transparent 10%,transparent 90%,#d6f4ff12),
+    radial-gradient(ellipse 48% 62% at var(--depth-light-x,30%) var(--depth-light-y,22%),var(--glass-caustic),transparent 72%),
+    radial-gradient(ellipse at var(--depth-light-x,30%) 12%,color-mix(in srgb,var(--appearance-accent,transparent) 10%,transparent),transparent 76%);
+}
+:root[data-theme] body.community-room [data-material=glass][data-glass-finish=frosted] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::after {
+  background:radial-gradient(ellipse 90% 80% at 50% 40%,#f2fbff14,transparent 75%),var(--glass-optic-receiver);
+}
+:root[data-theme] body.community-room [data-material=glass] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base {
+  box-shadow:
+    inset 0 1px 0 #f2fffb4d,
+    inset 0 0 0 1px #ffffff12,
+    inset 0 -1px 0 color-mix(in srgb,var(--appearance-accent,#6ee8e3) 40%,transparent),
+    inset 1.5px 0 0 -.5px var(--glass-fringe-warm),
+    inset -1.5px 0 0 -.5px var(--glass-fringe-cool),
+    inset 0 0 34px -6px var(--glass-scatter),
+    inset 0 -22px 34px -26px var(--glass-hem);
+}
+/* Back light: a soft halo of the card's colour leaks round the outline even at rest. */
+.community-room .posts:not(.posts-detail) > .post:is([data-material=glass],[data-material=water],[data-material=mirror])::before { opacity:.2; transform:scale(.97); }
+.community-room .posts:not(.posts-detail) > .post:is([data-material=glass],[data-material=water],[data-material=mirror]):is(:hover,:focus-within)::before { opacity:.6; transform:scale(1.05); }
+
+/* Water: the surface catches the same key light, with a brighter wet edge and caustic hem. */
+.community-room [data-material=water] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::before,
+.community-room [data-material=water][data-theme-color]:not([data-theme-color='']) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::before {
+  content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(118deg,transparent calc(8% + var(--glass-sweep)),#e8fbff14 calc(26% + var(--glass-sweep)),transparent calc(46% + var(--glass-sweep))),linear-gradient(180deg,#d7fff438,transparent 12%),linear-gradient(0deg,#5fe0d22e,transparent 30%),radial-gradient(ellipse 60% 40% at 30% 0%,#bff6ff1f,transparent 70%);
+}
+/* Mirror: a hard specular sweep and bright silvered edges, as real backed glass shows. */
+.community-room [data-material=mirror] > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::before,
+.community-room [data-material=mirror][data-theme-color]:not([data-theme-color='']) > .depth-scroll > .depth-arrival > .depth-surface > .material-shell > .material-base::before {
+  content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(122deg,transparent calc(12% + var(--glass-sweep)),#ffffff1c calc(28% + var(--glass-sweep)),transparent calc(44% + var(--glass-sweep))),linear-gradient(180deg,#ffffff2a,transparent 10%);
+  box-shadow:inset 0 0 0 1px #e9f6ff2e,inset 0 1px 0 #ffffff55;
+}
+
+/* The specular band follows the light instead of sitting still: it tracks the
+   pointer over a card and sweeps across each card as it scrolls through the
+   view. Both values already exist; nothing animates while the page is idle. */
+.community-room :is([data-material=glass],[data-material=water],[data-material=mirror]) {
+  --glass-sweep:calc(var(--depth-light-x,50%) - 50% + (var(--depth-scroll-progress,.5) - .5) * 70%);
+}
+:root[data-theme] body.community-room [data-material=glass] { --glass-key:#ffffff0f; }
+:root[data-theme] body.community-room [data-material=glass]:is(:hover,:focus-within) { --glass-key:#ffffff1e; }

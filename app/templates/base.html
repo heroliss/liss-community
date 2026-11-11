@@ -72,6 +72,15 @@
   {% block page_content %}{% endblock %}
 </main>
 {% include '_footer.html' %}
+{# Aurora light over the background and a floating invitation to write. #}
+<div class="aurora-field" aria-hidden="true"><i class="aurora-a"></i><i class="aurora-b"></i><i class="aurora-c"></i><canvas class="aurora-particles" data-aurora-particles></canvas></div>
+{% if request.endpoint not in ['main.edit','auth.login','auth.register','public_demo.entry'] %}
+{% if current_user.is_authenticated and current_user.can(Permission.WRITE_ARTICLES) and (not current_user.is_visitor|default(false) or guest_posting_open) %}
+<a class="write-orb" href="{{ url_for('main.index') }}#write" data-write-orb aria-label="写点什么">{{ ui.icon('edit') }}<span>写点什么</span></a>
+{% elif not current_user.is_authenticated %}
+<a class="write-orb" href="{{ url_for('public_demo.entry') if config.get('PUBLIC_DEMO') else url_for('auth.register') }}" aria-label="加入交流">{{ ui.icon('comment') }}<span>加入交流</span></a>
+{% endif %}
+{% endif %}
 {% include '_background_review.html' %}
 {% endblock %}
 {% block scripts %}

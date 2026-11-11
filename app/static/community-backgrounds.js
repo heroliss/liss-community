@@ -6,6 +6,16 @@
   var base=new URL('.',document.currentScript&&document.currentScript.src||new URL('/static/community-backgrounds.js',location.href).href);
   if(/\/bundles\/$/.test(base.pathname))base=new URL('../',base);
   var catalogue={
+    'aurora-veil':{id:'aurora-veil',title:'极光夜幕',description:'星空下缓缓垂落的青绿与紫色极光',kind:'vector',style:'aurora-veil',bytes:0,theme:'极光 · 夜空',randomEligible:true},
+    'prism-nebula':{id:'prism-nebula',title:'棱镜星云',description:'深空星云与一束穿过的七彩棱光',kind:'vector',style:'prism-nebula',bytes:0,theme:'星云 · 棱光',randomEligible:true},
+    'bokeh-night':{id:'bokeh-night',title:'夜色光斑',description:'远近交叠的彩色光斑，中间留出安静的阅读区',kind:'vector',style:'bokeh-night',bytes:0,theme:'光斑 · 多彩',randomEligible:true},
+    'tide-glow':{id:'tide-glow',title:'夜港辉光',description:'地平线上的彩色灯火倒映在夜色水面',kind:'vector',style:'tide-glow',bytes:0,theme:'夜港 · 辉光',randomEligible:true},
+    'silk-flow':{id:'silk-flow',title:'丝光流彩',description:'几束丝绸般的彩色光带横贯夜色',kind:'vector',style:'silk-flow',bytes:0,theme:'丝光 · 流彩',randomEligible:true},
+    'crystal-cavern':{id:'crystal-cavern',title:'晶洞微光',description:'从角落生长的晶体，内部透出冷暖微光',kind:'vector',style:'crystal-cavern',bytes:0,theme:'晶体 · 微光',randomEligible:true},
+    'dusk-dunes':{id:'dusk-dunes',title:'暮色沙丘',description:'低垂的夕阳把层层沙脊勾出金边',kind:'vector',style:'dusk-dunes',bytes:0,theme:'暮色 · 沙丘',randomEligible:true},
+    'deep-current':{id:'deep-current',title:'深海光束',description:'天光穿过深水，荧光微粒缓缓浮游',kind:'vector',style:'deep-current',bytes:0,theme:'深海 · 光束',randomEligible:true},
+    'neon-rain':{id:'neon-rain',title:'霓虹雨夜',description:'雨丝掠过几团品红与青色的霓虹',kind:'vector',style:'neon-rain',bytes:0,theme:'霓虹 · 雨夜',randomEligible:true},
+    'lantern-field':{id:'lantern-field',title:'灯笼星野',description:'暖色灯火从原野升起，飘向星空',kind:'vector',style:'lantern-field',bytes:0,theme:'灯火 · 星野',randomEligible:true},
     mist:{id:'mist',title:'柔光留白',description:'安静的光色与空间',kind:'vector',style:'mist',bytes:0},
     line:{id:'line',title:'流线素描',description:'少量曲线，轻盈的层次',kind:'vector',style:'line',bytes:0},
     contour:{id:'contour',title:'山形等高',description:'青绿地形与细密的等高线',kind:'vector',style:'contour',bytes:0},
@@ -155,7 +165,7 @@
     var applyButton=dialog.querySelector('[data-background-apply]'),viewerStart=dialog.querySelector('[data-background-viewer-start]');
     if(visits&&randomSettings&&poolChoices){
       randomSettings.hidden=false;poolChoices.replaceChildren();poolChoices.setAttribute('aria-label','参与随机的图片');
-      Object.keys(catalogue).forEach(function(id){var e=catalogue[id];if(e.kind!=='image')return;
+      Object.keys(catalogue).forEach(function(id){var e=catalogue[id];if(e.kind!=='image'&&!e.randomEligible)return;
         var label=document.createElement('label');label.className='background-choice background-pool-choice';var input=document.createElement('input');input.type='checkbox';input.name='liss_background_pool_v55';input.value=id;input.setAttribute('aria-label','将'+e.title+'加入随机范围');label.appendChild(input);
         var thumb=document.createElement('span');thumb.className='background-thumb';thumb.setAttribute('aria-hidden','true');var image=document.createElement('img');image.dataset.backgroundPoolThumbnail=new URL(e.thumbnail||e.src,base).href;image.decoding='async';image.loading='lazy';image.alt='';image.width=360;image.height=240;thumb.appendChild(image);label.appendChild(thumb);
         var copy=document.createElement('span');copy.className='background-choice-copy';var title=document.createElement('strong');title.textContent=e.title;var theme=document.createElement('small');theme.textContent=e.theme||e.description;copy.appendChild(title);copy.appendChild(theme);label.appendChild(copy);poolChoices.appendChild(label);poolInputs.push(input);

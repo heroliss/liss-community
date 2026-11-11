@@ -11,6 +11,8 @@
 <header class="studio-entry">
   <div class="studio-introduction"><h1>有些话，<br><span>想聊聊。</span></h1><p class="site-configured-tagline">{{ (site_settings|default({})).get('tagline', '记录日常，分享发现，和有趣的人聊一聊。') }}</p>
     <div class="studio-entry-actions"><a class="button" href="{{ url_for('main.index') ~ '#write' if current_user.is_authenticated else (url_for('public_demo.entry') if config.get('PUBLIC_DEMO') else url_for('auth.register')) }}">写下你的想法 {{ ui.icon('edit') }}</a><a class="quiet-link" href="#article-feed">先听听大家在聊什么 {{ ui.icon('chevron') }}</a></div>
+    {% set prompt_href = url_for('main.index') ~ '#write' if current_user.is_authenticated else (url_for('public_demo.entry') if config.get('PUBLIC_DEMO') else url_for('auth.register')) %}
+    <div class="prompt-chips" aria-label="不知道写什么？试试这些">{% for chip in [('分享一个发现','今天发现了一个……'),('问一个问题','想请教大家……'),('记录今天','今天……'),('聊聊某个作品','用了一下……，感觉')] %}<a href="{{ prompt_href }}" data-prompt="{{ chip[1] }}" style="--i:{{ loop.index0 }}">{{ chip[0] }}</a>{% endfor %}</div>
   </div>
   <div class="studio-conversation-model conversation-atelier" data-room-scene role="img" aria-label="两片立体玻璃对话框在不同深度相遇，表达一个想法与另一种视角的交流">
     <div class="atelier-backdrop" aria-hidden="true">
@@ -32,7 +34,7 @@
 <div class="feed-column">
   {% if current_user.can(Permission.WRITE_ARTICLES) and (not current_user.is_visitor|default(false) or guest_posting_open) %}
   <details class="composer" id="write" data-room-scene{% if form.errors %} open{% endif %}>
-    <summary>{{ ui.avatar(current_user, 'avatar-small') }}<span>今天有什么想分享？<small>打开你的写作台</small></span>{{ ui.icon('edit') }}</summary>
+    <summary>{{ ui.avatar(current_user, 'avatar-small') }}<span>今天想聊点什么？<small>一句话也行，点开就能写</small></span>{{ ui.icon('edit') }}</summary>
     <div class="composer-content">{{ forms.render_form(form, '发布文章', 'writing-form') }}</div>
   </details>
   {% elif current_user.is_authenticated and current_user.is_visitor|default(false) and not guest_posting_open %}<p class="form-notice" id="write">访客发文暂时关闭，仍可发表评论、编辑已有文章。</p>{% endif %}
@@ -47,7 +49,7 @@
     <div class="studio-console-intro"><h2>这里留了<br>一个位置。</h2><p>{{ (site_settings|default({})).get('welcome', 'LISS 欢迎认真记录，也欢迎随手分享。一个问题、一段经历、一点新发现，都值得留下。') }}</p></div>
     {% if current_user.is_authenticated %}<div class="studio-id"><a class="aside-person" href="{{ url_for('main.user', username=current_user.username) }}">{{ ui.avatar(current_user) }}<span><strong>{{ ui.author_name(current_user) }}</strong>{{ ui.identity_badge(current_user) }}</span></a><p>{{ current_user.about_me or '你的下一段记录，就从这里开始。' }}</p><a class="quiet-link" href="{{ url_for('main.user', username=current_user.username) }}">我的主页 {{ ui.icon('arrow') }}</a>{% if current_user.is_visitor|default(false) and registration_open %}<a class="identity-upgrade" href="{{ url_for('auth.register') }}">设置账号，保留这个身份 {{ ui.icon('lock') }}</a>{% endif %}</div>
     {% else %}<div class="studio-join"><p>不必准备一篇长文。<br>从一句话开始，也很好。</p><a class="button" href="{{ url_for('public_demo.entry') if config.get('PUBLIC_DEMO') else url_for('auth.register') }}">{{ '加入这场对话' if guest_posting_open else '加入交流' }} {{ ui.icon('comment') }}</a><span class="aside-account">已有账号？<a href="{{ url_for('auth.login') }}">登录</a></span></div>{% endif %}
-    <div class="studio-console-note"><span aria-hidden="true">{{ ui.icon('comment') }}</span><p>留下一点发现，遇见新的想法。<br>让每一段对话，都有继续的余地。</p></div>
+    <div class="studio-console-note"><span aria-hidden="true">{{ ui.icon('comment') }}</span><p>看到有意思的文章，留一句话就好。<br>很多讨论，都是从一句话开始的。</p></div>
     {% if site_owner|default(none) %}<a class="studio-host" href="{{ url_for('main.user', username=site_owner.username) }}">认识站点作者 {{ ui.avatar(site_owner, 'avatar-small') }}{{ ui.icon('arrow') }}</a>{% endif %}
   {% endcall %}</section>
   <a class="studio-works-door works-gallery" data-depth-host data-depth-kind="crystal" data-material="glass" href="{{ url_for('community.portfolio') }}" aria-label="探索作品：游戏、工具、AI 与交互实验">{% call depth.layers(material=true) %}
@@ -57,7 +59,7 @@
       <span class="works-gallery-code">{ }</span><span class="works-gallery-orbit"><i></i><i></i></span>
       <span class="works-gallery-thread"></span>
     </span>
-    <span class="works-gallery-copy"><span class="works-gallery-label">探索作品</span><strong>把话题，<br>带进作品。</strong><span class="works-gallery-description">游戏、工具、AI 与交互实验。<br>看看想法如何变成可以体验的东西。</span><b>探索作品 {{ ui.icon('arrow') }}</b></span>
+    <span class="works-gallery-copy"><span class="works-gallery-label">探索作品</span><strong>聊完了，<br>去玩玩作品。</strong><span class="works-gallery-description">游戏、工具、AI 和交互实验，<br>大多能直接上手试试。</span><b>探索作品 {{ ui.icon('arrow') }}</b></span>
   {% endcall %}</a>
 </aside>
 </div>

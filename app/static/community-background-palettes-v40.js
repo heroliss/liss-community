@@ -23,6 +23,8 @@
     'spectrum-ripples':[266,28,172,28,'柔紫 · 绿松'],
     'glass-weave':[191,23,38,21,'雾青 · 香槟'],'mercury-tide':[172,20,38,18,'银青 · 暖灰'],
     'opal-strata':[208,22,20,18,'晶蓝 · 砂粉'],
+    'aurora-veil':[176,34,272,30,'极光 · 夜青','dark'],'prism-nebula':[262,34,322,30,'星云 · 绯紫','dark'],
+    'bokeh-night':[190,32,300,28,'光斑 · 多彩','dark'],'silk-flow':[200,32,330,30,'丝光 · 流彩','dark'],'crystal-cavern':[205,34,280,30,'晶体 · 微光','dark'],'dusk-dunes':[28,36,285,30,'暮色 · 沙丘','dark'],'deep-current':[188,36,220,30,'深海 · 光束','dark'],'neon-rain':[320,36,190,32,'霓虹 · 雨夜','dark'],'lantern-field':[34,38,225,28,'灯火 · 星野','dark'],'tide-glow':[184,32,30,30,'夜港 · 辉光','dark'],
     'tidal-still':[196,25,38,22,'湾青 · 晨金','dark'],
     'satin-atrium':[202,21,36,19,'雾蓝 · 珍珠','light'],
     'sea-glass-study':[186,23,27,21,'烟青 · 杏光','dark'],

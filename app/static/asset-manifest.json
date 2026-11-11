@@ -3,11 +3,11 @@
   "tool": "esbuild@0.28.2",
   "groups": {
     "styles": {
-      "file": "bundles/styles.236c8b97604f3097.css",
-      "sha256": "236c8b97604f3097fa8414caa3e70b223b9cb85ac94998d7df6a809b79aea572",
-      "bytes": 418971,
-      "sourceBytes": 466838,
-      "gzipBytes": 71415,
+      "file": "bundles/styles.27086732eb7f83ba.css",
+      "sha256": "27086732eb7f83badf709a75b4de58939d577abb78b4dc56432315fbe9acd2f9",
+      "bytes": 446729,
+      "sourceBytes": 499707,
+      "gzipBytes": 76530,
       "sources": {
         "liss.css": "faf70844bf3ed140d4104b54947329f4e2211c9db10197d1e2ff3b60cdf083f1",
         "community-room.css": "c534de6dfb70ac1ad93696081bf51224da45571ab0a04079b592c348cdbfe160",
@@ -37,7 +37,9 @@
         "community-feed.css": "d678d98f8655d40199d13dd3624a5079bdda2c7f9cfc4fef957698151d687b91",
         "community-footer.css": "3787bb1a85d9e6ae0cebe45606334f49a9e36a2a12081dc294ac09d65460d207",
         "community-reflections.css": "8e6ae7b98b2a53a117d7f5bf01ef20b0e653ee9630f6ff6193fd7f95008d7058",
-        "community-glass-depth-v56.css": "62ff35582bcb449db7352beec8b93614458faa83b160a285a84c65bc5438dac2",
+        "community-glass-depth-v56.css": "f11ea1d0225d2e7ef0ab4d70d33d343878e44c644db65dd47c5d0313b332e697",
+        "community-aurora-v60.css": "aa41854e3a5904de415151b345c4670895cfcff9134269a2793ebe2cc9e5bdc7",
+        "community-background-aurora-v60.css": "e3b4cb98f124b006b5f9ac43417edacaaa4802adb4bc62793ff1534731d31d4f",
         "community-background-designs-v40.css": "e539674eaee351450867c83af80e730ad265bdb122f5a177d18d13c089937d29",
         "community-background-defaults-v43.css": "92e73fa3269cd9fa85b36e467c07e8786374218839f25a4382e2d41a66a9fd0d",
         "community-background-spectrum-v44.css": "80cbc864eab924eb03c049e1ee7a602457e73f5b689401e3d7fe4eb46a99cd4d",
@@ -45,16 +47,16 @@
       }
     },
     "background-head": {
-      "file": "bundles/background-head.bd8cb30f06e56fab.js",
-      "sha256": "bd8cb30f06e56fab2692496d56e3aa98044f19d27de6786a4f4935faff90d2ab",
-      "bytes": 84799,
-      "sourceBytes": 103541,
-      "gzipBytes": 20049,
+      "file": "bundles/background-head.e8b5c0e1338d9e13.js",
+      "sha256": "e8b5c0e1338d9e13d0fa2c82f7e92d6a215a33d4b50188bf5068b600f4ad918a",
+      "bytes": 87760,
+      "sourceBytes": 106983,
+      "gzipBytes": 21115,
       "sources": {
-        "community-background-palettes-v40.js": "bfde55b1c2d92c6d9d7a0b0a70139c4b2f879dcd03d22cdf4bdd6320f8c032e1",
+        "community-background-palettes-v40.js": "4e085544543a556994654a72dbe58faa9541421f257433236b17bc94dbf7fd7d",
         "community-background-candidates-v40.js": "4094947fec258d316f1fc1397297efb6ed3e01d8ae2bcd43e0119aeaf52249a9",
-        "community-background-visits-v55.js": "c8627a56e90694e2acaba3a9f29bf6859018c38da68f9375f156f10cb65fc557",
-        "community-backgrounds.js": "bd66f1c77f299a3a54d0e76e62e56958523f84392ea7a1d677f928b3f13b0b40"
+        "community-background-visits-v55.js": "3d30c20a615d76cc26c1ac4f156953e7c54f2d292ec1996c95df51c3257bdf1b",
+        "community-backgrounds.js": "e11e5082d583ee1c9f81266ce7120f330fc2bdf39b268391b1a786c936921c9b"
       }
     },
     "transitions-head": {
@@ -68,11 +70,11 @@
       }
     },
     "runtime": {
-      "file": "bundles/runtime.8a188cf1967ad55f.js",
-      "sha256": "8a188cf1967ad55f28faeec5c004f5a71b30f1001f401694fd53d31aa91abae8",
-      "bytes": 127747,
-      "sourceBytes": 194007,
-      "gzipBytes": 43835,
+      "file": "bundles/runtime.40c6294fb7b608b2.js",
+      "sha256": "40c6294fb7b608b2485ac204b26dffe5c2f1b5a85b5a18bf4c7fe8b03a7e3d1c",
+      "bytes": 146931,
+      "sourceBytes": 221529,
+      "gzipBytes": 50154,
       "sources": {
         "liss.js": "8c4f18b62a1f013ff0a24fd9f9a5021842fa53449b98c93045081bd55eafec45",
         "community-theme.js": "c8cfb16239c3ddae04ea40f9ed032e51de943ca003ea0c857ba9739f3bf7c61b",
@@ -83,12 +85,14 @@
         "community-background-defaults-v43.js": "cb4661d6d04c9e11c277fff86dd1d7f57e44a1bb0f9d15c73a74ef4745167e12",
         "community-procedural.js": "39451c02a4dad305abd4e219f554dde2512941ff2a3d6d3b42d3d7852b079119",
         "community-background-spectrum-v44.js": "4638e6c9c26266cc10fa61d7730362cbbe263eef143fe4f0e4c3f6aff67781cb",
+        "community-background-aurora-v60.js": "5a56582ab2b80ff4dfc33516b375f6c2138117c5a8281fa48e349bc6b9cbedd9",
         "community-background-previews-v49.js": "72e296338d639b47d4109db2e4a920eee582418936e9b0801bda8e0536d3df25",
         "community-atmosphere.js": "018cc43e7042e8fb8ea9206c036a089e49590a96884d800085f193f10ad9605f",
         "community-surfaces.js": "8a2057c5eca700a68ce93b9c4d5dabd5ef356ff50af00a89c31317c39e5a4f5c",
         "community-reflections.js": "56f683c4441db6fa5ff3325132dda59340f3e735b29d6078ce82c7d8597087ed",
         "community-crystal.js": "3a4c6f3edfefc288b0c3a1c153f649feb10d46fbdf8a58a4039e0864efa0722e",
-        "community-experience.js": "cf807aa19cd483c86e867e890c8c5b3780742007c512632abe9b2fd7f7555e40"
+        "community-experience.js": "cf807aa19cd483c86e867e890c8c5b3780742007c512632abe9b2fd7f7555e40",
+        "community-aurora.js": "1e619f0ee7b84e9bfcb4cb25d5450fa54ca2be56fb5b98d120dd1e01b2906a20"
       }
     },
     "gallery": {

@@ -1,0 +1,201 @@
+/* Aurora v60: a top design layer over the material system. It adds coloured
+   light to the room, a floating glass header, a livelier entry, glowing cards,
+   an inviting composer and a floating "write" orb. Dark is the primary design;
+   light only receives the structural parts that read well in both. */
+:root { --aurora-1:#6ee8e3; --aurora-2:#30aff8; --aurora-3:#e27ee8; --aurora-4:#facf4e; --aurora-5:#fd8358; --aurora-6:#c8ec60; }
+
+/* ---------- Aurora field: drifting colour above the scenery, below content ---------- */
+.aurora-field { position:fixed; inset:0; z-index:-1; pointer-events:none; overflow:hidden; }
+/* Static on purpose: anything moving behind the glass makes every card re-blur its backdrop each frame. */
+.aurora-field i { position:absolute; width:60vmax; height:60vmax; border-radius:50%; filter:blur(80px); opacity:.16; }
+.aurora-a { left:-18vmax; top:-22vmax; background:radial-gradient(circle,var(--aurora-1),transparent 62%); }
+.aurora-b { right:-22vmax; top:8vh; background:radial-gradient(circle,var(--aurora-3),transparent 62%); }
+.aurora-c { left:20vw; bottom:-34vmax; background:radial-gradient(circle,var(--aurora-4),transparent 60%); opacity:.12!important; }
+/* A vignette that settles the edges of the scenery. */
+.aurora-field::after { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 120% 90% at 50% 40%,transparent 55%,#04080dcc 100%); }
+[data-theme=light] .aurora-field i { opacity:.1; mix-blend-mode:multiply; }
+[data-theme=light] .aurora-field::after { display:none; }
+
+/* ---------- Header: a floating glass capsule ---------- */
+html body.community-room .site-header { position:sticky; top:0; z-index:80; padding:10px 0 0; background:transparent!important; border:0!important; box-shadow:none!important; -webkit-backdrop-filter:none!important; backdrop-filter:none!important; transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .3s ease; }
+.community-room .site-header[data-hidden=true] { transform:translateY(-110%); opacity:0; }
+.community-room .site-header .site-nav { position:relative; min-height:58px; padding:6px 8px 6px 18px; border-radius:18px; border:1px solid #ffffff1c;
+  background:linear-gradient(120deg,#0d1620d4,#0a1118c4); -webkit-backdrop-filter:blur(18px) saturate(1.4); backdrop-filter:blur(18px) saturate(1.4);
+  box-shadow:0 20px 44px -28px #000,inset 0 1px #ffffff16; }
+.community-room .site-header .site-nav::after { content:''; position:absolute; left:20px; right:20px; bottom:-1px; height:1px; pointer-events:none;
+  background:linear-gradient(90deg,transparent,var(--aurora-5),var(--aurora-4),var(--aurora-6),var(--aurora-1),var(--aurora-2),var(--aurora-3),transparent); opacity:.55; }
+[data-theme=light] .community-room .site-header .site-nav { background:linear-gradient(120deg,#ffffffd9,#f1f6f4cc); border-color:#1a33401f; box-shadow:0 18px 40px -28px #1a334055,inset 0 1px #fff; }
+.community-room .site-header .wordmark { background:linear-gradient(100deg,#eef6f4,#bfefff 60%,#f1d4ff); -webkit-background-clip:text; background-clip:text; color:transparent; }
+[data-theme=light] .community-room .site-header .wordmark { background:none; color:inherit; }
+.community-room .site-header .site-nav > a, .community-room .site-header .nav-actions > :is(a,button,details,.icon-button) { min-height:0; max-height:46px; }
+.community-room .site-nav > a:is(.nav-feed,.nav-works) { position:relative; display:inline-flex; align-items:center; height:40px; padding:0 13px; border-radius:11px; transition:background .2s ease,color .2s ease; }
+.community-room .site-nav > a:is(.nav-feed,.nav-works):hover { background:#ffffff0c; }
+.community-room .site-nav > a.is-active { background:color-mix(in srgb,var(--aurora-1) 13%,transparent); color:var(--aurora-1); }
+.community-room .site-nav > a.is-active::after { content:''; position:absolute; left:13px; right:13px; bottom:5px; height:2px; border-radius:2px; background:var(--aurora-1); }
+.community-room .nav-actions .button,.community-room .nav-actions .nav-write { border:0; color:#071015!important; font-weight:600; background:linear-gradient(100deg,var(--aurora-1),var(--aurora-2))!important; box-shadow:0 8px 24px -10px var(--aurora-2); transition:transform .2s ease,box-shadow .2s ease; }
+.community-room .nav-actions .button:hover,.community-room .nav-actions .nav-write:hover { transform:translateY(-1px); box-shadow:0 12px 28px -10px var(--aurora-2); }
+
+/* ---------- Entry: bigger headline, glowing actions, prompt chips ---------- */
+.community-room .studio-introduction h1 { font-size:clamp(54px,6.4vw,96px); line-height:1.04; letter-spacing:-.04em; text-shadow:0 6px 40px #050a0f99; }
+.community-room .studio-introduction h1 span { background:linear-gradient(100deg,var(--aurora-1),var(--aurora-2) 35%,var(--aurora-3) 70%,var(--aurora-4)); -webkit-background-clip:text; background-clip:text; color:transparent; background-size:200% 100%; animation:aurora-sheen 12s linear infinite; text-shadow:none; }
+@keyframes aurora-sheen { to { background-position:-200% 0; } }
+[data-theme=light] .community-room .studio-introduction h1 { text-shadow:none; }
+.community-room .studio-entry-actions .button { padding-inline:22px; min-height:50px; border:0; color:#071015; font-weight:600; background:linear-gradient(100deg,var(--aurora-1),var(--aurora-2)); box-shadow:0 14px 34px -14px var(--aurora-2); transition:transform .2s ease,box-shadow .2s ease; }
+.community-room .studio-entry-actions .button:hover { transform:translateY(-2px); box-shadow:0 18px 40px -14px var(--aurora-2); }
+.prompt-chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; }
+.prompt-chips a { --tone:var(--aurora-1); display:inline-flex; align-items:center; min-height:36px; padding:6px 14px; border-radius:20px; border:1px solid color-mix(in srgb,var(--tone) 34%,transparent); background:color-mix(in srgb,var(--tone) 9%,#0b1219b0); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); color:#e2ecf0; font-size:14px; text-decoration:none!important; animation:prompt-in .7s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(.4s + var(--i) * .08s); transition:transform .25s cubic-bezier(.2,.9,.25,1.3),border-color .2s ease,background .2s ease; }
+.prompt-chips a:nth-child(2) { --tone:var(--aurora-4); } .prompt-chips a:nth-child(3) { --tone:var(--aurora-3); } .prompt-chips a:nth-child(4) { --tone:var(--aurora-6); }
+.prompt-chips a:hover,.prompt-chips a:focus-visible { transform:translateY(-3px) rotate(-1.5deg); border-color:var(--tone); background:color-mix(in srgb,var(--tone) 20%,#0b1219c0); color:#fff; }
+@keyframes prompt-in { from { opacity:0; transform:translateY(10px); } }
+[data-theme=light] .prompt-chips a { background:color-mix(in srgb,var(--tone) 12%,#ffffffd0); color:#18323c; }
+
+/* ---------- Feed toolbar ---------- */
+.community-room .feed-toolbar { border-radius:16px; border:1px solid #ffffff1f; background:linear-gradient(120deg,#ffffff14,#ffffff07 60%,#ffffff0d)!important; -webkit-backdrop-filter:blur(16px) saturate(1.3); backdrop-filter:blur(16px) saturate(1.3); box-shadow:0 18px 40px -30px #000,inset 0 1px #ffffff12; }
+.community-room .feed-tabs a.is-active { color:var(--aurora-1); }
+.community-room .feed-tabs a.is-active::after { background:linear-gradient(90deg,var(--aurora-1),var(--aurora-2))!important; height:2px; }
+[data-theme=light] .community-room .feed-toolbar { background:#ffffffc7; border-color:#1a33401c; }
+
+/* ---------- Cards: a glow in the card's own colour and a livelier footer ---------- */
+.community-room .posts:not(.posts-detail) > .post { --card-glow:var(--appearance-accent,var(--aurora-1)); }
+.community-room .posts:not(.posts-detail) > .post::before { content:''; position:absolute; inset:8% 6%; z-index:-1; border-radius:40px; pointer-events:none;
+  background:radial-gradient(ellipse at 50% 55%,color-mix(in srgb,var(--card-glow) 55%,transparent),transparent 70%); filter:blur(36px); opacity:0; transform:scale(.9); transition:opacity .5s ease,transform .6s cubic-bezier(.2,.8,.2,1); }
+.community-room .posts:not(.posts-detail) > .post:is(:hover,:focus-within)::before { opacity:.55; transform:scale(1.04); }
+.community-room .posts:not(.posts-detail) > .post .post-title a { transition:color .25s ease; }
+.community-room .posts:not(.posts-detail) > .post:hover .post-title a { color:color-mix(in srgb,var(--card-glow) 55%,#fff); }
+.community-room .post .read-post svg,.community-room .post .post-comment-link svg { transition:transform .25s ease; }
+.community-room .post:hover .read-post svg { transform:translateX(4px); }
+.community-room .post:hover .post-comment-link svg { transform:rotate(-8deg) scale(1.1); }
+.community-room .post .post-comment-link { border-radius:14px; padding:3px 9px 3px 6px; margin-left:-6px; transition:background .2s ease,color .2s ease; }
+.community-room .post .post-comment-link:hover { background:color-mix(in srgb,var(--card-glow,var(--aurora-1)) 16%,transparent); color:#fff; }
+
+/* ---------- Composer: an inviting glowing slab ---------- */
+.community-room details.composer { position:relative; border-radius:20px; isolation:isolate; }
+.community-room details.composer::before { content:''; position:absolute; inset:-1px; z-index:-1; border-radius:inherit; padding:1px; pointer-events:none;
+  background:conic-gradient(from var(--composer-angle,0deg),var(--aurora-1),var(--aurora-2),var(--aurora-3),var(--aurora-4),var(--aurora-1));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0); mask-composite:exclude;
+  opacity:.7; }
+.community-room details.composer:is(:hover,:focus-within,[open])::before { animation:composer-turn 6s linear infinite; }
+@property --composer-angle { syntax:'<angle>'; inherits:false; initial-value:0deg; }
+@keyframes composer-turn { to { --composer-angle:360deg; } }
+.community-room details.composer > summary { transition:transform .25s ease; }
+.community-room details.composer:not([open]) > summary:hover { transform:translateY(-2px); }
+
+/* ---------- Reading page: discussion that asks to be joined ---------- */
+.community-room .discussion-heading h2 { background:linear-gradient(100deg,#eef6f4,var(--aurora-1)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+[data-theme=light] .community-room .discussion-heading h2 { background:none; color:inherit; }
+.community-room :is(.join-discussion,.discussion-empty) { position:relative; overflow:hidden; border-radius:16px!important; border:1px solid color-mix(in srgb,var(--aurora-1) 30%,transparent)!important;
+  background:linear-gradient(120deg,color-mix(in srgb,var(--aurora-1) 10%,#0d1620d0),#0a1118c4)!important; -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px); }
+.community-room .discussion-empty::after { content:'✦'; position:absolute; right:18px; top:50%; transform:translateY(-50%); color:var(--aurora-4); font-size:18px; animation:aurora-twinkle 2.6s ease-in-out infinite; }
+@keyframes aurora-twinkle { 50% { opacity:.3; transform:translateY(-50%) scale(.7) rotate(40deg); } }
+.community-room .join-discussion a { color:var(--aurora-1); font-weight:600; }
+.community-room .thread-composer { position:relative; border-radius:18px; box-shadow:0 0 0 1px color-mix(in srgb,var(--aurora-2) 35%,transparent),0 20px 50px -30px var(--aurora-2); }
+.community-room .comment-form .btn-primary,.community-room .comment-form button[type=submit],.community-room .writing-form button[type=submit] { border:0; color:#071015; font-weight:600; background:linear-gradient(100deg,var(--aurora-1),var(--aurora-2)); box-shadow:0 12px 28px -12px var(--aurora-2); }
+[data-theme=light] .community-room :is(.join-discussion,.discussion-empty) { background:#ffffffd0!important; }
+
+/* ---------- Footer ---------- */
+.community-room .site-footer { position:relative; }
+.community-room .site-footer::before { content:''; position:absolute; left:0; right:0; top:0; height:2px; pointer-events:none; background:linear-gradient(90deg,var(--aurora-5),var(--aurora-4),var(--aurora-6),var(--aurora-1),var(--aurora-2),var(--aurora-3)); opacity:.6; }
+
+/* ---------- Floating write orb ---------- */
+.write-orb { position:fixed; right:clamp(16px,3vw,36px); bottom:clamp(16px,3vw,32px); z-index:70; display:flex; align-items:center; gap:0; height:58px; min-width:58px; padding:0 19px; border-radius:30px; overflow:hidden; color:#071015!important; font-weight:600; text-decoration:none!important;
+  background:linear-gradient(120deg,var(--aurora-1),var(--aurora-2) 55%,var(--aurora-3)); background-size:200% 100%;
+  box-shadow:0 18px 40px -14px var(--aurora-2),0 0 0 1px #ffffff30 inset; transition:gap .35s ease,padding .35s ease,transform .25s cubic-bezier(.2,.9,.25,1.3),background-position .6s ease,box-shadow .3s ease; }
+.write-orb svg { flex:none; width:20px; height:20px; }
+.write-orb span { max-width:0; white-space:nowrap; opacity:0; transition:max-width .35s ease,opacity .25s ease; }
+.write-orb:is(:hover,:focus-visible) { gap:10px; transform:translateY(-3px); background-position:100% 0; box-shadow:0 22px 50px -12px var(--aurora-3),0 0 0 1px #ffffff40 inset; }
+.write-orb:is(:hover,:focus-visible) span { max-width:120px; opacity:1; }
+.write-orb[data-hidden=true] { transform:translateY(120px); }
+
+/* ---------- Click ripple ---------- */
+.aurora-ripple { position:fixed; z-index:90; width:12px; height:12px; margin:-6px 0 0 -6px; border-radius:50%; pointer-events:none; border:2px solid var(--ripple-tone,var(--aurora-1)); box-shadow:0 0 18px var(--ripple-tone,var(--aurora-1)); animation:aurora-ripple .7s cubic-bezier(.2,.7,.2,1) forwards; }
+@keyframes aurora-ripple { to { transform:scale(7); opacity:0; } }
+
+@media(max-width:700px) {
+  .community-room .studio-introduction h1 { font-size:clamp(44px,13vw,60px); }
+  .write-orb { height:52px; min-width:52px; padding:0 16px; }
+  .aurora-field i { filter:blur(60px); }
+}
+@media(prefers-reduced-motion:reduce) {
+  .aurora-field i,.community-room .studio-introduction h1 span,.prompt-chips a,.community-room details.composer::before,.write-orb,.community-room .discussion-empty::after { animation:none; }
+  .aurora-ripple { display:none; }
+}
+@media(forced-colors:active) { .aurora-field,.write-orb::before { display:none; } }
+
+/* ---------- Shapes: softly rounded slabs instead of cut corners ----------
+   Clear glass, metal and slate drop their chipped polygons for rounded slabs
+   with a little asymmetry; paper and cork keep their natural, organic edges. */
+.community-room [data-material=glass][data-depth-kind=edition] { --material-shape-profile:rounded-slab;--material-radius:20px 32px 24px 16px;--material-outline:inset(0 round 20px 32px 24px 16px); }
+.community-room [data-material=metal]:is([data-depth-kind=edition],[data-depth-kind=reader]) { --material-shape-profile:rounded-plate;--material-radius:12px 18px 12px 18px;--material-outline:inset(0 round 12px 18px 12px 18px); }
+.community-room [data-material=slate]:is([data-depth-kind=edition],[data-depth-kind=reader]) { --material-shape-profile:rounded-slate;--material-radius:10px 16px 14px 8px;--material-outline:inset(0 round 10px 16px 14px 8px); }
+:root[data-feed-view=list] body.community-room .posts[data-feed-list]>.post[data-material=glass] { --material-radius:14px 20px 14px 10px;--material-outline:inset(0 round 14px 20px 14px 10px); }
+:root[data-feed-view=list] body.community-room .posts[data-feed-list]>.post[data-material=metal] { --material-radius:10px 14px 10px 14px;--material-outline:inset(0 round 10px 14px 10px 14px); }
+:root[data-feed-view=list] body.community-room .posts[data-feed-list]>.post[data-material=slate] { --material-radius:8px 12px 10px 6px;--material-outline:inset(0 round 8px 12px 10px 6px); }
+
+/* ---------- Drifting motes over the scenery ---------- */
+.aurora-particles { position:absolute; inset:0; width:100%; height:100%; opacity:.9; }
+[data-theme=light] .aurora-particles { opacity:.35; mix-blend-mode:multiply; }
+@media(prefers-reduced-motion:reduce) { .aurora-particles { display:none; } }
+
+/* ---------- Detail depth: small parts float above the card face ----------
+   The forum already writes each card's pointer offset (--depth-x/--depth-y);
+   avatars, topic tags and cover images move further than the card itself, so
+   they read as separate layers, with shadows that lift them off the glass. */
+.community-room .posts:not(.posts-detail) > .post :is(.author-avatar,.project-topic-tag,.post-preview.has-cover img,.post-meta .identity-badge) {
+  translate:calc(var(--depth-x,0px) * .45) calc(var(--depth-y,0px) * .45); transition:translate .25s ease-out;
+}
+.community-room .posts:not(.posts-detail) > .post .post-title { translate:calc(var(--depth-x,0px) * .2) calc(var(--depth-y,0px) * .2); }
+.community-room .post .author-avatar img,.community-room .post .author-avatar .avatar { box-shadow:0 0 0 2px #ffffff26,0 10px 18px -8px #000c,0 0 18px -6px var(--card-glow,#6ee8e3); border-radius:50%; }
+.community-room .post .project-topic-tag { box-shadow:0 8px 18px -10px #000c,inset 0 1px #ffffff22; }
+.community-room .post .post-preview.has-cover img { box-shadow:0 18px 30px -18px #000e,0 0 0 1px #ffffff18; }
+@media(prefers-reduced-motion:reduce) { .community-room .post * { translate:none!important; } }
+
+/* ================= v62 polish ================= */
+/* Header: always visible, but no longer a floating capsule. A full-width frosted
+   band whose blur and tint fade out at its lower edge, so it melts into the
+   scenery; it firms up slightly once the page has scrolled. */
+html body.community-room .site-header { padding:0; }
+html body.community-room .site-header::before { content:''; position:absolute; inset:0 0 -26px; z-index:-1; pointer-events:none;
+  background:linear-gradient(180deg,#070b12b3,#070b1259 62%,#070b1200);
+  -webkit-backdrop-filter:blur(16px) saturate(1.35); backdrop-filter:blur(16px) saturate(1.35);
+  -webkit-mask-image:linear-gradient(180deg,#000 55%,transparent); mask-image:linear-gradient(180deg,#000 55%,transparent); transition:background .4s ease; }
+html body.community-room .site-header[data-scrolled=true]::before { background:linear-gradient(180deg,#070b12d9,#070b1288 62%,#070b1200); }
+html[data-theme=light] body.community-room .site-header::before { background:linear-gradient(180deg,#ffffffc0,#ffffff60 62%,#fff0); }
+.community-room .site-header .site-nav { border:0!important; background:transparent!important; box-shadow:none!important; -webkit-backdrop-filter:none!important; backdrop-filter:none!important; min-height:68px; padding:0 4px; border-radius:0; }
+.community-room .site-header .site-nav::after { display:none; }
+
+/* Toolbars and glass panels: text never runs to the edge. */
+.community-room .feed-toolbar { padding:10px 12px 10px 24px!important; gap:16px; }
+.community-room .feed-toolbar .feed-tabs { gap:6px; }
+.community-room .feed-tabs a { padding:8px 12px; border-radius:10px; }
+
+/* Readability on glass over dark scenery: lifted secondary text, a soft shadow
+   behind type, steadier line height. */
+.community-room .posts > .post :is(.post-excerpt,.post-byline,.post-footer,.post-meta) { text-shadow:0 1px 10px #050a10a6; }
+.community-room .posts > .post .post-excerpt { color:#d3dce4; line-height:1.8; }
+.community-room .posts > .post :is(.post-footer,.post-byline) { color:#c2ccd5; }
+.community-room .posts > .post .post-title { text-shadow:0 2px 18px #050a10b3; letter-spacing:-.01em; }
+[data-theme=light] .community-room .posts > .post :is(.post-excerpt,.post-byline,.post-footer,.post-title) { text-shadow:none; }
+
+/* Footer: a fade to black from 0 to 100%, an invitation, visible headings and a
+   large faded wordmark, so the page ends with weight instead of trailing off. */
+.community-room .site-footer.reading-footer { position:relative; margin-top:clamp(70px,9vw,140px); padding:0 0 28px!important; border:0!important; overflow:hidden;
+  background:linear-gradient(180deg,#00000000 0%,#000000a6 38%,#000000 100%)!important; -webkit-backdrop-filter:none!important; backdrop-filter:none!important; box-shadow:none!important; }
+.community-room .site-footer.reading-footer::before { content:''!important; position:absolute!important; inset:0 0 auto!important; height:2px!important; opacity:.55!important; background:linear-gradient(90deg,transparent,var(--aurora-5),var(--aurora-4),var(--aurora-6),var(--aurora-1),var(--aurora-2),var(--aurora-3),transparent)!important; }
+.community-room .site-footer.reading-footer::after { content:none!important; }
+.community-room .reading-footer-panel { position:relative; isolation:isolate; padding:clamp(60px,7vw,100px) 0 0!important; background:none!important; border:0!important; box-shadow:none!important; -webkit-backdrop-filter:none!important; backdrop-filter:none!important; }
+.community-room .reading-footer-invite { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:end; gap:10px 40px; padding-bottom:clamp(44px,5vw,70px); margin-bottom:clamp(36px,4vw,56px); border-bottom:1px solid #ffffff14; }
+.community-room .reading-footer-invite h2 { grid-column:1; margin:0; font-size:clamp(34px,4.4vw,62px); font-weight:700; line-height:1.1; letter-spacing:-.03em; color:#f1f6f8; }
+.community-room .reading-footer-invite p { grid-column:1; margin:0; color:#b9c5cf; font-size:17px; line-height:1.8; }
+.community-room .reading-footer-cta { grid-column:2; grid-row:1 / span 2; display:inline-flex; align-items:center; gap:10px; min-height:54px; padding:14px 26px; border-radius:16px; color:#071015!important; font-weight:700; font-size:16px; text-decoration:none!important; background:linear-gradient(100deg,var(--aurora-1),var(--aurora-2)); box-shadow:0 18px 40px -16px var(--aurora-2); transition:transform .25s ease,box-shadow .25s ease; }
+.community-room .reading-footer-cta:hover { transform:translateY(-2px); box-shadow:0 22px 46px -14px var(--aurora-2); }
+.community-room .reading-footer-heading { margin:0 0 12px; color:#8fa3b1; font-size:13px; font-weight:600; letter-spacing:.08em; }
+.community-room .reading-footer-main a { color:#dbe4ea; }
+.community-room .reading-footer-main a:hover { color:var(--aurora-1); }
+.community-room .reading-footer-signature { font-size:26px!important; font-weight:700; letter-spacing:-.02em; background:linear-gradient(100deg,#eef6f4,#bfefff 60%,#f1d4ff); -webkit-background-clip:text; background-clip:text; color:transparent!important; }
+.community-room .reading-footer-watermark { position:absolute; z-index:-1; left:50%; bottom:-.24em; transform:translateX(-50%); font-family:Rajdhani,'Noto Sans SC',sans-serif; font-size:clamp(140px,22vw,340px); font-weight:700; line-height:1; letter-spacing:-.04em; white-space:nowrap; pointer-events:none;
+  background:linear-gradient(180deg,#ffffff12,#ffffff02 78%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.community-room .reading-footer-bottom { position:relative; margin-top:clamp(70px,9vw,150px); padding-top:18px; border-top:1px solid #ffffff10; color:#8fa3b1; }
+html[data-theme=light] .community-room .site-footer.reading-footer { background:linear-gradient(180deg,#fff0,#eef3f6 45%,#e2eaef)!important; }
+html[data-theme=light] .community-room .reading-footer-invite h2 { color:#13262e; }
+html[data-theme=light] .community-room .reading-footer-watermark { background:linear-gradient(180deg,#0b1f2a14,#0b1f2a02); -webkit-background-clip:text; background-clip:text; }
+@media(max-width:700px) { .community-room .reading-footer-invite { grid-template-columns:1fr; } .community-room .reading-footer-cta { grid-column:1; grid-row:auto; justify-self:start; margin-top:12px; } }
