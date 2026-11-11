@@ -140,3 +140,7 @@
   .abg-pool-summary { gap:8px; }
 }
 @media (prefers-reduced-motion:reduce) { .abg-workspace * { scroll-behavior:auto; transition:none; } }
+
+/* Drawn scenes: pool checkboxes without cards. */
+.abg-drawn-pool { display:flex; flex-wrap:wrap; gap:8px 16px; margin:12px 0 0; padding:12px 14px; border:1px solid var(--line, #8883); border-radius:12px; }
+.abg-drawn-pool legend { padding:0 6px; font-size:13px; opacity:.8; }

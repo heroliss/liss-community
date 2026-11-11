@@ -19,6 +19,7 @@
   const cards = () => [...grid.querySelectorAll('[data-background-item]')];
   const field = (card, key) => card.querySelector(`[data-background-field="${key}"]`);
   const pool = (card) => card.querySelector('[data-background-pool]');
+  const drawn = () => [...root.querySelectorAll('[data-drawn-pool]')];
   const eligible = (card) => field(card, 'enabled').value === '1' && field(card, 'deleted').value === '0';
   const search = root.querySelector('[data-background-search]');
   const filter = root.querySelector('[data-background-filter]');
@@ -80,6 +81,7 @@
       card.hidden = !matches || !scope;
       if (!card.hidden) shown += 1;
     });
+    selected += drawn().filter((input) => input.checked).length;
     root.querySelector('[data-pool-count]').textContent = String(selected);
     root.querySelector('[data-result-count]').textContent = `${shown} / ${all.length} 张`;
     root.querySelector('[data-background-empty]').hidden = shown > 0 || all.length === 0;
@@ -159,6 +161,7 @@
   });
   root.querySelector('[data-pool-clear]').addEventListener('click', () => {
     cards().forEach((card) => { pool(card).checked = false; });
+    drawn().forEach((input) => { input.checked = false; });
     sync();
     announce('已清空随机名单，预览确认后生效。');
   });

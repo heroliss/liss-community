@@ -119,6 +119,45 @@ class BackgroundCatalogTests(unittest.TestCase):
         self.assertEqual(outsider.get('/admin/backgrounds').status_code, 403)
         self.assertEqual(self.client.get('/admin/backgrounds').status_code, 200)
 
+    def test_drawn_scenes_match_the_client_and_can_join_the_default_pool(self):
+        from app.background_catalog import DRAWN_IDS
+        static = Path(self.app.static_folder)
+        names = re.search(r"var names=\[([^\]]+)\]", (static/'community-background-aurora-v60.js').read_text(encoding='utf-8')).group(1)
+        self.assertEqual(tuple(re.findall(r"'([a-z-]+)'", names)), DRAWN_IDS)
+        catalogue = (static/'community-backgrounds.js').read_text(encoding='utf-8')
+        self.assertTrue(all(f"'{name}':{{id:'{name}'" in catalogue and 'randomEligible:true' in catalogue for name in DRAWN_IDS))
+        self.assertIn('data-drawn-pool', self.client.get('/admin/backgrounds').get_data(as_text=True))
+        data = self.form()
+        data.setlist('pool_ids', [DRAWN_IDS[0], DRAWN_IDS[3], 'no-such-scene'])
+        response = self.post('/admin/preview', data)
+        self.assertEqual(response.status_code, 400)
+        data.setlist('pool_ids', [DRAWN_IDS[0], DRAWN_IDS[3]])
+        token, response = self.preview(data)
+        self.assertIn('极光夜幕', response.get_data(as_text=True))
+        self.assertEqual(self.apply(token).status_code, 302)
+        self.assertEqual(self.state()[1]['poolIds'], [DRAWN_IDS[0], DRAWN_IDS[3]])
+        payload = self.client.get('/background-catalog.json').json
+        self.assertEqual(payload['defaultRandom'], dict(enabled=True, ids=[DRAWN_IDS[0], DRAWN_IDS[3]]))
+        self.assertEqual(len(payload['entries']), 51)
+
+    def test_cli_sets_drawn_default_pool_once_with_audit(self):
+        from app.background_catalog import DRAWN_IDS
+        revision, before = self.state()
+        runner = self.app.test_cli_runner()
+        self.assertNotEqual(runner.invoke(args=['background-pool']).exit_code, 0)
+        self.assertEqual(self.state(), (revision, before))
+        result = runner.invoke(args=['background-pool', '--drawn'])
+        self.assertEqual(result.exit_code, 0, result.output)
+        after_revision, after = self.state()
+        self.assertEqual((after_revision, after['poolIds'], after['randomEnabled']), (revision+1, list(DRAWN_IDS), True))
+        self.assertEqual(after['entries'], before['entries'])
+        self.assertIn('already', runner.invoke(args=['background-pool', '--drawn']).output)
+        self.assertEqual(self.state()[0], after_revision)
+        with self.app.app_context():
+            audit = AdminAudit.query.filter_by(action='backgrounds.update').one()
+            self.assertIsNone(audit.actor_id)
+            self.assertIn('默认随机名单', audit.details)
+
     def test_signed_update_requires_csrf_and_preserves_unedited_data(self):
         before_revision, before = self.state()
         data = self.form();name = before['entries'][0]['id']

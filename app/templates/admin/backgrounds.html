@@ -1,5 +1,5 @@
 {% extends "admin/base.html" %}
-{% block head %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='admin-backgrounds.css') }}?v=20261102-1">{% endblock %}
+{% block head %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='admin-backgrounds.css') }}?v=20261112-1">{% endblock %}
 {% block admin_label %}背景图库{% endblock %}
 {% block admin_content %}
 {% set catalog = background_catalog %}{% set errors = errors|default({}) %}{% set upload = upload_values|default({}) %}
@@ -13,6 +13,9 @@
       <select id="background-random" name="random_enabled" data-random-enabled><option value="1"{% if catalog.randomEnabled %} selected{% endif %}>开启</option><option value="0"{% if not catalog.randomEnabled %} selected{% endif %}>关闭</option></select>
       <div class="abg-pool-summary"><span>随机名单 <strong data-pool-count>{{ catalog.poolIds|length }}</strong> 张</span><div><button type="button" class="abg-text-button" data-pool-all hidden>全选可用图片</button><button type="button" class="abg-text-button" data-pool-clear hidden>清空名单</button></div></div>
     </div>
+    <fieldset class="abg-drawn-pool"><legend>绘制背景（无图片文件，可加入默认随机）</legend>
+      {% for scene in catalog.drawnScenes %}<label class="abg-pool-label"><input type="checkbox" name="pool_ids" value="{{ scene.id }}"{% if scene.inPool %} checked{% endif %} data-background-pool data-drawn-pool>{{ scene.title }}</label>{% endfor %}
+    </fieldset>
     <p class="abg-notice" data-empty-pool hidden role="status">名单为空，保存后将关闭默认随机。</p>
     {{ admin_ui.field_errors(errors, 'random_enabled') }}{{ admin_ui.field_errors(errors, 'pool_ids') }}{{ admin_ui.field_errors(errors, 'ordered_ids') }}
     <div class="abg-toolbar" data-background-filters hidden>
@@ -75,4 +78,4 @@
   </dialog>
 </div>
 {% endblock %}
-{% block scripts %}{{ super() }}<script src="{{ url_for('static', filename='admin-backgrounds.js') }}?v=20261102-1" defer></script>{% endblock %}
+{% block scripts %}{{ super() }}<script src="{{ url_for('static', filename='admin-backgrounds.js') }}?v=20261112-1" defer></script>{% endblock %}

@@ -31,6 +31,14 @@ ID = re.compile(r'[a-z][a-z0-9-]{0,79}\Z')
 STAGE = re.compile(r'stage-[a-f0-9]{32}\Z')
 FILE = re.compile(r'(?:image-(?:[0-9]{2,5})|thumb)\.webp\Z')
 INTERNAL = {'enabled', 'deleted', 'paletteKey', 'sourceKind', '_storage', '_native'}
+# Canvas-drawn scenes (community-background-aurora-v60.js). They have no files and
+# no catalogue entry, but may sit in the site's default random list.
+DRAWN_SCENES = (('aurora-veil', '极光夜幕'), ('prism-nebula', '棱镜星云'), ('bokeh-night', '夜色光斑'),
+                ('tide-glow', '夜港辉光'), ('silk-flow', '丝光流彩'), ('crystal-cavern', '晶洞微光'),
+                ('dusk-dunes', '暮色沙丘'), ('deep-current', '深海光束'), ('neon-rain', '霓虹雨夜'),
+                ('lantern-field', '灯笼星野'))
+DRAWN_IDS = tuple(name for name, _ in DRAWN_SCENES)
+DRAWN_TITLES = dict(DRAWN_SCENES)
 
 
 class BackgroundCatalog(db.Model):
@@ -127,7 +135,7 @@ def public_entry(entry):
 def public_payload():
     data = document()
     active = [entry for entry in data['entries'] if entry_available(entry)]
-    available = {entry['id'] for entry in active}
+    available = {entry['id'] for entry in active} | set(DRAWN_IDS)
     pool = [name for name in data['poolIds'] if name in available]
     sandbox = current_app.extensions.get('public_demo')
     revision = catalog_row().revision if sandbox and sandbox.initialized else 0
@@ -166,8 +174,9 @@ def admin_context(data=None):
             entry['previewUrl'] = url_for('admin.background_asset', image_id=entry['id'], filename=Path(preview).name)
         entry['sourceWidth'] = entry.get('originalWidth', entry['width'])
         entry['sourceHeight'] = entry.get('originalHeight', entry['height'])
+    drawn = [dict(id=name, title=title, inPool=name in data['poolIds']) for name, title in DRAWN_SCENES]
     return dict(revision=row.revision, entries=data['entries'], randomEnabled=data['randomEnabled'],
-                poolIds=data['poolIds'], paletteChoices=palette_choices())
+                poolIds=data['poolIds'], paletteChoices=palette_choices(), drawnScenes=drawn)
 
 
 def text_value(value, label, maximum, required=False, multiline=False):
@@ -186,7 +195,7 @@ def flag(form, key):
 
 
 def normalize_pool(data):
-    available = {entry['id'] for entry in data['entries'] if entry['enabled'] and not entry['deleted']}
+    available = {entry['id'] for entry in data['entries'] if entry['enabled'] and not entry['deleted']} | set(DRAWN_IDS)
     data['poolIds'] = list(dict.fromkeys(name for name in data['poolIds'] if name in available))
     if not data['poolIds']:
         data['randomEnabled'] = False  # The preview explicitly includes this state change.
@@ -234,10 +243,10 @@ def parse_update(form):
         data['randomEnabled'] = flag(form, 'random_enabled')
     except CatalogError as error:
         errors['random_enabled'] = str(error)
-    selected_pool = form.getlist('pool_ids')
-    if not set(selected_pool).issubset(by_id):
+    selected_pool, known = form.getlist('pool_ids'), set(by_id) | set(DRAWN_IDS)
+    if not set(selected_pool).issubset(known):
         errors['pool_ids'] = '默认随机名单包含未知的图片。'
-    data['poolIds'] = list(dict.fromkeys(name for name in selected_pool if name in by_id))
+    data['poolIds'] = list(dict.fromkeys(name for name in selected_pool if name in known))
     normalize_pool(data)
     return data, errors
 
@@ -280,8 +289,8 @@ def operation(before, after, upload=None):
         rows.append(dict(label='图片排序', before=' → '.join(entry['title'] for entry in before['entries']),
                          after=' → '.join(entry['title'] for entry in after['entries'])))
     if before['poolIds'] != after['poolIds']:
-        old_titles = {entry['id']: entry['title'] for entry in before['entries']}
-        new_titles = {entry['id']: entry['title'] for entry in after['entries']}
+        old_titles = {**DRAWN_TITLES, **{entry['id']: entry['title'] for entry in before['entries']}}
+        new_titles = {**DRAWN_TITLES, **{entry['id']: entry['title'] for entry in after['entries']}}
         rows.append(dict(label='默认随机名单',
             before=f'{len(before["poolIds"])} 张：'+('、'.join(old_titles[name] for name in before['poolIds']) or '无'),
             after=f'{len(after["poolIds"])} 张：'+('、'.join(new_titles[name] for name in after['poolIds']) or '无')))
@@ -430,6 +439,15 @@ def changes_for_upload(upload):
     data['entries'].append(upload['entry'])
     if upload['includePool']:
         data['poolIds'].append(upload['entry']['id'])
+    normalize_pool(data)
+    return data
+
+
+def drawn_pool_document(data):
+    """The default random list set to every drawn scene, with random draws on."""
+    data = copy.deepcopy(data)
+    data['poolIds'] = list(DRAWN_IDS)
+    data['randomEnabled'] = True
     normalize_pool(data)
     return data
 

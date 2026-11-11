@@ -586,6 +586,33 @@ def install(app):
     def public_settings():
         return dict(site_settings=settings_values())
 
+    @app.cli.command('background-pool')
+    @click.option('--drawn', is_flag=True, help='Use every canvas-drawn scene as the default random list.')
+    def background_pool(drawn):
+        """Set the site's default random background list; images and uploads are untouched."""
+        if not drawn:
+            raise click.ClickException('Specify --drawn. Nothing changed.')
+        sandbox = app.extensions.get('public_demo')
+        if sandbox is None:
+            raise click.ClickException('Requires FLASK_CONFIG=public-demo.')
+        from . import background_catalog as library
+        with sandbox.exclusive():
+            sandbox.prepare()
+            target = library.catalog_row()
+            old_document = library.document(target)
+            new_document = library.drawn_pool_document(old_document)
+            if new_document['poolIds'] == old_document['poolIds'] and new_document['randomEnabled'] == old_document['randomEnabled']:
+                click.echo('Default random list already uses the drawn scenes.')
+                return
+            before = library.summary(old_document, target.revision)
+            library.apply_change(target, dict(action='update', document=new_document))
+            after = library.summary(new_document, target.revision)
+            record_audit('backgrounds.update', 'backgrounds', target, before, after, cli=True,
+                         background_changes=library.operation(old_document, new_document)['changes'])
+            db.session.commit()
+            click.echo(f'Default random list: {len(old_document["poolIds"])} -> {len(new_document["poolIds"])} '
+                       f'(drawn scenes), revision {target.revision}.')
+
     @app.cli.command('grant-admin')
     @click.option('--username', type=str, help='Exact existing account username (case-sensitive).')
     @click.option('--user-id', type=int, help='Exact existing account ID.')
