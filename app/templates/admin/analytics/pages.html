@@ -1,0 +1,11 @@
+{% extends "admin/analytics/_base.html" %}
+{% import "admin/analytics/_macros.html" as an with context %}
+{% block analytics_content %}
+<header class="admin-heading"><div><h1>页面</h1><p>{{ f.label }}内被浏览的页面，按浏览量排序。点击页面查看来源、滚动深度和点击分布。</p></div></header>
+{% set extra %}<label class="an-search">搜索<input type="search" name="q" value="{{ q }}" maxlength="100" placeholder="路径或标题"></label>{% endset %}
+{{ an.filters(f, 'admin.analytics_pages', extra=extra) }}
+<p class="admin-list-summary"><span>共 <strong>{{ pages|length }}</strong> 个页面{% if pages|length >= 300 %}（显示前 300）{% endif %}</span><span>平均停留只统计有效停留</span></p>
+{% if pages %}<table class="an-table an-table-wide an-table-rows"><thead><tr><th>页面</th><th>浏览</th><th>访客</th><th>平均停留</th><th>平均滚动</th><th>点击</th><th>最近</th></tr></thead><tbody>
+{% for p in pages %}<tr><td>{{ an.site_tag(p.site) }}{{ an.page_link(f, p.site, p.path, p.title) }}</td><td>{{ p.pv }}</td><td>{{ p.uv }}</td><td>{{ p.active|dur }}</td><td><span class="an-meter" style="--share: {{ p.scroll|round|int }}%"></span>{{ p.scroll|round|int }}%</td><td>{{ p.clicks or 0 }}</td><td class="an-small">{{ p.last|ago }}</td></tr>{% endfor %}
+</tbody></table>{% else %}<p class="an-empty an-empty-tall">没有符合条件的页面。</p>{% endif %}
+{% endblock %}

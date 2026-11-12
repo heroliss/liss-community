@@ -1,0 +1,19 @@
+{% extends "admin/analytics/_base.html" %}
+{% import "admin/analytics/_macros.html" as an with context %}
+{% block analytics_content %}
+<header class="admin-heading"><div><h1>点击与事件</h1><p>访客在页面上的点击、打开的外部链接，以及浏览器里发生的脚本错误。</p></div>
+  <a class="button button-small button-secondary" href="{{ url_for('admin.analytics_export', kind='events', **f.args()) }}">{{ ui.icon('download') }} 导出 CSV</a></header>
+{% set extra %}<label>类型<select name="type"><option value="all">全部类型</option>{% for key, label in event_types.items() %}<option value="{{ key }}"{% if kind == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label><label class="an-search">搜索<input type="search" name="q" value="{{ q }}" maxlength="100" placeholder="文字、元素、链接、页面或 IP"></label>{% endset %}
+{{ an.filters(f, 'admin.analytics_events', extra=extra) }}
+<div class="an-grid-2 an-grid-wide-left">
+  <section class="an-card"><div class="an-card-head"><h2>事件明细</h2><span class="an-muted">共 {{ result.total }} 条</span></div>
+    {% if result.rows %}<table class="an-table an-table-wide"><thead><tr><th>时间</th><th>类型</th><th>内容</th><th>页面</th><th>访客 / IP</th></tr></thead><tbody>
+    {% for e in result.rows %}<tr><td class="an-small">{{ e.ts|at('%m-%d %H:%M:%S') }}</td><td><span class="an-event-type an-type-{{ e.type }}">{{ event_types.get(e.type, e.type) }}</span></td>
+      <td><strong class="an-event-label">{{ e.label or '（无文字）' }}</strong>{% if e.target %}<br><code class="an-small">{{ e.target }}</code>{% endif %}{% if e.href %}<br><a class="an-small" href="{{ e.href }}" target="_blank" rel="noopener noreferrer">{{ e.href|truncate(70, true, '…') }}</a>{% endif %}{% if e.type == 'error' and e.data %}<br><code class="an-small">{{ e.data|truncate(200, true, '…') }}</code>{% endif %}</td>
+      <td>{{ an.site_tag(e.site) }}<span class="an-small">{{ e.path }}</span></td><td class="an-small">{{ an.visitor_link(e.visitor_id) }}<br>{{ an.ip_link(e.ip) }}</td></tr>{% endfor %}
+    </tbody></table>{{ an.pager(result, 'admin.analytics_events', f.args(type=('' if kind == 'all' else kind), q=q)) }}{% else %}<p class="an-empty an-empty-tall">没有符合条件的事件。</p>{% endif %}
+  </section>
+  <section class="an-card"><div class="an-card-head"><h2>点击排行</h2></div>
+    {% macro click_cell(row) %}<span class="an-click"><strong>{{ row.label or row.target or '（无文字）' }}</strong><small>{{ row.site|site_name }} · {{ row.path }}</small></span>{% endmacro %}{{ an.bar_list(summary, link=click_cell) }}</section>
+</div>
+{% endblock %}

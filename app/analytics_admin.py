@@ -1,0 +1,649 @@
+"""访问统计 views on the admin blueprint (protected by the admin console checks)."""
+from __future__ import annotations
+
+import csv
+from datetime import datetime, timedelta
+import hashlib
+import io
+import json
+import math
+import re
+from urllib.parse import urlencode
+
+from flask import Response, abort, current_app, flash, redirect, render_template, request, url_for
+from flask_login import current_user
+from itsdangerous import BadData, URLSafeTimedSerializer
+
+from . import db
+from .admin import AdminAudit, admin
+from .analytics_store import (EVENT_TYPES, ID, SITES, display_zone, fmt_bytes, fmt_duration, fmt_time,
+                              now_ms, valid_ip)
+
+RANGES = [('today', '今天'), ('yesterday', '昨天'), ('7d', '近 7 天'), ('30d', '近 30 天'),
+          ('90d', '近 90 天'), ('all', '全部'), ('custom', '自定义')]
+LIVE_WINDOW_MS = 5 * 60 * 1000
+PER_PAGE = 30
+
+
+def store():
+    return current_app.extensions['analytics']
+
+
+def zone():
+    return display_zone(current_app.config['ANALYTICS_UTC_OFFSET_MINUTES'])
+
+
+def offset_ms():
+    return current_app.config['ANALYTICS_UTC_OFFSET_MINUTES'] * 60_000
+
+
+# ------------------------------------------------------------------- filters
+class Filters:
+    """Range / site / bot filters shared by every statistics page."""
+
+    def __init__(self, args):
+        self.range = args.get('range', '7d')
+        if self.range not in dict(RANGES):
+            self.range = '7d'
+        self.site = args.get('site', 'all')
+        if self.site not in SITES:
+            self.site = 'all'
+        self.bots = args.get('bots') == '1'
+        self.date_from, self.date_to = args.get('from', ''), args.get('to', '')
+        tz = zone()
+        today = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
+        day = timedelta(days=1)
+        start, end = today, today + day
+        if self.range == 'yesterday':
+            start, end = today - day, today
+        elif self.range in {'7d', '30d', '90d'}:
+            start = today - day * (int(self.range[:-1]) - 1)
+        elif self.range == 'all':
+            first = store().scalar('SELECT MIN(started_at) FROM pageviews')
+            start = (datetime.fromtimestamp(first / 1000, tz).replace(hour=0, minute=0, second=0, microsecond=0)
+                     if first else today)
+        elif self.range == 'custom':
+            try:
+                start = datetime.strptime(self.date_from, '%Y-%m-%d').replace(tzinfo=tz)
+                end = datetime.strptime(self.date_to or self.date_from, '%Y-%m-%d').replace(tzinfo=tz) + day
+                if end <= start or (end - start).days > 3660:
+                    raise ValueError()
+            except ValueError:
+                self.range, start, end = '7d', today - day * 6, today + day
+        self.start, self.end = int(start.timestamp() * 1000), int(end.timestamp() * 1000)
+        if not self.date_from or self.range != 'custom':
+            self.date_from = start.strftime('%Y-%m-%d')
+            self.date_to = (end - day).strftime('%Y-%m-%d')
+
+    @property
+    def label(self):
+        return dict(RANGES)[self.range] if self.range != 'custom' else f'{self.date_from} 至 {self.date_to}'
+
+    @property
+    def days(self):
+        return max(1, round((self.end - self.start) / 86_400_000))
+
+    def args(self, **extra):
+        values = {'range': self.range, 'site': self.site}
+        if self.range == 'custom':
+            values.update({'from': self.date_from, 'to': self.date_to})
+        if self.bots:
+            values['bots'] = '1'
+        values.update({key: value for key, value in extra.items() if value not in (None, '')})
+        return values
+
+    def where(self, alias='p', time_column='started_at', start=None, end=None):
+        clauses = [f'{alias}.{time_column} >= ?', f'{alias}.{time_column} < ?']
+        params = [self.start if start is None else start, self.end if end is None else end]
+        if self.site != 'all':
+            clauses.append(f'{alias}.site = ?')
+            params.append(self.site)
+        if not self.bots:
+            clauses.append(f'{alias}.bot = 0')
+        return ' AND '.join(clauses), tuple(params)
+
+
+def page_number():
+    return max(1, min(100_000, request.args.get('page', 1, type=int)))
+
+
+def paged(sql_rows, sql_count, params, page):
+    total = store().scalar(sql_count, params) or 0
+    pages = max(1, math.ceil(total / PER_PAGE))
+    page = min(page, pages)
+    rows = store().query(sql_rows + f' LIMIT {PER_PAGE} OFFSET {(page - 1) * PER_PAGE}', params)
+    return dict(rows=rows, total=total, page=page, pages=pages)
+
+
+def search_like(value):
+    return '%' + value.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
+
+
+def pct_change(current, previous):
+    if not previous:
+        return None
+    return round((current - previous) / previous * 100)
+
+
+def bars(rows, key='count'):
+    peak = max([row[key] for row in rows] or [0]) or 1
+    for row in rows:
+        row['share'] = round(row[key] / peak * 100, 1)
+    return rows
+
+
+# ---------------------------------------------------------------- statistics
+def kpis(f: Filters, start=None, end=None):
+    where, params = f.where(start=start, end=end)
+    row = store().query(f'SELECT COUNT(*) pv, COUNT(DISTINCT visitor_id) uv, COUNT(DISTINCT ip) ips, '
+                        f'COUNT(DISTINCT session_id) sessions, COALESCE(SUM(active_ms),0) active, '
+                        f'COALESCE(AVG(scroll),0) scroll, COALESCE(SUM(clicks),0) clicks FROM pageviews p WHERE {where}', params)[0]
+    bounce = store().scalar(f'SELECT COUNT(*) FROM (SELECT session_id, COUNT(*) c FROM pageviews p WHERE {where} '
+                            f'GROUP BY session_id) WHERE c = 1', params) or 0
+    first = f.start if start is None else start
+    new = store().scalar(f'SELECT COUNT(DISTINCT p.visitor_id) FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
+                         f'WHERE {where} AND v.first_seen >= ?', params + (first,)) or 0
+    sessions = row['sessions'] or 0
+    row.update(bounce=round(bounce / sessions * 100) if sessions else 0,
+               per_session=round(row['pv'] / sessions, 1) if sessions else 0,
+               avg_session=row['active'] / sessions if sessions else 0,
+               new=new, returning=max(0, (row['uv'] or 0) - new))
+    return row
+
+
+def trend(f: Filters):
+    hourly = f.end - f.start <= 2 * 86_400_000
+    bucket = 3_600_000 if hourly else 86_400_000
+    where, params = f.where()
+    rows = store().query(f'SELECT (started_at + ?) / ? b, COUNT(*) pv, COUNT(DISTINCT visitor_id) uv, '
+                         f'COUNT(DISTINCT session_id) sessions FROM pageviews p WHERE {where} GROUP BY b',
+                         (offset_ms(), bucket) + params)
+    found = {row['b']: row for row in rows}
+    first, last = (f.start + offset_ms()) // bucket, (f.end - 1 + offset_ms()) // bucket
+    if last - first > 400:  # "全部" over long histories: keep the most recent 400 buckets.
+        first = last - 400
+    points = []
+    tz = zone()
+    for b in range(first, last + 1):
+        row = found.get(b, {})
+        moment = datetime.fromtimestamp((b * bucket - offset_ms()) / 1000, tz)
+        points.append(dict(label=moment.strftime('%H:00' if hourly else '%m-%d'),
+                           full=moment.strftime('%Y-%m-%d %H:00' if hourly else '%Y-%m-%d'),
+                           pv=row.get('pv', 0), uv=row.get('uv', 0), sessions=row.get('sessions', 0)))
+    peak = max([point['pv'] for point in points] or [0]) or 1
+    width, height = 720, 200
+    step = width / max(1, len(points))
+    for index, point in enumerate(points):
+        point['x'] = round(index * step, 2)
+        point['w'] = round(max(1.0, step * 0.72), 2)
+        point['h'] = round(point['pv'] / peak * height, 2)
+        point['uy'] = round(height - point['uv'] / peak * height, 2)
+        point['cx'] = round(index * step + step * 0.36, 2)
+    ticks = [dict(y=round(height - height * i / 4, 2), value=round(peak * i / 4)) for i in range(5)]
+    label_every = max(1, math.ceil(len(points) / 12))
+    return dict(points=points, hourly=hourly, peak=peak, ticks=ticks, width=width, height=height,
+                label_every=label_every, line=' '.join(f"{p['cx']},{p['uy']}" for p in points))
+
+
+def top_pages(f: Filters, limit=15, q=''):
+    where, params = f.where()
+    if q:
+        where += ' AND (p.path LIKE ? ESCAPE char(92) OR p.title LIKE ? ESCAPE char(92))'
+        params += (search_like(q), search_like(q))
+    return store().query(f'SELECT site, path, MAX(title) title, COUNT(*) pv, COUNT(DISTINCT visitor_id) uv, '
+                         f'AVG(NULLIF(active_ms,0)) active, AVG(scroll) scroll, SUM(clicks) clicks, MAX(last_seen) last '
+                         f'FROM pageviews p WHERE {where} GROUP BY site, path ORDER BY pv DESC, uv DESC LIMIT {int(limit)}', params)
+
+
+def entry_exit(f: Filters):
+    where, params = f.where()
+    entries = store().query(f'SELECT site, path, MAX(title) title, COUNT(*) count FROM (SELECT p.*, ROW_NUMBER() OVER '
+                            f'(PARTITION BY session_id ORDER BY started_at) rn FROM pageviews p WHERE {where}) WHERE rn = 1 '
+                            f'GROUP BY site, path ORDER BY count DESC LIMIT 10', params)
+    exits = store().query(f'SELECT site, path, MAX(title) title, COUNT(*) count FROM (SELECT p.*, ROW_NUMBER() OVER '
+                          f'(PARTITION BY session_id ORDER BY started_at DESC) rn FROM pageviews p WHERE {where}) WHERE rn = 1 '
+                          f'GROUP BY site, path ORDER BY count DESC LIMIT 10', params)
+    return bars(entries), bars(exits)
+
+
+def breakdown(f: Filters, column, limit=10, empty='（未知）'):
+    where, params = f.where('s')
+    rows = store().query(f'SELECT {column} name, COUNT(*) count, COUNT(DISTINCT visitor_id) visitors FROM sessions s '
+                         f'WHERE {where} GROUP BY {column} ORDER BY count DESC LIMIT {int(limit)}', params)
+    for row in rows:
+        row['name'] = row['name'] or empty
+    return bars(rows)
+
+
+def heatmap(f: Filters):
+    where, params = f.where()
+    minutes = current_app.config['ANALYTICS_UTC_OFFSET_MINUTES']
+    rows = store().query(f"SELECT CAST(strftime('%w', started_at/1000, 'unixepoch', '{minutes:+d} minutes') AS INTEGER) d, "
+                         f"CAST(strftime('%H', started_at/1000, 'unixepoch', '{minutes:+d} minutes') AS INTEGER) h, "
+                         f"COUNT(*) c FROM pageviews p WHERE {where} GROUP BY d, h", params)
+    grid = {(row['d'], row['h']): row['c'] for row in rows}
+    peak = max(grid.values() or [0]) or 1
+    names = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+    return [dict(name=names[i], cells=[dict(hour=h, count=grid.get(((i + 1) % 7, h), 0),
+                                            level=math.ceil(grid.get(((i + 1) % 7, h), 0) / peak * 4))
+                                       for h in range(24)]) for i in range(7)]
+
+
+def top_clicks(f: Filters, limit=15, path=None, site=None):
+    where, params = f.where('e', 'ts')
+    where += " AND e.type IN ('click', 'outbound')"
+    if path is not None:
+        where += ' AND e.path = ? AND e.site = ?'
+        params += (path, site)
+    return bars(store().query(f'SELECT site, path, label, target, MAX(href) href, type, COUNT(*) count, '
+                              f'COUNT(DISTINCT visitor_id) visitors FROM events e WHERE {where} '
+                              f'GROUP BY site, path, label, target, type ORDER BY count DESC LIMIT {int(limit)}', params))
+
+
+def performance(f: Filters):
+    where, params = f.where()
+    return store().query(f'SELECT site, COUNT(ttfb_ms) samples, AVG(ttfb_ms) ttfb, AVG(dom_ms) dom, AVG(load_ms) load '
+                         f'FROM pageviews p WHERE {where} AND load_ms IS NOT NULL GROUP BY site ORDER BY site', params)
+
+
+def recent_errors(f: Filters, limit=10):
+    where, params = f.where('e', 'ts')
+    return store().query(f"SELECT label, site, path, MAX(data) data, COUNT(*) count, MAX(ts) last FROM events e "
+                         f"WHERE {where} AND e.type = 'error' GROUP BY label, site, path ORDER BY last DESC LIMIT {int(limit)}", params)
+
+
+def site_split(f: Filters):
+    where, params = f.where()
+    rows = store().query(f'SELECT site, COUNT(*) count, COUNT(DISTINCT visitor_id) visitors FROM pageviews p '
+                         f'WHERE {where} GROUP BY site ORDER BY count DESC', params)
+    for row in rows:
+        row['name'] = SITES.get(row['site'], row['site'])
+    return bars(rows)
+
+
+def timeline(where_sql, params, page=1, per_page=15):
+    """Sessions with their pageviews and events, newest first."""
+    total = store().scalar(f'SELECT COUNT(*) FROM sessions s WHERE {where_sql}', params) or 0
+    pages = max(1, math.ceil(total / per_page))
+    page = min(page, pages)
+    sessions = store().query(f'SELECT s.* FROM sessions s WHERE {where_sql} ORDER BY s.started_at DESC '
+                             f'LIMIT {per_page} OFFSET {(page - 1) * per_page}', params)
+    if sessions:
+        ids = [s['id'] for s in sessions]
+        marks = ','.join('?' * len(ids))
+        views = store().query(f'SELECT * FROM pageviews WHERE session_id IN ({marks}) ORDER BY started_at', tuple(ids))
+        events = store().query(f'SELECT * FROM events WHERE session_id IN ({marks}) ORDER BY ts', tuple(ids))
+        by_view = {}
+        for event in events:
+            by_view.setdefault(event['pageview_id'], []).append(event)
+        by_session = {}
+        for view in views:
+            view['events'] = by_view.get(view['id'], [])
+            by_session.setdefault(view['session_id'], []).append(view)
+        for session in sessions:
+            session['views'] = by_session.get(session['id'], [])
+            session['active'] = sum(v['active_ms'] for v in session['views'])
+            session['span'] = max([v['last_seen'] for v in session['views']] or [session['last_seen']]) - session['started_at']
+    return dict(rows=sessions, total=total, page=page, pages=pages)
+
+
+# ---------------------------------------------------------------------- views
+def render(template, **context):
+    return render_template(template, admin_section='analytics', sites=SITES, ranges=RANGES,
+                           event_types=EVENT_TYPES, **context)
+
+
+@admin.app_template_filter('at')
+def at_filter(ms, pattern='%Y-%m-%d %H:%M:%S'):
+    return fmt_time(ms, zone(), pattern)
+
+
+@admin.app_template_filter('dur')
+def dur_filter(ms):
+    return fmt_duration(ms)
+
+
+@admin.app_template_filter('ago')
+def ago_filter(ms):
+    if not ms:
+        return '—'
+    seconds = max(0, (now_ms() - ms) // 1000)
+    if seconds < 60:
+        return f'{seconds} 秒前'
+    if seconds < 3600:
+        return f'{seconds // 60} 分钟前'
+    if seconds < 86400:
+        return f'{seconds // 3600} 小时前'
+    return f'{seconds // 86400} 天前'
+
+
+@admin.app_template_filter('site_name')
+def site_name_filter(value):
+    return SITES.get(value, value or '—')
+
+
+@admin.app_template_filter('page_url')
+def page_url_filter(row):
+    """Open the original page in a new tab."""
+    if row.get('url'):
+        return row['url']
+    base = {'forum': url_for('main.index', _external=True).rstrip('/'),
+            'works': 'https://heroliss.github.io', 'atoll': 'https://heroliss.github.io'}.get(row.get('site'), '')
+    return base + (row.get('path') or '')
+
+
+@admin.get('/analytics', strict_slashes=False)
+def analytics():
+    f = Filters(request.args)
+    span = f.end - f.start
+    current, previous = kpis(f), kpis(f, f.start - span, f.start)
+    changes = {key: pct_change(current[key] or 0, previous[key] or 0) for key in ('pv', 'uv', 'sessions', 'ips', 'active')}
+    entries, exits = entry_exit(f)
+    live = store().scalar('SELECT COUNT(DISTINCT visitor_id) FROM pageviews WHERE last_seen >= ? AND bot = 0',
+                          (now_ms() - LIVE_WINDOW_MS,)) or 0
+    return render('admin/analytics/overview.html', analytics_page='overview', f=f, kpi=current, changes=changes,
+                  trend=trend(f), pages=top_pages(f), entries=entries, exits=exits,
+                  referrers=breakdown(f, 'referrer_host', empty='直接访问 / 站内'),
+                  browsers=breakdown(f, 'browser'), systems=breakdown(f, 'os'), devices=breakdown(f, 'device'),
+                  screens=breakdown(f, 'screen', 8), languages=breakdown(f, 'lang', 8), zones=breakdown(f, 'tz', 8),
+                  sites_split=site_split(f), heat=heatmap(f), clicks=top_clicks(f, 12), perf=performance(f),
+                  errors=recent_errors(f), live_count=live, storage=store().storage_stats())
+
+
+@admin.get('/analytics/live')
+def analytics_live():
+    since = now_ms() - LIVE_WINDOW_MS
+    active = store().query('SELECT p.*, v.browser, v.os, v.device, v.username, v.note FROM pageviews p '
+                           'JOIN visitors v ON v.id = p.visitor_id WHERE p.last_seen >= ? AND p.bot = 0 '
+                           'AND p.last_seen = (SELECT MAX(last_seen) FROM pageviews q WHERE q.visitor_id = p.visitor_id) '
+                           'ORDER BY p.last_seen DESC LIMIT 100', (since,))
+    recent = store().query('SELECT p.*, v.browser, v.device, v.username FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
+                           'ORDER BY p.started_at DESC LIMIT 60')
+    events = store().query('SELECT * FROM events ORDER BY ts DESC LIMIT 40')
+    return render('admin/analytics/live.html', analytics_page='live', active=active, recent=recent,
+                  events=events, window_minutes=LIVE_WINDOW_MS // 60000)
+
+
+@admin.get('/analytics/visitors')
+def analytics_visitors():
+    f = Filters(request.args)
+    mode = 'ip' if request.args.get('by') == 'ip' else 'visitor'
+    q = request.args.get('q', '').strip()[:100]
+    where, params = f.where()
+    if q:
+        like = search_like(q)
+        where += (' AND (p.ip LIKE ? ESCAPE char(92) OR p.visitor_id LIKE ? ESCAPE char(92) OR p.visitor_id IN '
+                  '(SELECT id FROM visitors WHERE username LIKE ? ESCAPE char(92) OR note LIKE ? ESCAPE char(92)))')
+        params += (like, like, like, like)
+    sort = request.args.get('sort', 'last')
+    order = {'last': 'last DESC', 'pv': 'pv DESC', 'active': 'active DESC', 'first': 'first ASC',
+             'sessions': 'sessions DESC'}.get(sort, 'last DESC')
+    if mode == 'ip':
+        sql = (f'SELECT p.ip, MIN(p.started_at) first, MAX(p.last_seen) last, COUNT(*) pv, COUNT(DISTINCT p.session_id) sessions, '
+               f'COUNT(DISTINCT p.visitor_id) visitors, SUM(p.active_ms) active, GROUP_CONCAT(DISTINCT p.site) sites, '
+               f'(SELECT GROUP_CONCAT(DISTINCT v.browser || char(32,183,32) || v.os) FROM visitors v WHERE v.id IN '
+               f'(SELECT visitor_id FROM pageviews WHERE ip = p.ip)) agents, '
+               f'EXISTS(SELECT 1 FROM ignored_ips i WHERE i.ip = p.ip) ignored '
+               f'FROM pageviews p WHERE {where} GROUP BY p.ip ORDER BY {order}')
+        count = f'SELECT COUNT(DISTINCT p.ip) FROM pageviews p WHERE {where}'
+    else:
+        sql = (f'SELECT p.visitor_id, MIN(p.started_at) first, MAX(p.last_seen) last, COUNT(*) pv, '
+               f'COUNT(DISTINCT p.session_id) sessions, SUM(p.active_ms) active, GROUP_CONCAT(DISTINCT p.ip) ips, '
+               f'GROUP_CONCAT(DISTINCT p.site) sites, v.browser, v.os, v.device, v.screen, v.username, v.user_id, '
+               f'v.note, v.first_seen, v.last_ip FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
+               f'WHERE {where} GROUP BY p.visitor_id ORDER BY {order}')
+        count = f'SELECT COUNT(DISTINCT p.visitor_id) FROM pageviews p WHERE {where}'
+    result = paged(sql, count, params, page_number())
+    for row in result['rows']:
+        row['site_list'] = [s for s in (row.get('sites') or '').split(',') if s]
+        if mode == 'visitor':
+            row['ip_list'] = [ip for ip in (row.get('ips') or '').split(',') if ip]
+            row['is_new'] = row['first_seen'] >= f.start
+    return render('admin/analytics/visitors.html', analytics_page='visitors', f=f, mode=mode, q=q, sort=sort, result=result)
+
+
+@admin.get('/analytics/visitor/<visitor_id>')
+def analytics_visitor(visitor_id):
+    if not ID.fullmatch(visitor_id):
+        abort(404)
+    rows = store().query('SELECT * FROM visitors WHERE id = ?', (visitor_id,))
+    if not rows:
+        abort(404)
+    visitor = rows[0]
+    totals = store().query('SELECT COUNT(*) pv, COUNT(DISTINCT session_id) sessions, COALESCE(SUM(active_ms),0) active, '
+                           'COALESCE(SUM(clicks),0) clicks, MIN(started_at) first, MAX(last_seen) last, '
+                           'COUNT(DISTINCT path) pages FROM pageviews WHERE visitor_id = ?', (visitor_id,))[0]
+    ips = store().query('SELECT ip, COUNT(*) pv, MIN(started_at) first, MAX(last_seen) last, '
+                        'EXISTS(SELECT 1 FROM ignored_ips i WHERE i.ip = p.ip) ignored FROM pageviews p '
+                        'WHERE visitor_id = ? GROUP BY ip ORDER BY last DESC', (visitor_id,))
+    favourite = store().query('SELECT site, path, MAX(title) title, COUNT(*) pv, SUM(active_ms) active FROM pageviews '
+                              'WHERE visitor_id = ? GROUP BY site, path ORDER BY active DESC LIMIT 8', (visitor_id,))
+    return render('admin/analytics/visitor.html', analytics_page='visitors', visitor=visitor, totals=totals, ips=ips,
+                  favourite=favourite, sessions=timeline('s.visitor_id = ?', (visitor_id,), page_number()))
+
+
+@admin.get('/analytics/ip/<address>')
+def analytics_ip(address):
+    ip = valid_ip(address)
+    if not ip:
+        abort(404)
+    totals = store().query('SELECT COUNT(*) pv, COUNT(DISTINCT session_id) sessions, COUNT(DISTINCT visitor_id) visitors, '
+                           'COALESCE(SUM(active_ms),0) active, COALESCE(SUM(clicks),0) clicks, MIN(started_at) first, '
+                           'MAX(last_seen) last FROM pageviews WHERE ip = ?', (ip,))[0]
+    visitors = store().query('SELECT v.*, COUNT(p.id) pv, SUM(p.active_ms) active, MAX(p.last_seen) last FROM pageviews p '
+                             'JOIN visitors v ON v.id = p.visitor_id WHERE p.ip = ? GROUP BY v.id ORDER BY last DESC', (ip,))
+    ignored = bool(store().scalar('SELECT 1 FROM ignored_ips WHERE ip = ?', (ip,)))
+    return render('admin/analytics/ip.html', analytics_page='visitors', ip=ip, totals=totals, visitors=visitors,
+                  ignored=ignored, sessions=timeline('s.id IN (SELECT DISTINCT session_id FROM pageviews WHERE ip = ?)',
+                                                     (ip,), page_number()))
+
+
+@admin.get('/analytics/pages')
+def analytics_pages():
+    f = Filters(request.args)
+    q = request.args.get('q', '').strip()[:100]
+    return render('admin/analytics/pages.html', analytics_page='pages', f=f, q=q, pages=top_pages(f, 300, q))
+
+
+@admin.get('/analytics/page')
+def analytics_page():
+    f = Filters(request.args)
+    site, path = request.args.get('s', ''), request.args.get('path', '')[:600]
+    if site not in SITES or not path:
+        abort(404)
+    where, params = f.where()
+    where += ' AND p.site = ? AND p.path = ?'
+    params += (site, path)
+    summary = store().query(f'SELECT COUNT(*) pv, COUNT(DISTINCT visitor_id) uv, COUNT(DISTINCT ip) ips, '
+                            f'AVG(NULLIF(active_ms,0)) active, AVG(scroll) scroll, SUM(clicks) clicks, MAX(title) title, '
+                            f'MAX(url) url FROM pageviews p WHERE {where}', params)[0]
+    scroll = store().query(f'SELECT CASE WHEN scroll >= 90 THEN 4 WHEN scroll >= 75 THEN 3 WHEN scroll >= 50 THEN 2 '
+                           f'WHEN scroll >= 25 THEN 1 ELSE 0 END b, COUNT(*) count FROM pageviews p WHERE {where} GROUP BY b', params)
+    scroll_rows = bars([dict(name=['0–24%', '25–49%', '50–74%', '75–89%', '90–100%'][i],
+                             count=next((r['count'] for r in scroll if r['b'] == i), 0)) for i in range(5)])
+    referrers = store().query(f"SELECT CASE WHEN referrer = '' THEN '直接访问' ELSE referrer END name, COUNT(*) count "
+                              f"FROM pageviews p WHERE {where} GROUP BY name ORDER BY count DESC LIMIT 12", params)
+    visits = paged(f'SELECT p.*, v.browser, v.os, v.device, v.username FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
+                   f'WHERE {where} ORDER BY p.started_at DESC', f'SELECT COUNT(*) FROM pageviews p WHERE {where}', params, page_number())
+    return render('admin/analytics/page.html', analytics_page='pages', f=f, site=site, path=path, summary=summary,
+                  scroll=scroll_rows, referrers=bars(referrers), clicks=top_clicks(f, 30, path, site), visits=visits)
+
+
+@admin.get('/analytics/events')
+def analytics_events():
+    f = Filters(request.args)
+    kind = request.args.get('type', 'all')
+    q = request.args.get('q', '').strip()[:100]
+    where, params = f.where('e', 'ts')
+    if kind in EVENT_TYPES:
+        where += ' AND e.type = ?'
+        params += (kind,)
+    else:
+        kind = 'all'
+    if q:
+        like = search_like(q)
+        where += (' AND (e.label LIKE ? ESCAPE char(92) OR e.target LIKE ? ESCAPE char(92) OR e.href LIKE ? ESCAPE char(92) '
+                  'OR e.path LIKE ? ESCAPE char(92) OR e.ip LIKE ? ESCAPE char(92))')
+        params += (like,) * 5
+    result = paged(f'SELECT e.* FROM events e WHERE {where} ORDER BY e.ts DESC',
+                   f'SELECT COUNT(*) FROM events e WHERE {where}', params, page_number())
+    return render('admin/analytics/events.html', analytics_page='events', f=f, kind=kind, q=q, result=result,
+                  summary=top_clicks(f, 20))
+
+
+@admin.get('/analytics/data')
+def analytics_data():
+    stats = store().storage_stats()
+    ignored = store().query('SELECT * FROM ignored_ips ORDER BY created_at DESC')
+    return render('admin/analytics/data.html', analytics_page='data', stats=stats, ignored=ignored,
+                  size=fmt_bytes(stats['bytes']), my_ip=request.remote_addr or '',
+                  community_root=url_for('main.index', _external=True))
+
+
+@admin.get('/analytics/export')
+def analytics_export():
+    f = Filters(request.args)
+    kind = request.args.get('kind', 'pageviews')
+    tz = zone()
+    if kind == 'events':
+        where, params = f.where('e', 'ts')
+        rows = store().query(f'SELECT e.* FROM events e WHERE {where} ORDER BY e.ts', params)
+        columns = [('时间', lambda r: fmt_time(r['ts'], tz)), ('类型', lambda r: EVENT_TYPES.get(r['type'], r['type'])),
+                   ('站点', lambda r: SITES.get(r['site'])), ('页面', 'path'), ('内容', 'label'), ('元素', 'target'),
+                   ('链接', 'href'), ('X', 'x'), ('Y', 'y'), ('附加', 'data'), ('IP', 'ip'), ('访客', 'visitor_id'),
+                   ('会话', 'session_id')]
+    elif kind == 'sessions':
+        where, params = f.where('s')
+        rows = store().query(f'SELECT s.*, (SELECT COUNT(*) FROM pageviews p WHERE p.session_id = s.id) pv, '
+                             f'(SELECT SUM(active_ms) FROM pageviews p WHERE p.session_id = s.id) active FROM sessions s '
+                             f'WHERE {where} ORDER BY s.started_at', params)
+        columns = [('开始', lambda r: fmt_time(r['started_at'], tz)), ('最后活动', lambda r: fmt_time(r['last_seen'], tz)),
+                   ('站点', lambda r: SITES.get(r['site'])), ('IP', 'ip'), ('浏览量', 'pv'),
+                   ('停留(秒)', lambda r: round((r['active'] or 0) / 1000)), ('来源', 'referrer'), ('入口', 'landing'),
+                   ('浏览器', 'browser'), ('系统', 'os'), ('设备', 'device'), ('屏幕', 'screen'), ('语言', 'lang'),
+                   ('时区', 'tz'), ('用户', 'username'), ('访客', 'visitor_id'), ('会话', 'id'), ('UA', 'ua')]
+    else:
+        kind = 'pageviews'
+        where, params = f.where()
+        rows = store().query(f'SELECT p.*, v.browser, v.os, v.device, v.username FROM pageviews p '
+                             f'JOIN visitors v ON v.id = p.visitor_id WHERE {where} ORDER BY p.started_at', params)
+        columns = [('时间', lambda r: fmt_time(r['started_at'], tz)), ('站点', lambda r: SITES.get(r['site'])),
+                   ('页面', 'path'), ('标题', 'title'), ('停留(秒)', lambda r: round(r['active_ms'] / 1000)),
+                   ('总时长(秒)', lambda r: round(r['total_ms'] / 1000)), ('滚动%', 'scroll'), ('点击', 'clicks'),
+                   ('来源', 'referrer'), ('IP', 'ip'), ('浏览器', 'browser'), ('系统', 'os'), ('设备', 'device'),
+                   ('视口', 'viewport'), ('首字节ms', 'ttfb_ms'), ('加载ms', 'load_ms'), ('用户', 'username'),
+                   ('访客', 'visitor_id'), ('会话', 'session_id'), ('网址', 'url')]
+    buffer = io.StringIO()
+    buffer.write('﻿')
+    writer = csv.writer(buffer)
+    writer.writerow([name for name, _ in columns])
+    for row in rows:
+        writer.writerow([getter(row) if callable(getter) else row.get(getter) for _, getter in columns])
+    name = f'liss-analytics-{kind}-{f.date_from}-{f.date_to}.csv'
+    return Response(buffer.getvalue(), mimetype='text/csv; charset=utf-8',
+                    headers={'Content-Disposition': f'attachment; filename="{name}"', 'Cache-Control': 'no-store'})
+
+
+# ------------------------------------------------------------------ mutations
+def audit(action, label, rows):
+    db.session.add(AdminAudit(actor_id=current_user.id, actor_name=current_user.display_name[:64], action=action,
+                              target_type='analytics', target_id=None, target_label=label[:100],
+                              details=json.dumps({'before': {}, 'after': {}, 'rows': rows}, ensure_ascii=False)))
+    db.session.commit()
+
+
+def serializer():
+    return URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt='liss-analytics-delete')
+
+
+def deletion_plan(form):
+    """Map a deletion request to a pageview filter, a title and a description."""
+    scope = form.get('scope')
+    tz = zone()
+    if scope == 'before':
+        try:
+            day = datetime.strptime(form.get('date', ''), '%Y-%m-%d').replace(tzinfo=tz)
+        except ValueError:
+            abort(400, description='请选择有效的日期。')
+        cutoff = int(day.timestamp() * 1000)
+        return dict(scope=scope, value=form['date'], where='started_at < ?', params=[cutoff],
+                    title='删除较早的访问数据', label=f'{form["date"]} 之前的全部记录')
+    if scope == 'ip':
+        ip = valid_ip(form.get('ip', ''))
+        if not ip:
+            abort(400, description='请输入有效的 IP 地址。')
+        return dict(scope=scope, value=ip, where='ip = ?', params=[ip], title='删除某个 IP 的访问数据', label=f'IP {ip}')
+    if scope == 'visitor':
+        visitor = form.get('visitor', '')
+        if not ID.fullmatch(visitor):
+            abort(400, description='访客编号无效。')
+        return dict(scope=scope, value=visitor, where='visitor_id = ?', params=[visitor],
+                    title='删除某个访客的访问数据', label=f'访客 {visitor[:12]}')
+    if scope == 'bots':
+        return dict(scope=scope, value='', where='bot = 1', params=[], title='删除机器人访问', label='全部机器人访问记录')
+    if scope == 'all':
+        return dict(scope=scope, value='', where='1 = 1', params=[], title='清空全部访问统计', label='全部访问统计数据')
+    abort(400, description='未知的清理范围。')
+
+
+def safe_return(value, fallback):
+    if isinstance(value, str) and value.startswith('/admin/analytics') and '//' not in value and len(value) < 2000 \
+            and not any(ord(c) < 32 for c in value):
+        return value
+    return fallback
+
+
+@admin.post('/analytics/delete/preview')
+def analytics_delete_preview():
+    plan = deletion_plan(request.form)
+    counts = store().deletion_counts(plan['where'], tuple(plan['params']))
+    if not counts['pageviews']:
+        flash('没有符合条件的访问记录，未作更改。')
+        return redirect(safe_return(request.form.get('return_to'), url_for('admin.analytics_data')))
+    token = serializer().dumps(dict(uid=current_user.id, scope=plan['scope'], value=plan['value'],
+                                    counts=counts, return_to=safe_return(request.form.get('return_to'),
+                                                                         url_for('admin.analytics_data'))))
+    return render('admin/analytics/confirm.html', analytics_page='data', plan=plan, counts=counts, token=token)
+
+
+@admin.post('/analytics/delete/apply')
+def analytics_delete_apply():
+    try:
+        payload = serializer().loads(request.form.get('token', ''), max_age=600)
+    except (BadData, ValueError, TypeError):
+        abort(400, description='确认已过期或无效，请重新预览。')
+    if not isinstance(payload, dict) or payload.get('uid') != current_user.id:
+        abort(400, description='确认已失效，请重新预览。')
+    plan = deletion_plan({'scope': payload.get('scope'), 'date': payload.get('value'), 'ip': payload.get('value'),
+                          'visitor': payload.get('value')})
+    result = store().delete_where(plan['where'], tuple(plan['params']))
+    audit('analytics.delete', plan['label'], [
+        dict(label='清理范围', before='—', after=plan['label']),
+        dict(label='删除浏览记录', before=str(result['pageviews']), after='0'),
+        dict(label='删除事件', before=str(result['events']), after='0'),
+        dict(label='删除会话 / 访客', before=f"{result['sessions']} / {result['visitors']}", after='0')])
+    flash(f"已删除 {result['pageviews']} 条浏览记录、{result['events']} 条事件。")
+    return redirect(safe_return(payload.get('return_to'), url_for('admin.analytics_data')))
+
+
+@admin.post('/analytics/ignore')
+def analytics_ignore():
+    ip = valid_ip(request.form.get('ip', ''))
+    ignored = request.form.get('ignored') == '1'
+    if not ip:
+        abort(400, description='请输入有效的 IP 地址。')
+    store().set_ignored(ip, ignored, request.form.get('note', ''))
+    audit('analytics.ignore' if ignored else 'analytics.unignore', f'IP {ip}',
+          [dict(label='统计状态', before='记录' if ignored else '不记录', after='不记录' if ignored else '记录')])
+    flash(f'已{"排除" if ignored else "恢复记录"} IP {ip}。' + ('此后来自该 IP 的访问不会被记录；已有记录保留。' if ignored else ''))
+    return redirect(safe_return(request.form.get('return_to'), url_for('admin.analytics_data')))
+
+
+@admin.post('/analytics/note')
+def analytics_note():
+    visitor = request.form.get('visitor', '')
+    if not store().set_note(visitor, request.form.get('note', '').strip()):
+        abort(404)
+    audit('analytics.note', f'访客 {visitor[:12]}', [dict(label='备注', before='—', after=request.form.get('note', '')[:200] or '（清除）')])
+    flash('访客备注已保存。')
+    return redirect(url_for('admin.analytics_visitor', visitor_id=visitor))

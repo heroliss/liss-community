@@ -1,0 +1,14 @@
+{% extends "admin/base.html" %}
+{% import "admin/analytics/_macros.html" as an with context %}
+{% block title %}{{ super() }} · 访问统计{% endblock %}
+{% block head %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='admin-analytics.css') }}?v=20261112-2">{% endblock %}
+{% block admin_label %}访问统计{% endblock %}
+{% block admin_content %}
+<nav class="an-tabs" aria-label="访问统计">
+  {% for key, endpoint, label, icon in [('overview','analytics','概览','chart'),('live','analytics_live','实时','live'),('visitors','analytics_visitors','访客','users'),('pages','analytics_pages','页面','book'),('events','analytics_events','点击与事件','pointer'),('data','analytics_data','数据管理','database')] %}
+  <a href="{{ url_for('admin.' ~ endpoint, **(f.args() if f is defined and key not in ['live', 'data'] else {})) }}"{% if analytics_page == key %} class="is-active" aria-current="page"{% endif %}>{{ ui.icon(icon) }}<span>{{ label }}</span></a>
+  {% endfor %}
+</nav>
+{% block analytics_content %}{% endblock %}
+{% endblock %}
+{% block scripts %}{{ super() }}<script src="{{ url_for('static', filename='admin-analytics.js') }}?v=20261112-1" defer></script>{% endblock %}

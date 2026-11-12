@@ -1,0 +1,70 @@
+{% extends "admin/analytics/_base.html" %}
+{% import "admin/analytics/_macros.html" as an with context %}
+{% block analytics_content %}
+<header class="admin-heading"><div><h1>访问统计</h1><p>{{ f.label }}，{{ '全部站点' if f.site == 'all' else sites[f.site] }}{% if not f.bots %}，已排除机器人{% endif %}。时间按 UTC{{ '%+d'|format(config.ANALYTICS_UTC_OFFSET_MINUTES // 60) }} 显示。</p></div>
+  <a class="an-live-pill" href="{{ url_for('admin.analytics_live') }}"><span class="an-pulse" aria-hidden="true"></span>{{ live_count }} 人在线</a></header>
+{{ an.filters(f, 'admin.analytics') }}
+
+<div class="an-kpis" aria-label="核心指标">
+  <div class="an-kpi"><span>访客</span><strong>{{ kpi.uv }}</strong>{{ an.delta(changes.uv) }}<small>新 {{ kpi.new }} · 回访 {{ kpi.returning }}</small></div>
+  <div class="an-kpi"><span>浏览量</span><strong>{{ kpi.pv }}</strong>{{ an.delta(changes.pv) }}<small>每次访问 {{ kpi.per_session }} 页</small></div>
+  <div class="an-kpi"><span>访问次数</span><strong>{{ kpi.sessions }}</strong>{{ an.delta(changes.sessions) }}<small>跳出率 {{ kpi.bounce }}%</small></div>
+  <div class="an-kpi"><span>独立 IP</span><strong>{{ kpi.ips }}</strong>{{ an.delta(changes.ips) }}<small>{{ kpi.clicks }} 次点击</small></div>
+  <div class="an-kpi"><span>平均访问时长</span><strong class="an-kpi-text">{{ kpi.avg_session|dur }}</strong><small>总停留 {{ kpi.active|dur }}</small></div>
+  <div class="an-kpi"><span>平均滚动深度</span><strong>{{ kpi.scroll|round|int }}<em>%</em></strong><small>按单页最大值</small></div>
+</div>
+
+<section class="an-card an-trend" aria-labelledby="trend-heading">
+  <div class="an-card-head"><h2 id="trend-heading">{{ '每小时' if trend.hourly else '每日' }}趋势</h2><div class="an-legend"><span class="an-key-pv">浏览量</span><span class="an-key-uv">访客</span></div></div>
+  {% if trend.points|sum(attribute='pv') %}
+  <svg class="an-chart" viewBox="-40 -12 {{ trend.width + 52 }} {{ trend.height + 40 }}" role="img" aria-label="浏览量与访客趋势">
+    {% for t in trend.ticks %}<line class="an-grid" x1="0" x2="{{ trend.width }}" y1="{{ t.y }}" y2="{{ t.y }}"/><text class="an-axis" x="-8" y="{{ t.y + 4 }}" text-anchor="end">{{ t.value }}</text>{% endfor %}
+    {% for p in trend.points %}<g class="an-col"><rect class="an-bar-pv" x="{{ p.x }}" y="{{ trend.height - p.h }}" width="{{ p.w }}" height="{{ p.h }}" rx="2"/><rect class="an-hit" x="{{ p.x }}" y="0" width="{{ p.w + 1 }}" height="{{ trend.height }}"><title>{{ p.full }}：浏览 {{ p.pv }} · 访客 {{ p.uv }} · 访问 {{ p.sessions }}</title></rect>{% if loop.index0 % trend.label_every == 0 %}<text class="an-axis" x="{{ p.cx }}" y="{{ trend.height + 18 }}" text-anchor="middle">{{ p.label }}</text>{% endif %}</g>{% endfor %}
+    <polyline class="an-line-uv" points="{{ trend.line }}"/>
+    {% for p in trend.points %}{% if p.uv %}<circle class="an-dot-uv" cx="{{ p.cx }}" cy="{{ p.uy }}" r="2.6"/>{% endif %}{% endfor %}
+  </svg>
+  {% else %}<p class="an-empty an-empty-tall">这个时间范围内还没有访问。部署追踪脚本后，新的访问会出现在这里。</p>{% endif %}
+</section>
+
+<div class="an-grid-2">
+  <section class="an-card" aria-labelledby="pages-heading"><div class="an-card-head"><h2 id="pages-heading">热门页面</h2><a href="{{ url_for('admin.analytics_pages', **f.args()) }}">全部页面 {{ ui.icon('arrow') }}</a></div>
+    {% if pages %}<table class="an-table"><thead><tr><th>页面</th><th>浏览</th><th>访客</th><th>平均停留</th><th>滚动</th></tr></thead><tbody>
+    {% for p in pages %}<tr><td>{{ an.site_tag(p.site) }}{{ an.page_link(f, p.site, p.path, p.title) }}</td><td>{{ p.pv }}</td><td>{{ p.uv }}</td><td>{{ p.active|dur }}</td><td>{{ p.scroll|round|int }}%</td></tr>{% endfor %}
+    </tbody></table>{% else %}<p class="an-empty">暂无数据</p>{% endif %}
+  </section>
+  <section class="an-card" aria-labelledby="ref-heading"><div class="an-card-head"><h2 id="ref-heading">访问来源</h2></div>{{ an.bar_list(referrers) }}
+    <div class="an-card-head an-sub"><h2>站点分布</h2></div>{{ an.bar_list(sites_split, unit='次浏览') }}</section>
+</div>
+
+<div class="an-grid-2">
+  <section class="an-card" aria-labelledby="entry-heading"><div class="an-card-head"><h2 id="entry-heading">入口页面</h2></div>{% macro page_cell(row) %}{{ an.site_tag(row.site) }}{{ an.page_link(f, row.site, row.path, row.title) }}{% endmacro %}{{ an.bar_list(entries, link=page_cell) }}</section>
+  <section class="an-card" aria-labelledby="exit-heading"><div class="an-card-head"><h2 id="exit-heading">离开页面</h2></div>{{ an.bar_list(exits, link=page_cell) }}</section>
+</div>
+
+<section class="an-card" aria-labelledby="heat-heading"><div class="an-card-head"><h2 id="heat-heading">访问时段</h2><span class="an-muted">按浏览量，颜色越深越集中</span></div>
+  <div class="an-heat" role="table" aria-label="星期与小时分布">
+    <div class="an-heat-row an-heat-hours" role="row"><span role="columnheader"></span>{% for h in range(24) %}<span role="columnheader">{{ h if h % 3 == 0 else '' }}</span>{% endfor %}</div>
+    {% for day in heat %}<div class="an-heat-row" role="row"><span role="rowheader">{{ day.name }}</span>{% for c in day.cells %}<span role="cell" class="an-heat-cell lv{{ c.level }}" title="{{ day.name }} {{ c.hour }}:00 · {{ c.count }} 次浏览"></span>{% endfor %}</div>{% endfor %}
+  </div>
+</section>
+
+<div class="an-grid-3">
+  <section class="an-card"><div class="an-card-head"><h2>设备</h2></div>{{ an.bar_list(devices) }}</section>
+  <section class="an-card"><div class="an-card-head"><h2>浏览器</h2></div>{{ an.bar_list(browsers) }}</section>
+  <section class="an-card"><div class="an-card-head"><h2>操作系统</h2></div>{{ an.bar_list(systems) }}</section>
+  <section class="an-card"><div class="an-card-head"><h2>屏幕尺寸</h2></div>{{ an.bar_list(screens) }}</section>
+  <section class="an-card"><div class="an-card-head"><h2>语言</h2></div>{{ an.bar_list(languages) }}</section>
+  <section class="an-card"><div class="an-card-head"><h2>时区</h2></div>{{ an.bar_list(zones) }}</section>
+</div>
+
+<div class="an-grid-2">
+  <section class="an-card" aria-labelledby="click-heading"><div class="an-card-head"><h2 id="click-heading">热门点击</h2><a href="{{ url_for('admin.analytics_events', **f.args()) }}">全部事件 {{ ui.icon('arrow') }}</a></div>
+    {% macro click_cell(row) %}<span class="an-click"><strong>{{ row.label or row.target or '（无文字）' }}</strong><small>{{ row.site|site_name }} · {{ row.path }}{% if row.type == 'outbound' %} · 外链{% endif %}</small></span>{% endmacro %}{{ an.bar_list(clicks, link=click_cell) }}</section>
+  <section class="an-card" aria-labelledby="perf-heading"><div class="an-card-head"><h2 id="perf-heading">加载性能</h2><span class="an-muted">访客浏览器实测平均值</span></div>
+    {% if perf %}<table class="an-table"><thead><tr><th>站点</th><th>样本</th><th>首字节</th><th>可交互</th><th>加载完成</th></tr></thead><tbody>{% for p in perf %}<tr><td>{{ an.site_tag(p.site) }}</td><td>{{ p.samples }}</td><td>{{ (p.ttfb or 0)|round|int }} ms</td><td>{{ ((p.dom or 0) / 1000)|round(2) }} 秒</td><td>{{ ((p.load or 0) / 1000)|round(2) }} 秒</td></tr>{% endfor %}</tbody></table>{% else %}<p class="an-empty">暂无数据</p>{% endif %}
+    <div class="an-card-head an-sub"><h2>脚本错误</h2></div>
+    {% if errors %}<ol class="an-errors">{% for e in errors %}<li><strong>{{ e.label|truncate(120, true, '…') }}</strong><small>{{ e.site|site_name }} · {{ e.path }} · {{ e.count }} 次 · 最近 {{ e.last|ago }}</small></li>{% endfor %}</ol>{% else %}<p class="an-empty">没有记录到脚本错误。</p>{% endif %}
+  </section>
+</div>
+<p class="an-footnote">数据文件 {{ (storage.bytes / 1048576)|round(1) }} MB · {{ storage.pageviews }} 条浏览、{{ storage.events }} 条事件。<a href="{{ url_for('admin.analytics_data') }}">数据管理</a> · 导出 CSV：<a href="{{ url_for('admin.analytics_export', kind='pageviews', **f.args()) }}">浏览记录</a> / <a href="{{ url_for('admin.analytics_export', kind='sessions', **f.args()) }}">访问次数</a> / <a href="{{ url_for('admin.analytics_export', kind='events', **f.args()) }}">事件</a></p>
+{% endblock %}

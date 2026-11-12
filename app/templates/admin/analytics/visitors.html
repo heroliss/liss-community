@@ -1,0 +1,29 @@
+{% extends "admin/analytics/_base.html" %}
+{% import "admin/analytics/_macros.html" as an with context %}
+{% block analytics_content %}
+<header class="admin-heading"><div><h1>访客</h1><p>{{ f.label }}内的访客{% if mode == 'ip' %}，按 IP 汇总{% else %}，按浏览器身份汇总（同一浏览器多次访问视为同一访客）{% endif %}。</p></div></header>
+{% set extra %}<input type="hidden" name="by" value="{{ mode }}"><input type="hidden" name="sort" value="{{ sort }}"><label class="an-search">搜索<input type="search" name="q" value="{{ q }}" maxlength="100" placeholder="IP、访客编号、用户名或备注"></label>{% endset %}
+{{ an.filters(f, 'admin.analytics_visitors', extra=extra) }}
+<div class="an-toolbar">
+  <div class="an-segment" role="group" aria-label="汇总方式"><a href="{{ url_for('admin.analytics_visitors', **f.args(q=q, sort=sort)) }}"{% if mode == 'visitor' %} class="is-active"{% endif %}>按访客</a><a href="{{ url_for('admin.analytics_visitors', **f.args(by='ip', q=q, sort=sort)) }}"{% if mode == 'ip' %} class="is-active"{% endif %}>按 IP</a></div>
+  <div class="an-segment" role="group" aria-label="排序">{% for key, label in [('last','最近活动'),('first','最早来访'),('pv','浏览量'),('sessions','访问次数'),('active','停留时长')] %}<a href="{{ url_for('admin.analytics_visitors', **f.args(by=('ip' if mode == 'ip' else ''), q=q, sort=key)) }}"{% if sort == key %} class="is-active"{% endif %}>{{ label }}</a>{% endfor %}</div>
+</div>
+<p class="admin-list-summary"><span>共 <strong>{{ result.total }}</strong> {{ '个 IP' if mode == 'ip' else '位访客' }}</span><span>点击查看完整访问轨迹</span></p>
+{% if result.rows %}
+<table class="an-table an-table-wide an-table-rows"><thead><tr>
+  {% if mode == 'ip' %}<th>IP</th><th>访客数</th><th>浏览器 / 系统</th>{% else %}<th>访客</th><th>IP</th><th>设备</th>{% endif %}
+  <th>站点</th><th>访问</th><th>浏览</th><th>停留</th><th>首次</th><th>最近</th></tr></thead><tbody>
+{% for r in result.rows %}<tr>
+  {% if mode == 'ip' %}
+  <td>{{ an.ip_link(r.ip) }}{% if r.ignored %} <span class="admin-status">已排除</span>{% endif %}</td><td>{{ r.visitors }}</td><td class="an-small">{{ (r.agents or '')|replace(',', '，') }}</td>
+  {% else %}
+  <td>{{ an.visitor_link(r.visitor_id, ('@' ~ r.username) if r.username else None) }}{% if r.is_new %} <span class="admin-status is-positive">新</span>{% endif %}{% if r.note %}<small class="an-note">{{ r.note }}</small>{% endif %}</td>
+  <td class="an-small">{% for ip in r.ip_list[:3] %}{{ an.ip_link(ip) }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% if r.ip_list|length > 3 %}<br><span class="an-muted">等 {{ r.ip_list|length }} 个</span>{% endif %}</td>
+  <td class="an-small">{{ r.browser }}<br>{{ r.os }} · {{ r.device }}{% if r.screen %} · {{ r.screen }}{% endif %}</td>
+  {% endif %}
+  <td>{% for s in r.site_list %}{{ an.site_tag(s) }}{% endfor %}</td><td>{{ r.sessions }}</td><td>{{ r.pv }}</td><td>{{ r.active|dur }}</td><td class="an-small">{{ r.first|at('%m-%d %H:%M') }}</td><td class="an-small">{{ r.last|at('%m-%d %H:%M') }}<br><span class="an-muted">{{ r.last|ago }}</span></td>
+</tr>{% endfor %}
+</tbody></table>
+{{ an.pager(result, 'admin.analytics_visitors', f.args(by=('ip' if mode == 'ip' else ''), q=q, sort=sort)) }}
+{% else %}<p class="an-empty an-empty-tall">没有符合条件的访客。</p>{% endif %}
+{% endblock %}

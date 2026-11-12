@@ -277,7 +277,8 @@ class Sandbox:
         db.session.commit()
 
     def before_request(self):
-        if request.endpoint in {'static', 'bootstrap.static', 'pagedown.static', 'community.portfolio'}:
+        if request.endpoint in {'static', 'bootstrap.static', 'pagedown.static', 'community.portfolio',
+                                'analytics.collect'}:
             return
         lease = self.exclusive()
         lease.__enter__()

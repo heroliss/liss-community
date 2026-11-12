@@ -1,0 +1,25 @@
+{% extends "admin/analytics/_base.html" %}
+{% import "admin/analytics/_macros.html" as an with context %}
+{% block analytics_content %}
+<a class="an-back" href="{{ url_for('admin.analytics_pages', **f.args()) }}">{{ ui.icon('back') }}页面列表</a>
+<header class="admin-heading"><div><h1>{{ summary.title or path }}</h1><p>{{ an.site_tag(site) }} <code>{{ path }}</code> · {{ f.label }}{% if summary.url %} · <a href="{{ summary.url }}" target="_blank" rel="noopener noreferrer">打开页面 {{ ui.icon('arrow') }}</a>{% endif %}</p></div></header>
+{{ an.filters(f, 'admin.analytics_page', hidden={'s': site, 'path': path}) }}
+<div class="an-kpis">
+  <div class="an-kpi"><span>浏览量</span><strong>{{ summary.pv }}</strong></div>
+  <div class="an-kpi"><span>访客</span><strong>{{ summary.uv }}</strong></div>
+  <div class="an-kpi"><span>独立 IP</span><strong>{{ summary.ips }}</strong></div>
+  <div class="an-kpi"><span>平均停留</span><strong class="an-kpi-text">{{ summary.active|dur }}</strong></div>
+  <div class="an-kpi"><span>平均滚动</span><strong>{{ (summary.scroll or 0)|round|int }}<em>%</em></strong></div>
+  <div class="an-kpi"><span>点击</span><strong>{{ summary.clicks or 0 }}</strong></div>
+</div>
+<div class="an-grid-2">
+  <section class="an-card"><div class="an-card-head"><h2>滚动深度分布</h2><span class="an-muted">读到页面哪里</span></div>{{ an.bar_list(scroll, unit='次') }}</section>
+  <section class="an-card"><div class="an-card-head"><h2>来源</h2></div>{{ an.bar_list(referrers) }}</section>
+</div>
+<section class="an-card"><div class="an-card-head"><h2>页面上的点击</h2></div>
+  {% macro click_cell(row) %}<span class="an-click"><strong>{{ row.label or '（无文字）' }}</strong><small>{{ row.target }}{% if row.href %} → {{ row.href|truncate(70, true, '…') }}{% endif %} · {{ row.visitors }} 位访客</small></span>{% endmacro %}{{ an.bar_list(clicks, link=click_cell, empty='没有记录到点击。') }}</section>
+<section class="an-card"><div class="an-card-head"><h2>逐次浏览</h2><span class="an-muted">共 {{ visits.total }} 次</span></div>
+  {% if visits.rows %}<table class="an-table an-table-wide"><thead><tr><th>时间</th><th>访客</th><th>IP</th><th>设备</th><th>停留</th><th>滚动</th><th>点击</th><th>来源</th></tr></thead><tbody>
+  {% for v in visits.rows %}<tr><td class="an-small">{{ v.started_at|at('%m-%d %H:%M:%S') }}</td><td>{{ an.visitor_link(v.visitor_id, ('@' ~ v.username) if v.username else None) }}</td><td>{{ an.ip_link(v.ip) }}</td><td class="an-small">{{ v.browser }} · {{ v.device }}</td><td>{{ v.active_ms|dur }}</td><td>{{ v.scroll }}%</td><td>{{ v.clicks }}</td><td class="an-small an-clip" title="{{ v.referrer }}">{{ v.referrer or '直接访问' }}</td></tr>{% endfor %}
+  </tbody></table>{{ an.pager(visits, 'admin.analytics_page', f.args(s=site, path=path)) }}{% else %}<p class="an-empty">暂无数据</p>{% endif %}</section>
+{% endblock %}

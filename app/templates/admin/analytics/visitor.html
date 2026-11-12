@@ -1,0 +1,27 @@
+{% extends "admin/analytics/_base.html" %}
+{% import "admin/analytics/_macros.html" as an with context %}
+{% block analytics_content %}
+<a class="an-back" href="{{ url_for('admin.analytics_visitors') }}">{{ ui.icon('back') }}访客列表</a>
+<header class="admin-heading"><div><h1>{% if visitor.username %}@{{ visitor.username }}{% else %}访客 {{ visitor.id[:8] }}{% endif %}</h1><p>编号 <code>{{ visitor.id }}</code> · 首次来访 {{ visitor.first_seen|at('%Y-%m-%d %H:%M') }} · 最近 {{ visitor.last_seen|ago }}</p></div></header>
+<div class="an-kpis an-kpis-compact">
+  <div class="an-kpi"><span>访问次数</span><strong>{{ totals.sessions }}</strong></div>
+  <div class="an-kpi"><span>浏览量</span><strong>{{ totals.pv }}</strong><small>{{ totals.pages }} 个不同页面</small></div>
+  <div class="an-kpi"><span>累计停留</span><strong class="an-kpi-text">{{ totals.active|dur }}</strong></div>
+  <div class="an-kpi"><span>点击</span><strong>{{ totals.clicks }}</strong></div>
+</div>
+<div class="an-grid-2">
+  <section class="an-card"><div class="an-card-head"><h2>设备与环境</h2></div>
+    <dl class="an-facts"><div><dt>浏览器</dt><dd>{{ visitor.browser }}</dd></div><div><dt>系统</dt><dd>{{ visitor.os }}</dd></div><div><dt>设备</dt><dd>{{ visitor.device }}</dd></div><div><dt>屏幕</dt><dd>{{ visitor.screen or '—' }}</dd></div><div><dt>语言</dt><dd>{{ visitor.lang or '—' }}</dd></div><div><dt>时区</dt><dd>{{ visitor.tz or '—' }}</dd></div>{% if visitor.username %}<div><dt>社区账号</dt><dd>@{{ visitor.username }}{% if visitor.user_id %} · #{{ visitor.user_id }}{% endif %}</dd></div>{% endif %}<div class="an-fact-wide"><dt>User-Agent</dt><dd><code>{{ visitor.ua }}</code></dd></div></dl>
+    <form method="post" action="{{ url_for('admin.analytics_note') }}" class="an-note-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="visitor" value="{{ visitor.id }}"><label>备注<input name="note" value="{{ visitor.note }}" maxlength="200" placeholder="例如：朋友 A 的手机"></label><button class="button button-small button-secondary" type="submit">保存备注</button></form>
+  </section>
+  <section class="an-card"><div class="an-card-head"><h2>使用过的 IP</h2></div>
+    <table class="an-table"><thead><tr><th>IP</th><th>浏览</th><th>首次</th><th>最近</th></tr></thead><tbody>{% for i in ips %}<tr><td>{{ an.ip_link(i.ip) }}{% if i.ignored %} <span class="admin-status">已排除</span>{% endif %}</td><td>{{ i.pv }}</td><td class="an-small">{{ i.first|at('%m-%d %H:%M') }}</td><td class="an-small">{{ i.last|at('%m-%d %H:%M') }}</td></tr>{% endfor %}</tbody></table>
+    <div class="an-card-head an-sub"><h2>停留最久的页面</h2></div>
+    <ol class="an-bars an-bars-plain">{% for p in favourite %}<li><div class="an-bar-label">{{ an.site_tag(p.site) }}<a href="{{ p|page_url }}" target="_blank" rel="noopener noreferrer">{{ p.title or p.path }}</a></div><span class="an-bar-value">{{ p.active|dur }}<small> · {{ p.pv }} 次</small></span></li>{% endfor %}</ol>
+  </section>
+</div>
+<section class="an-section"><div class="an-card-head"><h2>访问轨迹</h2><span class="an-muted">每次访问内按时间顺序列出页面与点击</span></div>
+  {{ an.timeline(sessions, 'admin.analytics_visitor', {'visitor_id': visitor.id}) }}</section>
+<details class="an-danger"><summary>删除这位访客的全部记录</summary>
+  <form method="post" action="{{ url_for('admin.analytics_delete_preview') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="scope" value="visitor"><input type="hidden" name="visitor" value="{{ visitor.id }}"><input type="hidden" name="return_to" value="{{ url_for('admin.analytics_visitors') }}"><p>先预览将删除的数量，确认后才会生效，且无法恢复。</p><button class="button button-small button-secondary" type="submit">预览删除</button></form></details>
+{% endblock %}

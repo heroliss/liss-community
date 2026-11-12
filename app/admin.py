@@ -63,7 +63,9 @@ class AdminAudit(db.Model):
                 'comment.hide': '隐藏评论', 'comment.restore': '恢复评论',
                 'user.update': '更新用户权限', 'settings.update': '更新站点设置',
                 'backgrounds.update': '更新背景图库', 'backgrounds.upload': '添加背景图片',
-                'user.grant_admin': '授予管理员权限', 'user.merge_site_owner': '合并站点作者身份'}.get(self.action, self.action)
+                'user.grant_admin': '授予管理员权限', 'user.merge_site_owner': '合并站点作者身份',
+                'analytics.delete': '清理访问统计', 'analytics.ignore': '排除统计 IP',
+                'analytics.unignore': '恢复统计 IP', 'analytics.note': '备注访客'}.get(self.action, self.action)
 
     @property
     def changes(self):
@@ -85,6 +87,11 @@ class AdminAudit(db.Model):
                      after=pretty_value(key, after[key]) if key in after else '—')
                 for key, label in labels.items()
                 if (key in before or key in after) and before.get(key) != after.get(key)]
+        if self.target_type == 'analytics':
+            details = states.get('rows', [])
+            if isinstance(details, list) and len(details) <= 20:
+                rows.extend(row for row in details if isinstance(row, dict) and set(row) == {'label', 'before', 'after'}
+                            and all(isinstance(row[key], str) and len(row[key]) <= 300 for key in row))
         if self.target_type == 'backgrounds':
             details = states.get('background_changes', [])
             if isinstance(details, list) and len(details) <= 1803:
@@ -315,7 +322,7 @@ def background_asset(image_id, filename):
 @admin.get('/audit', strict_slashes=False)
 def audit():
     q, kind = search_term(), request.args.get('kind', 'all')
-    if kind not in {'post', 'comment', 'user', 'settings', 'backgrounds'}:
+    if kind not in {'post', 'comment', 'user', 'settings', 'backgrounds', 'analytics'}:
         kind = 'all'
     query = AdminAudit.query
     if kind != 'all':
@@ -580,6 +587,7 @@ def apply():
 
 
 def install(app):
+    from . import analytics_admin  # noqa: F401  Registers 访问统计 views on this blueprint.
     app.register_blueprint(admin)
 
     @app.context_processor

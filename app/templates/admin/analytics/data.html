@@ -1,0 +1,43 @@
+{% extends "admin/analytics/_base.html" %}
+{% import "admin/analytics/_macros.html" as an with context %}
+{% block analytics_content %}
+<header class="admin-heading"><div><h1>数据管理</h1><p>查看统计数据占用、排除不需要记录的 IP，以及手动清理历史数据。统计数据不会自动删除。</p></div></header>
+<div class="an-kpis">
+  <div class="an-kpi"><span>数据文件</span><strong class="an-kpi-text">{{ size }}</strong><small>analytics.sqlite</small></div>
+  <div class="an-kpi"><span>访客</span><strong>{{ stats.visitors }}</strong></div>
+  <div class="an-kpi"><span>访问次数</span><strong>{{ stats.sessions }}</strong></div>
+  <div class="an-kpi"><span>浏览记录</span><strong>{{ stats.pageviews }}</strong></div>
+  <div class="an-kpi"><span>事件</span><strong>{{ stats.events }}</strong></div>
+  <div class="an-kpi"><span>记录跨度</span><strong class="an-kpi-text an-kpi-small">{{ stats.first|at('%Y-%m-%d') }}</strong><small>至 {{ stats.last|at('%Y-%m-%d %H:%M') }}</small></div>
+</div>
+
+<div class="an-grid-2">
+  <section class="an-card" aria-labelledby="ignore-heading"><div class="an-card-head"><h2 id="ignore-heading">不记录的 IP</h2></div>
+    <p class="an-help">来自这些 IP 的新访问不会被记录，已有记录保留。你当前的 IP 是 <code>{{ my_ip or '未知' }}</code>。</p>
+    <form method="post" action="{{ url_for('admin.analytics_ignore') }}" class="an-inline-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="ignored" value="1">
+      <label>IP 地址<input name="ip" value="{{ my_ip }}" required maxlength="45"></label><label>备注<input name="note" maxlength="100" placeholder="例如：我家宽带"></label><button class="button button-small" type="submit">添加</button></form>
+    {% if ignored %}<ul class="an-ignore-list">{% for i in ignored %}<li><div>{{ an.ip_link(i.ip) }}{% if i.note %}<small>{{ i.note }}</small>{% endif %}<small>{{ i.created_at|at('%Y-%m-%d') }} 添加</small></div>
+      <form method="post" action="{{ url_for('admin.analytics_ignore') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="ip" value="{{ i.ip }}"><input type="hidden" name="ignored" value="0"><button class="button button-small button-secondary" type="submit">恢复记录</button></form></li>{% endfor %}</ul>
+    {% else %}<p class="an-empty">目前没有排除任何 IP。</p>{% endif %}
+  </section>
+  <section class="an-card" aria-labelledby="optout-heading"><div class="an-card-head"><h2 id="optout-heading">不记录我自己的浏览器</h2></div>
+    <p class="an-help">IP 会变化时，可以按浏览器排除。在要排除的设备上分别打开下面的链接一次即可（社区和作品站各自独立）；改回记录用对应的“恢复”链接。</p>
+    <ul class="an-links">
+      <li><span>社区</span><a href="{{ community_root }}?liss_analytics=off" target="_blank" rel="noopener">停止记录此浏览器</a><a href="{{ community_root }}?liss_analytics=on" target="_blank" rel="noopener">恢复</a></li>
+      <li><span>作品站与玻璃海</span><a href="https://heroliss.github.io/liss-works/?liss_analytics=off" target="_blank" rel="noopener">停止记录此浏览器</a><a href="https://heroliss.github.io/liss-works/?liss_analytics=on" target="_blank" rel="noopener">恢复</a></li>
+    </ul>
+    <div class="an-card-head an-sub"><h2>导出</h2></div>
+    <p class="an-help">导出全部历史数据（UTF-8 CSV，可用 Excel 打开）。按时间筛选导出请在概览或事件页使用导出链接。</p>
+    <div class="an-actions"><a class="button button-small button-secondary" href="{{ url_for('admin.analytics_export', kind='pageviews', range='all', bots='1') }}">{{ ui.icon('download') }} 浏览记录</a><a class="button button-small button-secondary" href="{{ url_for('admin.analytics_export', kind='sessions', range='all', bots='1') }}">{{ ui.icon('download') }} 访问次数</a><a class="button button-small button-secondary" href="{{ url_for('admin.analytics_export', kind='events', range='all', bots='1') }}">{{ ui.icon('download') }} 事件</a></div>
+  </section>
+</div>
+
+<section class="an-card an-cleanup" aria-labelledby="clean-heading"><div class="an-card-head"><h2 id="clean-heading">清理数据</h2><span class="an-muted">每项都会先显示将删除的数量，确认后执行，无法恢复</span></div>
+  <div class="an-clean-grid">
+    <form method="post" action="{{ url_for('admin.analytics_delete_preview') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="scope" value="before"><h3>删除较早的数据</h3><p>删除所选日期（不含）之前的全部记录。</p><label>日期<input type="date" name="date" required></label><button class="button button-small button-secondary" type="submit">预览删除</button></form>
+    <form method="post" action="{{ url_for('admin.analytics_delete_preview') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="scope" value="ip"><h3>删除某个 IP</h3><p>删除该 IP 产生的全部浏览和事件。</p><label>IP 地址<input name="ip" required maxlength="45"></label><button class="button button-small button-secondary" type="submit">预览删除</button></form>
+    <form method="post" action="{{ url_for('admin.analytics_delete_preview') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="scope" value="bots"><h3>删除机器人访问</h3><p>删除被识别为爬虫、监控或自动化工具的记录。</p><button class="button button-small button-secondary" type="submit">预览删除</button></form>
+    <form method="post" action="{{ url_for('admin.analytics_delete_preview') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="scope" value="all"><h3>清空全部</h3><p>删除全部统计数据，排除 IP 名单保留。</p><button class="button button-small button-danger" type="submit">预览清空</button></form>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "admin/analytics/_base.html" %}
+{% block analytics_content %}
+<div class="admin-confirm"><ol class="admin-confirm-steps" aria-label="清理步骤"><li>预览数量</li><li aria-current="step">确认后删除</li></ol>
+  <header class="admin-heading"><div><h1>{{ plan.title }}</h1><p>删除后无法恢复。如需保留，可先在数据管理页导出 CSV。</p></div></header>
+  <div class="admin-confirm-subject"><h2>清理范围</h2><p>{{ plan.label }}</p></div>
+  <dl class="admin-changes"><div><dt>浏览记录</dt><dd><span class="admin-change-old">{{ counts.pageviews }}</span><span class="admin-change-arrow" aria-label="更改为">→</span>0</dd></div><div><dt>点击与事件</dt><dd><span class="admin-change-old">{{ counts.events }}</span><span class="admin-change-arrow" aria-label="更改为">→</span>0</dd></div></dl>
+  <p class="admin-confirm-note">没有剩余浏览记录的访问次数和访客也会一并移除。</p>
+  <form method="post" action="{{ url_for('admin.analytics_delete_apply') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="token" value="{{ token }}"><div class="form-actions"><button type="submit" class="button button-danger">确认删除</button><a class="button button-secondary" href="{{ url_for('admin.analytics_data') }}">取消</a></div></form>
+</div>
+{% endblock %}

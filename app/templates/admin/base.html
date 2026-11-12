@@ -9,7 +9,7 @@
     <a class="admin-home" href="{{ url_for('admin.index') }}">{{ ui.icon('shield') }}<span>网站管理</span></a>
     <button class="button button-secondary admin-menu-toggle" type="button" data-admin-menu aria-controls="admin-navigation" aria-expanded="false">管理导航 {{ ui.icon('chevron') }}</button>
     <nav class="admin-nav" id="admin-navigation" aria-label="管理功能">
-      {% for endpoint, label, icon in [('index','概览','grid'),('posts','文章','book'),('comments','评论','comment'),('users','用户','users'),('backgrounds','背景图库','sun'),('settings','网站设置','settings'),('audit','操作记录','history')] %}
+      {% for endpoint, label, icon in [('index','概览','grid'),('posts','文章','book'),('comments','评论','comment'),('users','用户','users'),('backgrounds','背景图库','sun'),('analytics','访问统计','chart'),('settings','网站设置','settings'),('audit','操作记录','history')] %}
       <a href="{{ url_for('admin.' ~ endpoint) }}"{% if admin_section|default('') == endpoint %} class="is-active" aria-current="page"{% endif %}>{{ ui.icon(icon) }}<span>{{ label }}</span></a>
       {% endfor %}
     </nav>

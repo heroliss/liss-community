@@ -1,0 +1,21 @@
+{% extends "admin/analytics/_base.html" %}
+{% import "admin/analytics/_macros.html" as an with context %}
+{% block analytics_content %}
+<header class="admin-heading"><div><h1>实时访问</h1><p>最近 {{ window_minutes }} 分钟内仍在浏览的访客；页面每 20 秒自动刷新（离开标签页时暂停）。</p></div>
+  <span class="an-live-pill"><span class="an-pulse" aria-hidden="true"></span>{{ active|length }} 人在线</span></header>
+<div data-an-refresh="20">
+<section class="an-card" aria-labelledby="online-heading"><div class="an-card-head"><h2 id="online-heading">正在浏览</h2></div>
+  {% if active %}<table class="an-table an-table-wide"><thead><tr><th>访客</th><th>当前页面</th><th>IP</th><th>设备</th><th>本页停留</th><th>最后活动</th></tr></thead><tbody>
+  {% for p in active %}<tr><td>{{ an.visitor_link(p.visitor_id, ('@' ~ p.username) if p.username else (p.note or None)) }}</td><td>{{ an.site_tag(p.site) }}<a href="{{ p|page_url }}" target="_blank" rel="noopener noreferrer">{{ p.title or p.path }}</a></td><td>{{ an.ip_link(p.ip) }}</td><td>{{ p.browser }} · {{ p.os }} · {{ p.device }}</td><td>{{ p.active_ms|dur }}</td><td>{{ p.last_seen|ago }}</td></tr>{% endfor %}
+  </tbody></table>{% else %}<p class="an-empty">现在没有人在浏览。</p>{% endif %}
+</section>
+<div class="an-grid-2">
+  <section class="an-card" aria-labelledby="recent-heading"><div class="an-card-head"><h2 id="recent-heading">最近浏览</h2></div>
+    <ol class="an-feed">{% for p in recent %}<li><time>{{ p.started_at|at('%m-%d %H:%M:%S') }}</time>{{ an.site_tag(p.site) }}<a href="{{ p|page_url }}" target="_blank" rel="noopener noreferrer" class="an-feed-title">{{ p.title or p.path }}</a><span class="an-feed-meta">{{ an.ip_link(p.ip) }} · {{ p.device }} · 停留 {{ p.active_ms|dur }} · {{ an.visitor_link(p.visitor_id, ('@' ~ p.username) if p.username else None) }}</span></li>{% else %}<li class="an-empty">暂无记录</li>{% endfor %}</ol>
+  </section>
+  <section class="an-card" aria-labelledby="live-events-heading"><div class="an-card-head"><h2 id="live-events-heading">最近事件</h2></div>
+    <ol class="an-events an-events-feed">{% for e in events %}{{ an.event_row(e) }}{% else %}<li class="an-empty">暂无记录</li>{% endfor %}</ol>
+  </section>
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% import "_ui.html" as ui with context %}
+
+{% macro filters(f, endpoint, hidden={}, extra=None) -%}
+<form method="get" action="{{ url_for(endpoint, **hidden) }}" class="an-filters" data-an-filters>
+  {% for key, value in hidden.items() %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+  <div class="an-range" role="group" aria-label="时间范围">
+    {% for value, label in ranges %}<label class="an-chip{% if f.range == value %} is-active{% endif %}"><input type="radio" name="range" value="{{ value }}"{% if f.range == value %} checked{% endif %} data-an-autosubmit="{{ 0 if value == 'custom' else 1 }}">{{ label }}</label>{% endfor %}
+  </div>
+  <div class="an-filter-row">
+    <label class="an-dates{% if f.range != 'custom' %} is-quiet{% endif %}"><span>从</span><input type="date" name="from" value="{{ f.date_from }}"><span>至</span><input type="date" name="to" value="{{ f.date_to }}"></label>
+    <label>站点<select name="site" data-an-autosubmit="1"><option value="all">全部站点</option>{% for key, label in sites.items() %}<option value="{{ key }}"{% if f.site == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <label class="an-check"><input type="checkbox" name="bots" value="1"{% if f.bots %} checked{% endif %} data-an-autosubmit="1">包含机器人</label>
+    {% if extra %}{{ extra }}{% endif %}
+    <button class="button button-small" type="submit">应用</button>
+  </div>
+</form>
+{%- endmacro %}
+
+{% macro delta(value, invert=false) -%}
+{% if value is not none %}<span class="an-delta {{ 'is-up' if (value > 0) != invert else 'is-down' if value != 0 else '' }}" title="与上一个同长度时段相比">{{ '+' if value > 0 }}{{ value }}%</span>{% endif %}
+{%- endmacro %}
+
+{% macro bar_list(rows, empty='暂无数据', link=None, unit='次') -%}
+{% if rows %}<ol class="an-bars">{% for row in rows %}<li><div class="an-bar-label">{% if link %}{{ link(row) }}{% else %}<span title="{{ row.name }}">{{ row.name }}</span>{% endif %}</div><span class="an-bar-value">{{ row.count }}<small>{{ unit }}</small></span><span class="an-bar" style="--share: {{ row.share }}%" aria-hidden="true"></span></li>{% endfor %}</ol>
+{% else %}<p class="an-empty">{{ empty }}</p>{% endif %}
+{%- endmacro %}
+
+{% macro site_tag(site) -%}<span class="an-site an-site-{{ site }}">{{ site|site_name }}</span>{%- endmacro %}
+
+{% macro ip_link(ip) -%}{% if ip %}<a class="an-ip" href="{{ url_for('admin.analytics_ip', address=ip) }}">{{ ip }}</a>{% else %}—{% endif %}{%- endmacro %}
+
+{% macro visitor_link(id, label=None) -%}<a class="an-visitor" href="{{ url_for('admin.analytics_visitor', visitor_id=id) }}" title="{{ id }}">{{ label or ('访客 ' ~ id[:8]) }}</a>{%- endmacro %}
+
+{% macro page_link(f, site, path, title='') -%}<a class="an-page" href="{{ url_for('admin.analytics_page', **f.args(s=site, path=path)) }}" title="{{ path }}"><strong>{{ title or path }}</strong>{% if title %}<small>{{ path }}</small>{% endif %}</a>{%- endmacro %}
+
+{% macro pager(result, endpoint, args) -%}
+{% if result.pages > 1 %}<nav class="admin-pagination" aria-label="分页"><span>第 {{ result.page }} / {{ result.pages }} 页，共 {{ result.total }} 项</span><div>{% if result.page > 1 %}<a class="button button-small button-secondary" rel="prev" href="{{ url_for(endpoint, page=result.page - 1, **args) }}">上一页</a>{% endif %}{% if result.page < result.pages %}<a class="button button-small button-secondary" rel="next" href="{{ url_for(endpoint, page=result.page + 1, **args) }}">下一页</a>{% endif %}</div></nav>{% endif %}
+{%- endmacro %}
+
+{% macro event_row(event, show_page=true) -%}
+<li class="an-event an-event-{{ event.type }}"><time>{{ event.ts|at('%H:%M:%S') }}</time><span class="an-event-type">{{ event_types.get(event.type, event.type) }}</span><span class="an-event-label">{{ event.label or event.target or '（无文字）' }}</span>{% if event.target and event.label %}<code>{{ event.target }}</code>{% endif %}{% if event.href %}<a class="an-event-href" href="{{ event.href }}" target="_blank" rel="noopener noreferrer" title="{{ event.href }}">{{ event.href|truncate(60, true, '…') }}</a>{% endif %}{% if event.type == 'error' and event.data %}<code class="an-event-data">{{ event.data|truncate(160, true, '…') }}</code>{% endif %}{% if show_page %}<span class="an-event-page">{{ event.path }}</span>{% endif %}</li>
+{%- endmacro %}
+
+{% macro timeline(sessions, endpoint, args) -%}
+{% if sessions.rows %}
+<ol class="an-timeline">{% for s in sessions.rows %}
+  <li class="an-session">
+    <div class="an-session-head">
+      <div><strong>{{ s.started_at|at('%Y-%m-%d %H:%M') }}</strong>{{ site_tag(s.site) }}<span class="an-muted">{{ s.views|length }} 页 · 停留 {{ s.active|dur }} · 跨度 {{ s.span|dur }}</span></div>
+      <div class="an-session-meta">{{ ip_link(s.ip) }}<span>{{ s.browser }} · {{ s.os }} · {{ s.device }}</span>{% if s.screen %}<span>{{ s.screen }}</span>{% endif %}{% if s.username %}<span class="admin-status is-positive">@{{ s.username }}</span>{% endif %}</div>
+      <p class="an-session-source">来源：{% if s.referrer %}<a href="{{ s.referrer }}" target="_blank" rel="noopener noreferrer">{{ s.referrer|truncate(90, true, '…') }}</a>{% else %}直接访问 / 站内{% endif %}{% if s.utm %} · {{ s.utm }}{% endif %}</p>
+    </div>
+    <ol class="an-views">{% for v in s.views %}
+      <li><div class="an-view-line"><time>{{ v.started_at|at('%H:%M:%S') }}</time><a href="{{ v|page_url }}" target="_blank" rel="noopener noreferrer" class="an-view-title" title="{{ v.url or v.path }}">{{ v.title or v.path }}</a><span class="an-view-stats"><span title="可见且有操作的停留时间">停留 {{ v.active_ms|dur }}</span><span title="页面打开总时长">共 {{ v.total_ms|dur }}</span><span title="最大滚动深度">滚动 {{ v.scroll }}%</span>{% if v.load_ms %}<span title="页面加载完成">加载 {{ (v.load_ms / 1000)|round(1) }} 秒</span>{% endif %}</span></div>
+        <small class="an-view-path">{{ v.path }}{% if v.viewport %} · 视口 {{ v.viewport }}{% endif %}</small>
+        {% if v.events %}<ol class="an-events">{% for e in v.events %}{{ event_row(e, false) }}{% endfor %}</ol>{% endif %}
+      </li>{% endfor %}
+    </ol>
+  </li>{% endfor %}
+</ol>
+{{ pager(sessions, endpoint, args) }}
+{% else %}<p class="an-empty">还没有访问记录。</p>{% endif %}
+{%- endmacro %}

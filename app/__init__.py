@@ -41,6 +41,8 @@ def create_app(config_name):
     if app.config.get('PUBLIC_DEMO'):
         from .public_demo import install
         install(app)
+        from .analytics import install as install_analytics
+        install_analytics(app)
         from .admin import install as install_admin
         install_admin(app)
         from .owner_identity import install as install_owner_identity
