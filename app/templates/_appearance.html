@@ -2,7 +2,7 @@
 {% import "_ui.html" as ui with context %}
 {% macro controls(form) %}
 {% set color = form.appearance_color.data or '' %}
-{% set material = form.appearance_material.data or 'auto' %}
+{% set material = form.appearance_material.data or 'glass' %}
 {% set post_identifier = (display_page_theme|default({})).get('post_id') or 0 %}
 <details class="post-appearance" data-appearance-editor data-appearance-new="{{ 'true' if request.method == 'GET' and request.endpoint in ['main.index','main.write','community.project_talk'] else 'false' }}" data-appearance-auto-material="{{ ui.card_material(post_identifier) }}" data-appearance-auto-color="{{ (display_page_theme|default({})).get('automatic_color','') }}"{% if form.appearance_color.errors or form.appearance_material.errors or request.endpoint in ['main.write','main.edit'] %} open{% endif %}>
   <summary><span>文章外观</span><span class="appearance-current" data-appearance-status>配色与材质</span></summary>
@@ -15,12 +15,12 @@
       {% endfor %}
         <label class="appearance-picker" title="自选颜色"><span>自选</span><input type="color" value="{{ color if color else '#80bfa1' }}" data-appearance-picker aria-label="自选主题色"></label>
       </div>
-      <div class="appearance-color-row"><label for="appearance_color">主题色</label>{{ form.appearance_color(class_='form-control appearance-hex', placeholder='自动配色', spellcheck='false', autocomplete='off', maxlength=7, **{'aria-describedby':'appearance-color-help','aria-invalid':'true' if form.appearance_color.errors else 'false'}) }}<button type="button" class="quiet-link" data-appearance-reset data-appearance-enhanced hidden>恢复自动</button></div>
+      <div class="appearance-color-row"><label for="appearance_color">主题色</label>{{ form.appearance_color(class_='form-control appearance-hex', placeholder='自动配色', spellcheck='false', autocomplete='off', maxlength=7, **{'aria-describedby':'appearance-color-help','aria-invalid':'true' if form.appearance_color.errors else 'false'}) }}<button type="button" class="quiet-link" data-appearance-reset data-appearance-enhanced hidden>恢复默认</button></div>
       <p class="field-help" id="appearance-color-help">可填 #80bfa1 这样的色值；留空由网站安排。</p>
       <button type="button" class="quiet-link appearance-cancel" data-appearance-cancel data-appearance-enhanced hidden>撤销本次配色改动</button>
       {% for error in form.appearance_color.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
       <fieldset class="appearance-materials"><legend>卡片材质</legend><div class="appearance-material-options">
-      {% for value, label in form.appearance_material.choices %}<label><input type="radio" name="appearance_material" value="{{ value }}"{% if material == value %} checked{% endif %}><span class="material-chip material-chip-{{ value }}" aria-hidden="true"></span><span>{{ label }}</span></label>{% endfor %}
+      {% for value, label in form.appearance_material.choices if value != 'auto' %}<label><input type="radio" name="appearance_material" value="{{ value }}"{% if material == value %} checked{% endif %}><span class="material-chip material-chip-{{ value }}" aria-hidden="true"></span><span>{{ label }}</span></label>{% endfor %}
       </div></fieldset>
       {% for error in form.appearance_material.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
     </div>

@@ -6,7 +6,7 @@ from wtforms.validators import DataRequired, Length, Email, Regexp, Optional
 from wtforms import ValidationError
 from flask_pagedown.fields import PageDownField
 from ..models import Role, User
-from ..post_appearance import MATERIAL_CHOICES, apply_post_appearance, normalize_color
+from ..post_appearance import MATERIAL_CHOICES, FORM_MATERIAL_CHOICES, DEFAULT_MATERIAL, apply_post_appearance, normalize_color
 
 
 class NameForm(FlaskForm):
@@ -64,7 +64,7 @@ class PostForm(FlaskForm):
     appearance_color = StringField('卡片主题色', default='', validators=[Optional(strip_whitespace=False), Length(max=7)],
         description='留空自动安排。颜色仅用于协调的局部色调与光影。',
         render_kw={'maxlength': 7, 'placeholder': '自动，例如 #80bfa1', 'autocomplete': 'off'})
-    appearance_material = SelectField('卡片材质', choices=MATERIAL_CHOICES, default='auto')
+    appearance_material = SelectField('卡片材质', choices=MATERIAL_CHOICES, default=DEFAULT_MATERIAL)  # 'auto' stays accepted from older pages; the form no longer shows it
     submit = SubmitField('提交')
 
     def validate_appearance_color(self, field):
@@ -90,7 +90,9 @@ class PostForm(FlaskForm):
             return
         saved = post.appearance
         self.appearance_color.data = saved.theme_color if saved else ''
-        self.appearance_material.data = saved.card_material if saved else 'auto'
+        material = saved.card_material if saved else ''
+        # Older articles chose 'auto'; the form now starts them on clear glass.
+        self.appearance_material.data = material if material in dict(FORM_MATERIAL_CHOICES) else DEFAULT_MATERIAL
 
 class CommentForm(FlaskForm):
     body = TextAreaField('评论', validators=[DataRequired()],

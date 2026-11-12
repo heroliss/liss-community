@@ -133,7 +133,7 @@
       if (color && typeof value.color === 'string') color.value = value.color;
       form.querySelectorAll('[name=appearance_material]').forEach(function (radio) { radio.checked = radio.value === value.material; });
       if (!form.querySelector('[name=appearance_material]:checked')) {
-        var automatic = form.querySelector('[name=appearance_material][value=auto]'); if (automatic) automatic.checked = true;
+        var fallback = form.querySelector('[name=appearance_material][value=auto]') || form.querySelector('[name=appearance_material][value=glass]'); if (fallback) fallback.checked = true;
       }
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
       if (color) color.dispatchEvent(new Event('change', { bubbles: true }));

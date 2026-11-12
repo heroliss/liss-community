@@ -73,7 +73,7 @@ for (const finish of ['frosted','glass','auto','frosted']) {
   check('live finish ' + finish + ' updates optical metadata', optical.preview.dataset.glassFinish === (finish === 'frosted' ? 'frosted' : 'clear'));
 }
 optical.reset.fire('click');
-check('restore auto clears frosted optical metadata', optical.material() === 'auto' && optical.preview.dataset.material === 'glass' && optical.preview.dataset.glassFinish === 'clear');
+check('restore default (clear glass) clears frosted optical metadata', optical.material() === 'glass' && optical.preview.dataset.material === 'glass' && optical.preview.dataset.glassFinish === 'clear');
 const restoredFrost = mount({body:'A restored draft',material:'frosted'});
 check('restored frosted draft does not randomize finish', restoredFrost.material() === 'frosted' && restoredFrost.draws === 0 && restoredFrost.preview.dataset.glassFinish === 'frosted');
 const report = {passed: checks.every(item => item.passed), assertions: checks.length, distribution, checks, source_sha256: crypto.createHash('sha256').update(source).digest('hex'), limits: 'VM stubs validate source controller state and random slots. Native rendering and pointer interaction require browser acceptance.'};

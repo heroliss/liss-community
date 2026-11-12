@@ -8,6 +8,10 @@ MATERIAL_CHOICES = (
     ('auto', '随站点安排'),
 )
 MATERIAL_KEYS = frozenset(value for value, _ in MATERIAL_CHOICES)
+# What the writing form offers: every material, no site-picked 'auto'. Stored 'auto'
+# stays valid for older articles, which keep rendering as before.
+FORM_MATERIAL_CHOICES = tuple(choice for choice in MATERIAL_CHOICES if choice[0] != 'auto')
+DEFAULT_MATERIAL = 'glass'
 _COLOR = re.compile(r'#[0-9a-fA-F]{6}')
 THEME_ROLE_SPECS = {
     'dark': {'accent': (72, None), 'hover': (82, None), 'ink': (10, 24),

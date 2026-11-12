@@ -64,7 +64,8 @@
     root.addEventListener('change',function () { appearance(true); },{signal:signal});
     root.querySelector('[data-appearance-reset]').addEventListener('click',function () {
       hex.value='';
-      root.querySelector('[name=appearance_material][value=auto]').checked=true;
+      var first = root.querySelector('[name=appearance_material][value=glass]') || root.querySelector('[name=appearance_material]');
+      if (first) first.checked=true;
       appearance(true);
     },{signal:signal});
     // Undo is a toggle: it returns to the look this page started with, then offers to

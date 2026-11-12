@@ -32,7 +32,10 @@ class GlassFinishHttpTests(unittest.TestCase):
             with self.subTest(target=target):
                 source = self.client.get(target).get_data(as_text=True)
                 choices = re.findall(r'name="appearance_material" value="([a-z]+)"', source)
-                self.assertEqual(choices, [key for key, _ in MATERIAL_CHOICES])
+                # The form shows every material but no longer the site-picked 'auto'.
+                self.assertEqual(choices, [key for key, _ in MATERIAL_CHOICES if key != 'auto'])
+                if target == '/write':
+                    self.assertIn('value="glass" checked', source)
                 self.assertNotIn('随站点 · 晶透玻璃', source)
                 self.assertNotIn('晶透磨砂玻璃', source)
                 self.assertIn('material-chip-frosted', source)
