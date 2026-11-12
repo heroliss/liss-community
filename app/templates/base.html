@@ -105,5 +105,5 @@
 {% if request.endpoint in ['main.index','main.user','community.project_talk'] %}{% for asset in asset_urls('feed') %}<script src="{{ asset }}" defer></script>{% endfor %}{% endif %}
 {% for asset in asset_urls('navigation') %}<script src="{{ asset }}" defer></script>{% endfor %}
 {% for asset in asset_urls('background-review') %}<script src="{{ asset }}" defer></script>{% endfor %}
-{% if analytics_tracker and not (request.endpoint or '').startswith('admin.') %}<script src="{{ url_for('static', filename='liss-analytics.js', v='20261113-2') }}" data-site="forum" data-endpoint="{{ analytics_tracker.endpoint }}" data-uid="{{ analytics_tracker.uid }}" data-uname="{{ analytics_tracker.uname }}" async></script>{% endif %}
+{% if analytics_tracker and not (request.endpoint or '').startswith('admin.') %}<script src="{{ url_for('static', filename='liss-analytics.js', v='20261113-3') }}" data-site="forum" data-endpoint="{{ analytics_tracker.endpoint }}" data-uid="{{ analytics_tracker.uid }}" data-uname="{{ analytics_tracker.uname }}" async></script>{% endif %}
 {% endblock %}

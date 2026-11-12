@@ -108,7 +108,8 @@ class AnalyticsTests(unittest.TestCase):
     def test_collect_skips_community_lock_session_and_csrf(self):
         response = self.collect(batch(site='forum'), origin='http://localhost', client=self.app.test_client())
         self.assertEqual(response.status_code, 204)
-        self.assertNotIn('Set-Cookie', response.headers)
+        cookies = response.headers.getlist('Set-Cookie')
+        self.assertEqual([c.split('=')[0] for c in cookies], ['liss_d'])  # Only the device id, never a session.
 
     def test_dashboards_require_admin_and_render(self):
         self.collect(batch())
@@ -231,9 +232,11 @@ class AnalyticsTests(unittest.TestCase):
 
     def test_owner_ip_marking_and_type_filters(self):
         self.collect(batch(), ip='198.51.100.20')
-        self.collect(batch(vid='d' * 24, sid='e' * 24, pv=dict(batch()['pv'], id='f' * 24)), ip='203.0.113.7')
+        # Separate browsers: each gets its own device cookie.
+        self.collect(batch(vid='d' * 24, sid='e' * 24, pv=dict(batch()['pv'], id='f' * 24)), ip='203.0.113.7',
+                     client=self.app.test_client())
         self.collect(batch(vid='g' * 24, sid='h' * 24, pv=dict(batch()['pv'], id='i' * 24)), ip='192.0.2.5',
-                     ua=CHROME.replace('Chrome', 'HeadlessChrome'))
+                     ua=CHROME.replace('Chrome', 'HeadlessChrome'), client=self.app.test_client())
         kinds = {r['id'][0]: r['bot'] for r in self.store().query('SELECT id, bot FROM visitors')}
         self.assertEqual(kinds, {'a': 0, 'd': 0, 'g': 1})
         self.login()
@@ -293,7 +296,7 @@ class AnalyticsTests(unittest.TestCase):
             connection.execute("UPDATE meta SET value = '1' WHERE key = 'schema'")
         store._ready = False
         self.assertEqual(store.scalar('SELECT COUNT(*) FROM pageviews WHERE bot = 2'), 1)
-        self.assertEqual(store.scalar("SELECT value FROM meta WHERE key = 'schema'"), '3')
+        self.assertEqual(store.scalar("SELECT value FROM meta WHERE key = 'schema'"), '4')
 
 
     def test_header_and_fingerprint_signals(self):
@@ -316,7 +319,7 @@ class AnalyticsTests(unittest.TestCase):
                                 env=json.dumps({'h': 1, 'al': 'zh-CN', 'chua': '"Chromium";v="142"', 'chp': 'Linux'})))
         self.assertEqual(reasons[0], 2)
         self.assertIn('请求头系统为 Linux', reasons[1][0])
-        for env in ({'hl': True}, {'np': True}):
+        for env in ({'hl': True},):
             self.assertEqual(classify(dict(ua=CHROME, tz='Asia/Shanghai', screen='1920x1080', env=json.dumps(env)))[0], 2, env)
         weak = classify(dict(ua=CHROME, tz='UTC', screen='1920x1080', env=json.dumps({'h': 1, 'pl': 0})))
         self.assertEqual(weak[0], 2)
@@ -357,6 +360,47 @@ class AnalyticsTests(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(self.store().scalar('SELECT bot FROM visitors'), 4)
         self.assertIn('本人 1', self.client.get('/admin/analytics/data').get_data(as_text=True))
+
+
+    def test_huawei_phone_is_a_visitor(self):
+        # Real HarmonyOS phone: ArkWeb shows the notification quirk that headless Chrome has.
+        ua = ('Mozilla/5.0 (Phone; OpenHarmony 7.0; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 '
+              'Safari/537.36  ArkWeb/7.0.0.111 Mobile HuaweiBrowser/6.1.9.323')
+        env = {'al': 'zh-CN,zh;q=0.9', 'gpu': 'Maleoon 935F', 'h': 1, 'hc': 12, 'tp': 10, 'np': True, 'pl': 5,
+               'pf': 'Linux x86_64', 'ptr': 'coarse', 'wd': False, 'hl': False}
+        visitor = dict(ua=ua, lang='zh-CN', tz='Asia/Shanghai', screen='374x823@3.5', env=json.dumps(env), human=1)
+        self.assertEqual(classify(visitor)[0], 0)
+        self.assertEqual(classify(dict(visitor, human=0, tz='UTC'))[0], 2)  # The quirk still counts as weak evidence.
+
+    def test_device_cookie_links_sites_and_shares_owner(self):
+        client = self.app.test_client()
+        works = batch()
+        forum = batch(site='forum', vid='d' * 24, sid='e' * 24, pv=dict(batch()['pv'], id='f' * 24, path='/', url='https://liss.pythonanywhere.com/'))
+        first = self.collect(works, ip='198.51.100.50', client=client)
+        cookie = first.headers.get('Set-Cookie', '')
+        self.assertIn('liss_d=', cookie)
+        self.assertIn('HttpOnly', cookie)
+        self.collect(forum, origin='https://liss.pythonanywhere.com', ip='203.0.113.60', client=client)
+        rows = {r['id'][0]: r['device_id'] for r in self.store().query('SELECT id, device_id FROM visitors')}
+        self.assertEqual(rows['a'], rows['d'])
+        self.assertTrue(rows['a'])
+        # Marking the forum browser as the owner carries over to its portfolio record.
+        marked = batch(site='forum', vid='d' * 24, sid='e' * 24, pv=dict(forum['pv']))
+        marked['ctx'] = dict(marked['ctx'], env={'me': True})
+        self.collect(marked, origin='https://liss.pythonanywhere.com', ip='203.0.113.60', client=client)
+        kinds = {r['id'][0]: (r['bot'], r['kind_reason']) for r in self.store().query('SELECT id, bot, kind_reason FROM visitors')}
+        self.assertEqual(kinds['d'][0], 4)
+        self.assertEqual(kinds['a'], (4, '同一设备在另一站点的记录已标记为本人'))
+        # Another browser (no cookie) stays separate.
+        self.collect(batch(vid='g' * 24, sid='h' * 24, pv=dict(batch()['pv'], id='i' * 24)), ip='192.0.2.70')
+        self.assertNotEqual(self.store().scalar('SELECT device_id FROM visitors WHERE id = ?', ('g' * 24,)), rows['a'])
+        self.login()
+        page = self.client.get(f'/admin/analytics/visitor/{VID}').get_data(as_text=True)
+        self.assertIn('同一设备的其他记录', page)
+        self.assertIn('d' * 24, page)
+        devices = self.client.get('/admin/analytics/visitors?range=all&by=device&who=all').get_data(as_text=True)
+        self.assertIn('跨站 2', devices)
+        self.assertIn('台设备', devices)
 
 
 if __name__ == '__main__':

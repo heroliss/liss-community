@@ -444,7 +444,7 @@ def analytics_live():
 @admin.get('/analytics/visitors')
 def analytics_visitors():
     f = Filters(request.args)
-    mode = 'ip' if request.args.get('by') == 'ip' else 'visitor'
+    mode = request.args.get('by') if request.args.get('by') in ('ip', 'device') else 'visitor'
     q = request.args.get('q', '').strip()[:100]
     where, params = f.where()
     if q:
@@ -463,6 +463,18 @@ def analytics_visitors():
                f'EXISTS(SELECT 1 FROM ignored_ips i WHERE i.ip = p.ip) ignored '
                f'FROM pageviews p WHERE {where} GROUP BY p.ip ORDER BY {order}')
         count = f'SELECT COUNT(DISTINCT p.ip) FROM pageviews p WHERE {where}'
+    elif mode == 'device':
+        # One row per device: visitors sharing the device cookie (forum + github.io) are merged.
+        sql = (f"SELECT COALESCE(NULLIF(v.device_id, ''), p.visitor_id) dkey, MAX(p.visitor_id) visitor_id, "
+               f'MIN(p.started_at) first, MAX(p.last_seen) last, COUNT(*) pv, COUNT(DISTINCT p.session_id) sessions, '
+               f'COUNT(DISTINCT p.visitor_id) records, SUM(p.active_ms) active, GROUP_CONCAT(DISTINCT p.ip) ips, '
+               f'GROUP_CONCAT(DISTINCT p.site) sites, MAX(v.browser) browser, MAX(v.os) os, MAX(v.device) device, '
+               f'MAX(v.screen) screen, MAX(v.username) username, MAX(v.user_id) user_id, MAX(v.note) note, '
+               f'MIN(v.first_seen) first_seen, MAX(v.bot) kind, MAX(v.kind_reason) kind_reason, MAX(v.kind_locked) kind_locked '
+               f'FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
+               f"WHERE {where} GROUP BY dkey ORDER BY {order}")
+        count = (f"SELECT COUNT(DISTINCT COALESCE(NULLIF(v.device_id, ''), p.visitor_id)) FROM pageviews p "
+                 f'JOIN visitors v ON v.id = p.visitor_id WHERE {where}')
     else:
         sql = (f'SELECT p.visitor_id, MIN(p.started_at) first, MAX(p.last_seen) last, COUNT(*) pv, '
                f'COUNT(DISTINCT p.session_id) sessions, SUM(p.active_ms) active, GROUP_CONCAT(DISTINCT p.ip) ips, '
@@ -473,7 +485,7 @@ def analytics_visitors():
     result = paged(sql, count, params, page_number())
     for row in result['rows']:
         row['site_list'] = [s for s in (row.get('sites') or '').split(',') if s]
-        if mode == 'visitor':
+        if mode in ('visitor', 'device'):
             row['ip_list'] = [ip for ip in (row.get('ips') or '').split(',') if ip]
             row['is_new'] = row['first_seen'] >= f.start
     return render('admin/analytics/visitors.html', analytics_page='visitors', f=f, mode=mode, q=q, sort=sort, result=result)
@@ -496,7 +508,17 @@ def analytics_visitor(visitor_id):
     favourite = store().query('SELECT site, path, MAX(title) title, COUNT(*) pv, SUM(active_ms) active FROM pageviews '
                               'WHERE visitor_id = ? GROUP BY site, path ORDER BY active DESC LIMIT 8', (visitor_id,))
     visitor['facts'] = env_facts(visitor)
+    linked = store().query("SELECT v.*, (SELECT GROUP_CONCAT(DISTINCT site) FROM pageviews WHERE visitor_id = v.id) sites, "
+                           "(SELECT COUNT(*) FROM pageviews WHERE visitor_id = v.id) pv FROM visitors v "
+                           "WHERE v.device_id <> '' AND v.device_id = ? AND v.id <> ? ORDER BY v.last_seen DESC",
+                           (visitor['device_id'], visitor_id)) if visitor['device_id'] else []
+    similar = store().query("SELECT v.*, (SELECT GROUP_CONCAT(DISTINCT site) FROM pageviews WHERE visitor_id = v.id) sites, "
+                            "(SELECT COUNT(*) FROM pageviews WHERE visitor_id = v.id) pv FROM visitors v "
+                            "WHERE v.fp <> '' AND v.fp = ? AND v.id <> ? AND (v.device_id = '' OR v.device_id <> ?) "
+                            "ORDER BY v.last_seen DESC LIMIT 20", (visitor['fp'], visitor_id, visitor['device_id'])) \
+        if visitor['fp'] else []
     return render('admin/analytics/visitor.html', analytics_page='visitors', visitor=visitor, totals=totals, ips=ips,
+                  linked=linked, similar=similar,
                   favourite=favourite, sessions=timeline('s.visitor_id = ?', (visitor_id,), page_number()))
 
 

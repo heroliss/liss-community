@@ -220,3 +220,7 @@ h1 .an-kind { font-size: .75rem; margin-left: 6px; }
 .an-kind-split { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: -8px 0 20px; font-size: .8125rem; }
 .an-kind-split a { color: var(--text); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
 .an-kind-split a:hover .an-kind { background: var(--accent-soft); }
+
+.an-linked { margin-bottom: 24px; }
+.an-linked-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+.an-linked-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: .8125rem; }

@@ -179,7 +179,7 @@
     try {
       if (navigator.sendBeacon && navigator.sendBeacon(endpoint, new Blob([body], { type: 'text/plain;charset=UTF-8' }))) return;
     } catch (e) {}
-    try { fetch(endpoint, { method: 'POST', body: body, keepalive: true, mode: 'no-cors', credentials: 'omit', headers: { 'Content-Type': 'text/plain;charset=UTF-8' } }); } catch (e) {}
+    try { fetch(endpoint, { method: 'POST', body: body, keepalive: true, mode: 'no-cors', credentials: 'include', headers: { 'Content-Type': 'text/plain;charset=UTF-8' } }); } catch (e) {}
   }
 
   // ---- events

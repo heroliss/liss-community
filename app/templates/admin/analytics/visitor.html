@@ -22,6 +22,12 @@
     <ol class="an-bars an-bars-plain">{% for p in favourite %}<li><div class="an-bar-label">{{ an.site_tag(p.site) }}<a href="{{ p|page_url }}" target="_blank" rel="noopener noreferrer">{{ p.title or p.path }}</a></div><span class="an-bar-value">{{ p.active|dur }}<small> · {{ p.pv }} 次</small></span></li>{% endfor %}</ol>
   </section>
 </div>
+{% if linked or similar %}<section class="an-card an-linked"><div class="an-card-head"><h2>同一设备的其他记录</h2></div>
+  {% if linked %}<p class="an-help">确定是同一个浏览器（共享设备标识），通常是同一台设备分别访问社区和作品站：</p>
+  <ul class="an-linked-list">{% for v in linked %}<li>{{ an.visitor_link(v.id, ('@' ~ v.username) if v.username else None) }} {{ an.kind_badge(v.bot, v.kind_reason, v.kind_locked) }}{% for s in (v.sites or '').split(',') if s %}{{ an.site_tag(s) }}{% endfor %}<span class="an-muted">{{ v.pv }} 次浏览 · 最近 {{ v.last_seen|ago }} · {{ v.last_ip }}</span></li>{% endfor %}</ul>{% endif %}
+  {% if similar %}<p class="an-help">可能是同一台设备（硬件与设置完全相同；同型号同设置的手机也会相同，仅供参考）：</p>
+  <ul class="an-linked-list">{% for v in similar %}<li>{{ an.visitor_link(v.id, ('@' ~ v.username) if v.username else None) }} {{ an.kind_badge(v.bot, v.kind_reason, v.kind_locked) }}{% for s in (v.sites or '').split(',') if s %}{{ an.site_tag(s) }}{% endfor %}<span class="an-muted">{{ v.pv }} 次浏览 · 最近 {{ v.last_seen|ago }} · {{ v.last_ip }}</span></li>{% endfor %}</ul>{% endif %}
+</section>{% endif %}
 <section class="an-section"><div class="an-card-head"><h2>访问轨迹</h2><span class="an-muted">每次访问内按时间顺序列出页面与点击</span></div>
   {{ an.timeline(sessions, 'admin.analytics_visitor', {'visitor_id': visitor.id}) }}</section>
 <details class="an-danger"><summary>删除这位访客的全部记录</summary>

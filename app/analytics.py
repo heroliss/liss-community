@@ -10,16 +10,18 @@ import ipaddress
 import json
 import os
 from pathlib import Path
+import secrets
 import threading
 import time
 
-from flask import Blueprint, current_app, request
+from flask import Blueprint, current_app, make_response, request
 from flask_login import current_user
 
-from .analytics_store import AnalyticsStore, display_zone
+from .analytics_store import ID, AnalyticsStore, display_zone
 
 analytics = Blueprint('analytics', __name__)
 DEFAULT_ORIGINS = ('https://heroliss.github.io', 'https://liss.pythonanywhere.com')
+DEVICE_COOKIE = 'liss_d'
 _rates = OrderedDict()
 _rates_lock = threading.Lock()
 
@@ -75,13 +77,22 @@ def collect():
         return '', 400
     site = payload.get('site') if isinstance(payload, dict) else None
     own = {request.host.split(':')[0].lower()} if site == 'forum' else {'heroliss.github.io'}
+    # A long-lived cookie on this host links the same browser across the community and github.io
+    # (Chromium browsers send it on cross-site beacons; Safari / Firefox keep it per site).
+    device = request.cookies.get(DEVICE_COOKIE, '')
+    if not ID.fullmatch(device):
+        device = secrets.token_hex(12)
     try:
         store().ingest(payload, ip=ip, ua=request.headers.get('User-Agent', ''), own_hosts=own,
-                       headers=request.headers)
+                       headers=request.headers, device_id=device)
     except Exception:  # Analytics must never break the visitor's page.
         current_app.logger.exception('analytics ingest failed')
         return '', 500
-    return '', 204
+    response = make_response('', 204)
+    secure = bool(current_app.config.get('SESSION_COOKIE_SECURE'))
+    response.set_cookie(DEVICE_COOKIE, device, max_age=2 * 365 * 86400, path='/analytics/', httponly=True,
+                        secure=secure, samesite='None' if secure else 'Lax')
+    return response
 
 
 def tracker_context():

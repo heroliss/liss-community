@@ -7,6 +7,7 @@ are integer UTC milliseconds; display code converts them.
 from __future__ import annotations
 
 from contextlib import closing, contextmanager
+import hashlib
 from datetime import datetime, timedelta, timezone
 import ipaddress
 import json
@@ -17,7 +18,7 @@ import threading
 import time
 from urllib.parse import urlsplit
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 _LOCK = threading.RLock()
 
 SCHEMA = """
@@ -78,7 +79,8 @@ VISITOR, BOT_KIND, SUSPECT, TEST, OWNER = 0, 1, 2, 3, 4
 KINDS = {VISITOR: '访客', OWNER: '本人', TEST: '测试', BOT_KIND: '机器人', SUSPECT: '疑似机器人'}
 OWNER_WINDOW_HOURS = 12  # Visits from an IP within this many hours of admin activity there count as 本人.
 VISITOR_COLUMNS = (('env', "TEXT NOT NULL DEFAULT ''"), ('human', 'INTEGER NOT NULL DEFAULT 0'),
-                   ('kind_locked', 'INTEGER NOT NULL DEFAULT 0'), ('kind_reason', "TEXT NOT NULL DEFAULT ''"))
+                   ('kind_locked', 'INTEGER NOT NULL DEFAULT 0'), ('kind_reason', "TEXT NOT NULL DEFAULT ''"),
+                   ('device_id', "TEXT NOT NULL DEFAULT ''"), ('fp', "TEXT NOT NULL DEFAULT ''"))
 PAGEVIEW_COLUMNS = (('inputs', 'INTEGER NOT NULL DEFAULT 0'),)
 ENV_TEXT = {'pf': 40, 'langs': 80, 'gpu': 120, 'conn': 16, 'cs': 8, 'ptr': 8, 'uab': 120, 'pv': 24, 'mdl': 60,
             'arch': 16, 'al': 80, 'chua': 200, 'chp': 24, 'chm': 4}
@@ -199,7 +201,21 @@ def refine_os(os_name: str, env: dict) -> str:
     return os_name
 
 
-def classify(visitor: dict, *, owner=False, region='') -> tuple[int, list[str]]:
+def fingerprint(visitor: dict) -> str:
+    """Hash of hardware / setup signals. Equal values suggest (not prove) the same device: identical
+    phone models with the same settings collide. Empty when the tracker sent no device signals."""
+    try:
+        env = json.loads(visitor.get('env') or '{}')
+    except ValueError:
+        env = {}
+    if not env.get('gpu') and 'hc' not in env:
+        return ''
+    parts = [visitor.get('ua') or '', visitor.get('screen') or '', visitor.get('tz') or ''] + \
+            [str(env.get(k, '')) for k in ('gpu', 'hc', 'dm', 'tp', 'langs', 'pf', 'cd', 'mdl', 'pv')]
+    return hashlib.sha1('|'.join(parts).encode('utf-8')).hexdigest()[:16]
+
+
+def classify(visitor: dict, *, owner=False, region='', linked_me=False) -> tuple[int, list[str]]:
     """Visitor type and the reasons, from what the visitor row recorded."""
     ua = visitor.get('ua') or ''
     try:
@@ -231,8 +247,8 @@ def classify(visitor: dict, *, owner=False, region='') -> tuple[int, list[str]]:
         strong.append('客户端提示显示为无界面浏览器')
     if env.get('oz'):  # Also true in some embedded app browsers, so only supporting evidence.
         weak.append('窗口外框尺寸为 0')
-    if env.get('np'):
-        strong.append('通知权限状态前后矛盾（无界面浏览器特征）')
+    if env.get('np'):  # Headless Chrome does this, but so does Huawei's ArkWeb on real phones.
+        weak.append('通知权限状态前后矛盾')
     if chua and not re.search(r'Chrome|Chromium|Edg|OPR', ua):
         strong.append('自称非 Chromium 浏览器，却发送了 Chromium 客户端提示')
     claimed = next((name for name, pattern in UA_PLATFORMS if re.search(pattern, ua)), '')
@@ -258,6 +274,8 @@ def classify(visitor: dict, *, owner=False, region='') -> tuple[int, list[str]]:
         return TEST, ['Claude 应用内置浏览器']
     if env.get('me') and not owner:
         owner, owner_reason = True, '此浏览器已标记为本人'
+    elif linked_me and not owner:
+        owner, owner_reason = True, '同一设备在另一站点的记录已标记为本人'
     else:
         owner_reason = f'与后台登录同一 IP（前后 {OWNER_WINDOW_HOURS} 小时内）'
     if owner:
@@ -311,6 +329,8 @@ class AnalyticsStore:
                     for name, spec in VISITOR_COLUMNS:
                         if name not in columns:
                             connection.execute(f'ALTER TABLE visitors ADD COLUMN {name} {spec}')
+                    connection.execute('CREATE INDEX IF NOT EXISTS vi_device ON visitors(device_id)')
+                    connection.execute('CREATE INDEX IF NOT EXISTS vi_fp ON visitors(fp)')
                     columns = {row[1] for row in connection.execute('PRAGMA table_info(pageviews)')}
                     for name, spec in PAGEVIEW_COLUMNS:
                         if name not in columns:
@@ -338,7 +358,8 @@ class AnalyticsStore:
                 self._ignored = {row['ip'] for row in db.execute('SELECT ip FROM ignored_ips')}
         return self._ignored
 
-    def ingest(self, payload: dict, *, ip: str, ua: str, own_hosts=(), server_now=None, headers=None) -> dict:
+    def ingest(self, payload: dict, *, ip: str, ua: str, own_hosts=(), server_now=None, headers=None,
+               device_id: str = '') -> dict:
         """Record one tracker batch. Returns a small status dict; never raises on bad input."""
         server_now = server_now or now_ms()
         if not isinstance(payload, dict):
@@ -364,6 +385,7 @@ class AnalyticsStore:
             env.update(header_env(headers))
         human = 1 if page.get('hi') is True else 0
         inputs = as_int(page.get('inp'), 0, 100_000) or 0
+        device_id = device_id if ID.fullmatch(device_id or '') else ''
         ua = clip(ua, 400)
         with self.connect() as db:
             visitor = db.execute('SELECT bot, env FROM visitors WHERE id=?', (vid,)).fetchone()
@@ -378,17 +400,19 @@ class AnalyticsStore:
                 kind = classify(dict(ua=ua, lang=lang, tz=tz, screen=screen, env=env_json, human=human),
                                 region=self._region(ip))[0]
                 db.execute('INSERT INTO visitors (id, first_seen, last_seen, first_ip, last_ip, ua, browser, os, device, bot, '
-                           'lang, tz, screen, user_id, username, env, human) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                           'lang, tz, screen, user_id, username, env, human, device_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                            (vid, server_now, server_now, ip, ip, ua, info['browser'], info['os'], info['device'],
-                            kind, lang, tz, screen, user_id, username, env_json or '', human))
+                            kind, lang, tz, screen, user_id, username, env_json or '', human, device_id))
             else:
                 kind = visitor['bot']
                 db.execute('UPDATE visitors SET last_seen=?, last_ip=?, ua=?, browser=?, os=?, device=?, '
                            'lang=COALESCE(?, lang), tz=COALESCE(?, tz), '
                            'screen=COALESCE(?, screen), user_id=COALESCE(?, user_id), '
-                           'username=COALESCE(?, username), env=COALESCE(?, env), human=MAX(human, ?) WHERE id=?',
+                           'username=COALESCE(?, username), env=COALESCE(?, env), human=MAX(human, ?), '
+                           'device_id=COALESCE(?, device_id) WHERE id=?',
                            (server_now, ip, ua, info['browser'], info['os'], info['device'],
-                            lang or None, tz or None, screen or None, user_id, username or None, env_json, human, vid))
+                            lang or None, tz or None, screen or None, user_id, username or None, env_json, human,
+                            device_id or None, vid))
             session = db.execute('SELECT id, visitor_id FROM sessions WHERE id=?', (sid,)).fetchone()
             if session is not None and session['visitor_id'] != vid:
                 return {'stored': False, 'reason': 'session-owner'}
@@ -467,24 +491,42 @@ class AnalyticsStore:
             return ''
 
     def _reclassify(self, db, visitor_ids=None):
-        """Recompute the type of the given visitors (all when None) and copy it onto their rows."""
+        """Recompute the type of the given visitors (all when None) and copy it onto their rows.
+        Visitors sharing a device cookie (the same browser on the forum and on github.io) share owner
+        evidence, so they are recomputed together."""
         if visitor_ids is None:
             rows = db.execute('SELECT * FROM visitors').fetchall()
         else:
             ids = list(dict.fromkeys(visitor_ids))
             if not ids:
                 return
+            marks = ','.join('?' * len(ids))
+            devices = [r[0] for r in db.execute(f"SELECT DISTINCT device_id FROM visitors WHERE id IN ({marks}) "
+                                                f"AND device_id <> ''", ids)]
+            if devices:
+                ids += [r[0] for r in db.execute(f'SELECT id FROM visitors WHERE device_id IN ({",".join("?" * len(devices))})',
+                                                 devices)]
+                ids = list(dict.fromkeys(ids))
             rows = db.execute(f'SELECT * FROM visitors WHERE id IN ({",".join("?" * len(ids))})', ids).fetchall()
         window = OWNER_WINDOW_HOURS
         for row in rows:
             visitor = dict(row)
+            group = [visitor['id']]
+            if visitor['device_id']:
+                group = [r[0] for r in db.execute('SELECT id FROM visitors WHERE device_id = ?', (visitor['device_id'],))]
+            fp = fingerprint(visitor)
+            if fp != visitor['fp']:
+                db.execute('UPDATE visitors SET fp=? WHERE id=?', (fp, visitor['id']))
             if visitor['kind_locked']:
                 kind, reason = visitor['bot'], visitor['kind_reason'] or '手动设置'
             else:
+                marks = ','.join('?' * len(group))
                 owner = db.execute('SELECT 1 FROM pageviews p JOIN owner_marks o ON o.ip = p.ip '
                                    f'AND o.hour BETWEEN p.started_at / 3600000 - {window} AND p.started_at / 3600000 + {window} '
-                                   'WHERE p.visitor_id = ? LIMIT 1', (visitor['id'],)).fetchone() is not None
-                kind, reasons = classify(visitor, owner=owner, region=self._region(visitor['last_ip']))
+                                   f'WHERE p.visitor_id IN ({marks}) LIMIT 1', group).fetchone() is not None
+                linked_me = db.execute(f'SELECT 1 FROM visitors WHERE id IN ({marks}) AND id <> ? AND env LIKE ? LIMIT 1',
+                                       (*group, visitor['id'], '%"me": true%')).fetchone() is not None
+                kind, reasons = classify(visitor, owner=owner, region=self._region(visitor['last_ip']), linked_me=linked_me)
                 reason = '；'.join(reasons)
             if kind != visitor['bot'] or reason != visitor['kind_reason']:
                 db.execute('UPDATE visitors SET bot=?, kind_reason=? WHERE id=?', (kind, reason, visitor['id']))
