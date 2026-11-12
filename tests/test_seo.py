@@ -256,3 +256,22 @@ class SeoTests(unittest.TestCase):
         response = self.client.get('/static/bundles/nonexistent-seo-test.js')
         self.assertEqual(response.status_code, 404)
         self.assertNotIn('immutable', response.headers.get('Cache-Control', ''))
+
+
+class GoogleVerificationTests(unittest.TestCase):
+    def test_only_configured_tokens_are_served(self):
+        app = create_app('testing')
+        app.config['LISS_GOOGLE_VERIFICATION'] = '9e0af2d9a3dd6e89, 0123456789abcdef'
+        with app.app_context():
+            db.create_all()
+            client = app.test_client()
+            ok = client.get('/google9e0af2d9a3dd6e89.html')
+            self.assertEqual(ok.status_code, 200)
+            self.assertEqual(ok.get_data(as_text=True), 'google-site-verification: google9e0af2d9a3dd6e89.html')
+            self.assertEqual(client.get('/googleffffffffffffffff.html').status_code, 404)
+            self.assertEqual(client.get('/googlenot-a-token.html').status_code, 404)
+            app.config['LISS_GOOGLE_VERIFICATION'] = ''
+            self.assertEqual(client.get('/google9e0af2d9a3dd6e89.html').status_code, 404)
+            db.session.remove()
+            db.drop_all()
+            db.engine.dispose()

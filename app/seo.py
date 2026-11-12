@@ -131,6 +131,15 @@ def robots():
     return Response(text + 'Sitemap: ' + public_base() + '/sitemap.xml\n', mimetype='text/plain')
 
 
+@seo.get('/google<token>.html')
+def google_verification(token):
+    """Search Console HTML-file ownership check; tokens come from LISS_GOOGLE_VERIFICATION."""
+    allowed = {value.strip() for value in str(current_app.config.get('LISS_GOOGLE_VERIFICATION') or '').split(',')}
+    if not re.fullmatch(r'[0-9a-f]{16}', token) or token not in allowed:
+        abort(404)
+    return Response(f'google-site-verification: google{token}.html', mimetype='text/html')
+
+
 @seo.get('/sitemap.xml')
 def sitemap():
     require_indexing()

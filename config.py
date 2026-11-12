@@ -56,6 +56,8 @@ class Config:
     LISS_ALIYUN_SENDER_VERIFIED = os.environ.get('LISS_ALIYUN_SENDER_VERIFIED', '0') == '1'
     LISS_PUBLIC_BASE_URL = os.environ.get('LISS_PUBLIC_BASE_URL', '')
     LISS_INDEXING_ENABLED = os.environ.get('LISS_INDEXING_ENABLED', '0') == '1'
+    # Comma-separated Google Search Console HTML-file tokens (google<token>.html).
+    LISS_GOOGLE_VERIFICATION = os.environ.get('LISS_GOOGLE_VERIFICATION', '')
     LISS_LOCAL_PREVIEW = os.environ.get('LISS_LOCAL_PREVIEW', '0') == '1'
     LISS_USE_BUILT_ASSETS = os.environ.get('LISS_USE_BUILT_ASSETS', '1') != '0'
     # Empty serves the local portfolio directory; production can redirect to Pages.
