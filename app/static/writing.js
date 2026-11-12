@@ -103,6 +103,15 @@
       keyMap['Shift-Tab'] = false;
       editor.codemirror.setOption('extraKeys', keyMap);
       form.addEventListener('submit', function () { editor.codemirror.save(); });
+      // Publishing needs real words: blank or whitespace-only text keeps the button off.
+      var publish = form.querySelector('[type=submit]');
+      function syncPublish() {
+        if (!publish) return;
+        var empty = !editor.value().trim();
+        publish.disabled = empty;
+        publish.title = empty ? '先写点内容再发布' : '';
+      }
+      editor.codemirror.on('change', syncPublish); syncPublish();
       function refresh() {
         editor.codemirror.refresh();
       }

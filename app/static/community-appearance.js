@@ -55,7 +55,7 @@
       root.querySelector('.appearance-sample-note').hidden = false;
     }
     swatches.forEach(function (swatch) {
-      swatch.addEventListener('click',function () { hex.value=swatch.dataset.appearanceSwatch; appearance(true); },{signal:signal});
+      swatch.addEventListener('click',function () { hex.value=swatch.dataset.appearanceSwatch; if (undone) { undone = null; labelCancel(); } appearance(true); },{signal:signal});
     });
     root.addEventListener('input',function (event) {
       if (event.target === picker) hex.value=picker.value;
@@ -67,11 +67,21 @@
       root.querySelector('[name=appearance_material][value=auto]').checked=true;
       appearance(true);
     },{signal:signal});
-    root.querySelector('[data-appearance-cancel]').addEventListener('click',function () {
-      hex.value=initialColor;
-      root.querySelector('[name=appearance_material][value='+initialMaterial+']').checked=true;
+    // Undo is a toggle: it returns to the look this page started with, then offers to
+    // put back the colour and material that were just undone. On the writing page the
+    // panel stays open (it has no other way to reopen).
+    var cancel = root.querySelector('[data-appearance-cancel]'), undone = null, studio = !!root.closest('[data-write-studio]');
+    function current() { var r = root.querySelector('[name=appearance_material]:checked'); return { color: hex.value, material: r ? r.value : 'auto' }; }
+    function apply(look) { hex.value = look.color; var r = root.querySelector('[name=appearance_material][value='+look.material+']'); if (r) r.checked = true; }
+    function labelCancel() { cancel.textContent = undone ? '恢复刚才的配色' : '撤销本次配色改动'; }
+    cancel.addEventListener('click',function () {
+      if (undone) { apply(undone); undone = null; labelCancel(); appearance(true); return; }
+      undone = current(); apply({ color: initialColor, material: initialMaterial }); labelCancel();
+      if (studio) { appearance(true); return; }
       appearance(false); theme.restore(root); root.open=false;
     },{signal:signal});
+    root.addEventListener('change',function (event) { if (event.isTrusted && undone) { undone = null; labelCancel(); } },{signal:signal});
+    labelCancel();
     root.addEventListener('toggle',function () { if (visible()) appearance(true); else theme.restore(root); },{signal:signal});
     if (composer) composer.addEventListener('toggle',function () { if (visible()) appearance(true); else theme.restore(root); },{signal:signal});
     root.addEventListener('keydown',function (event) { if (event.key === 'Escape') { root.open=false; theme.restore(root); } },{signal:signal});

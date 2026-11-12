@@ -17,7 +17,7 @@
       </div>
       <div class="appearance-color-row"><label for="appearance_color">主题色</label>{{ form.appearance_color(class_='form-control appearance-hex', placeholder='自动配色', spellcheck='false', autocomplete='off', maxlength=7, **{'aria-describedby':'appearance-color-help','aria-invalid':'true' if form.appearance_color.errors else 'false'}) }}<button type="button" class="quiet-link" data-appearance-reset data-appearance-enhanced hidden>恢复自动</button></div>
       <p class="field-help" id="appearance-color-help">可填 #80bfa1 这样的色值；留空由网站安排。</p>
-      <button type="button" class="quiet-link appearance-cancel" data-appearance-cancel data-appearance-enhanced hidden>撤销本次配色预览</button>
+      <button type="button" class="quiet-link appearance-cancel" data-appearance-cancel data-appearance-enhanced hidden>撤销本次配色改动</button>
       {% for error in form.appearance_color.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
       <fieldset class="appearance-materials"><legend>卡片材质</legend><div class="appearance-material-options">
       {% for value, label in form.appearance_material.choices %}<label><input type="radio" name="appearance_material" value="{{ value }}"{% if material == value %} checked{% endif %}><span class="material-chip material-chip-{{ value }}" aria-hidden="true"></span><span>{{ label }}</span></label>{% endfor %}

@@ -116,14 +116,14 @@
       }
     },
     "writing": {
-      "file": "bundles/writing.6e1fbb0bf5448bce.js",
-      "sha256": "6e1fbb0bf5448bce6001eaa6b70041f6056a4cf62b36144685f64af6d850c661",
-      "bytes": 9125,
-      "sourceBytes": 13998,
-      "gzipBytes": 3952,
+      "file": "bundles/writing.3a63e80a91b57ae5.js",
+      "sha256": "3a63e80a91b57ae5265768fc9eccdbe5625a34f10e87e7f76d6c0c09f9aea97a",
+      "bytes": 9779,
+      "sourceBytes": 15491,
+      "gzipBytes": 4238,
       "sources": {
-        "writing.js": "bbbc4f74a25771bf8ffa36cd91be400242fa591d59877ec0f3019f5153a5350b",
-        "community-appearance.js": "31387f30fe8234559268857fa6362611326f66ab82b227acfd5195b3ac9ac08d"
+        "writing.js": "b4e3ec860d760747b3a6f7f1557d352ac1a7ac6ad2316c0469b45d477dbed2d8",
+        "community-appearance.js": "2da72381edd4be0856e8571381aefda60f0e1fcb56d15d0a7980184bee3cfa56"
       }
     },
     "drafts": {
