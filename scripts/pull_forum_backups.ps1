@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Download the forum's daily backups from PythonAnywhere to this PC (off-site copy).
 
