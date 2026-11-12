@@ -141,11 +141,7 @@
       // A small, native-resolution drawing field uses the same absolute-scroll
       // principle. It never loops or resets at the document's lower edge, and
       // its explicit overscan leaves room for both the camera and local leaves.
-      else if(vectorScene){
-        // The v60 drawn scenes are full of small lights; drifting them with scroll made
-        // the rising motes in front look as if they sped up. They stay put on scroll.
-        var stillScene=!!(appliedEntry&&appliedEntry.randomEligible);
-        var vectorTravel=vectorGeometry&&!stillScene?Math.min(vectorGeometry.travel,Math.max(0,scrollPixels)*vectorGeometry.scrollRate):0;vectorScene.style.transform='translate3d('+dx.toFixed(2)+'px,'+(dy-vectorTravel).toFixed(2)+'px,0)';}
+      else if(vectorScene){var vectorTravel=vectorGeometry?Math.min(vectorGeometry.travel,Math.max(0,scrollPixels)*vectorGeometry.scrollRate):0;vectorScene.style.transform='translate3d('+dx.toFixed(2)+'px,'+(dy-vectorTravel).toFixed(2)+'px,0)';}
       if(scenePending&&((landscapeImage&&landscapeGeometry)||(vectorScene&&vectorGeometry))){
         scenePending=false;wrapper.dataset.sceneReady='true';
         if(backgrounds&&backgrounds.releaseBootstrap)backgrounds.releaseBootstrap();

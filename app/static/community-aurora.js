@@ -19,7 +19,7 @@
       'neon-rain': ['#ff4fa3', '#38e1ff', '#a26bff'], 'lantern-field': ['#ffb347', '#ffd27a', '#ff8a5c']
     };
     var fallback = ['#bfe8ff', '#6ee8e3', '#e2c6ff'];
-    var context = motes.getContext('2d'), list = [], sprites = {}, width = 0, height = 0, ratio = 1, frame = 0, last = 0;
+    var context = motes.getContext('2d'), list = [], sprites = {}, width = 0, height = 0, ratio = 1, frame = 0, moteClock = 0;
     var sprite = function (colour) {
       if (sprites[colour]) return sprites[colour];
       var c = document.createElement('canvas'); c.width = c.height = 32;
@@ -42,10 +42,10 @@
     };
     var tick = function (now) {
       frame = 0;
-      if (document.hidden || reduce.matches) { last = 0; return; }
+      if (document.hidden || reduce.matches) { moteClock = 0; return; }
       frame = requestAnimationFrame(tick);
-      if (last && now - last < 48) return;
-      var dt = last ? Math.min(.1, (now - last) / 1000) : 1 / 30; last = now;
+      if (moteClock && now - moteClock < 48) return;
+      var dt = moteClock ? Math.min(.1, (now - moteClock) / 1000) : 1 / 30; moteClock = now;
       context.clearRect(0, 0, width, height);
       for (var i = 0; i < list.length; i++) {
         var m = list[i]; m.y -= m.v * dt; m.sway += dt * .6; var x = m.x + Math.sin(m.sway) * 10;
@@ -122,17 +122,19 @@
   // The header and the orb slide away while reading down and return on the way up.
   var header = document.querySelector('.community-room .site-header');
   var orb = document.querySelector('[data-write-orb], .write-orb');
-  var last = scrollY, ticking = false;
+  // Its own name: a shared `last` let every scroll overwrite the motes' frame clock,
+  // so each scroll gave them an oversized time step and they shot upward.
+  var lastScroll = scrollY, ticking = false;
   window.addEventListener('scroll', function () {
     if (ticking) return; ticking = true;
     requestAnimationFrame(function () {
       ticking = false;
-      var y = scrollY, delta = y - last, hide = y > 160 && delta > 8, show = y < 160 || delta < -6;
+      var y = scrollY, delta = y - lastScroll, hide = y > 160 && delta > 8, show = y < 160 || delta < -6;
       if (header) header.dataset.scrolled = String(y > 24);
       // Near the footer the orb steps aside; its own call to write is right there.
       var nearEnd = y + innerHeight > document.documentElement.scrollHeight - 320;
       if (orb) { if (hide || nearEnd) orb.dataset.hidden = 'true'; else if (show) orb.dataset.hidden = 'false'; }
-      if (Math.abs(delta) > 6) last = y;
+      if (Math.abs(delta) > 6) lastScroll = y;
     });
   }, { passive: true });
 })();
