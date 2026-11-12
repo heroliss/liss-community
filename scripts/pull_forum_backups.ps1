@@ -41,21 +41,22 @@ function Save-Remote([string]$path, [string]$target) {
 }
 
 New-Item -ItemType Directory -Force -Path $Destination | Out-Null
-$downloaded = 0
+$script:downloaded = 0
+function Pull-Tree([string]$remote, [string]$local) {
+    $listing = Get-Listing $remote
+    foreach ($entry in $listing.PSObject.Properties) {
+        if ($entry.Name.StartsWith('.') -or $entry.Name.EndsWith('.partial') -or $entry.Name -like '*.log') { continue }
+        $childRemote = "$remote/$($entry.Name)"; $childLocal = Join-Path $local $entry.Name
+        if ($entry.Value.type -eq 'directory') { Pull-Tree $childRemote $childLocal }
+        elseif (Save-Remote $childRemote $childLocal) { $script:downloaded++; Write-Host "下载 $($childRemote.Substring($remoteRoot.Length + 1))" }
+    }
+}
+# Manual *.bundle backups and the daily/<date>/ folders (bundles are folders too).
 $root = Get-Listing $remoteRoot
 foreach ($entry in $root.PSObject.Properties) {
-    if ($entry.Value.type -eq 'file' -and $entry.Name -like '*.bundle') {
-        if (Save-Remote "$remoteRoot/$($entry.Name)" (Join-Path $Destination $entry.Name)) { $downloaded++; Write-Host "下载 $($entry.Name)" }
+    if ($entry.Name -like '*.bundle' -or $entry.Name -eq 'daily') {
+        if ($entry.Value.type -eq 'directory') { Pull-Tree "$remoteRoot/$($entry.Name)" (Join-Path $Destination $entry.Name) }
+        elseif (Save-Remote "$remoteRoot/$($entry.Name)" (Join-Path $Destination $entry.Name)) { $script:downloaded++ }
     }
 }
-if ($root.PSObject.Properties.Name -contains 'daily') {
-    $days = Get-Listing "$remoteRoot/daily"
-    foreach ($day in $days.PSObject.Properties | Where-Object { $_.Value.type -eq 'directory' -and $_.Name -match '^\d{8}$' }) {
-        $files = Get-Listing "$remoteRoot/daily/$($day.Name)"
-        foreach ($file in $files.PSObject.Properties | Where-Object { $_.Value.type -eq 'file' }) {
-            $target = Join-Path (Join-Path $Destination "daily\$($day.Name)") $file.Name
-            if (Save-Remote "$remoteRoot/daily/$($day.Name)/$($file.Name)" $target) { $downloaded++; Write-Host "下载 daily/$($day.Name)/$($file.Name)" }
-        }
-    }
-}
-Write-Host "完成：新下载 $downloaded 个文件，保存在 $Destination"
+Write-Host "完成：新下载 $script:downloaded 个文件，保存在 $Destination"

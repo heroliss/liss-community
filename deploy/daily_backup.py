@@ -1,4 +1,5 @@
-"""Daily backup for PythonAnywhere's scheduled task (Tasks tab, once a day).
+"""Daily backup. Started automatically on the first request of each UTC day when
+LISS_AUTO_BACKUP=1 (app/auto_backup.py), or run by hand / from a scheduler:
 
     /home/<user>/.virtualenvs/<env>/bin/python /home/<user>/<checkout>/deploy/daily_backup.py
 

@@ -43,6 +43,8 @@ def create_app(config_name):
         install(app)
         from .analytics import install as install_analytics
         install_analytics(app)
+        from .auto_backup import install as install_auto_backup
+        install_auto_backup(app)
         from .admin import install as install_admin
         install_admin(app)
         from .owner_identity import install as install_owner_identity
