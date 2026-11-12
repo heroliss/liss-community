@@ -16,8 +16,11 @@ from itsdangerous import BadData, URLSafeTimedSerializer
 
 from . import db
 from .admin import AdminAudit, admin
+from collections import Counter
+
+from . import access_log
 from .analytics_store import (EVENT_TYPES, ID, KINDS, SITES, display_zone, env_facts, fmt_bytes, fmt_duration,
-                              fmt_time, now_ms, valid_ip)
+                              fmt_time, network_type, now_ms, signals, tz_matches_region, valid_ip)
 from .models import Permission, Role, User
 
 RANGES = [('today', '今天'), ('yesterday', '昨天'), ('7d', '近 7 天'), ('30d', '近 30 天'),
@@ -365,6 +368,16 @@ def ago_filter(ms):
     return f'{seconds // 86400} 天前'
 
 
+def raw_region(ip):
+    lookup = current_app.extensions.get('ip_region')
+    return lookup.lookup(ip) if lookup and ip else ''
+
+
+@admin.app_template_filter('nettype')
+def nettype_filter(ip):
+    return network_type(raw_region(ip))
+
+
 @admin.app_template_filter('region')
 def region_filter(ip):
     from .ip_region import pretty
@@ -479,7 +492,7 @@ def analytics_visitors():
         sql = (f'SELECT p.visitor_id, MIN(p.started_at) first, MAX(p.last_seen) last, COUNT(*) pv, '
                f'COUNT(DISTINCT p.session_id) sessions, SUM(p.active_ms) active, GROUP_CONCAT(DISTINCT p.ip) ips, '
                f'GROUP_CONCAT(DISTINCT p.site) sites, v.browser, v.os, v.device, v.screen, v.username, v.user_id, '
-               f'v.note, v.first_seen, v.last_ip, v.bot kind, v.kind_reason, v.kind_locked FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
+               f'v.note, v.first_seen, v.last_ip, v.tz, v.bot kind, v.kind_reason, v.kind_locked FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
                f'WHERE {where} GROUP BY p.visitor_id ORDER BY {order}')
         count = f'SELECT COUNT(DISTINCT p.visitor_id) FROM pageviews p WHERE {where}'
     result = paged(sql, count, params, page_number())
@@ -487,8 +500,11 @@ def analytics_visitors():
         row['site_list'] = [s for s in (row.get('sites') or '').split(',') if s]
         if mode in ('visitor', 'device'):
             row['ip_list'] = [ip for ip in (row.get('ips') or '').split(',') if ip]
+            row['proxy'] = tz_matches_region(row.get('tz') or '', raw_region(row.get('last_ip') or '')) is False
             row['is_new'] = row['first_seen'] >= f.start
-    return render('admin/analytics/visitors.html', analytics_page='visitors', f=f, mode=mode, q=q, sort=sort, result=result)
+    split = store().kind_split(f.start, f.end, f.site)
+    return render('admin/analytics/visitors.html', analytics_page='visitors', f=f, mode=mode, q=q, sort=sort, result=result,
+                  kind_split=split)
 
 
 @admin.get('/analytics/visitor/<visitor_id>')
@@ -508,6 +524,7 @@ def analytics_visitor(visitor_id):
     favourite = store().query('SELECT site, path, MAX(title) title, COUNT(*) pv, SUM(active_ms) active FROM pageviews '
                               'WHERE visitor_id = ? GROUP BY site, path ORDER BY active DESC LIMIT 8', (visitor_id,))
     visitor['facts'] = env_facts(visitor)
+    visitor['evidence'] = signals(visitor, raw_region(visitor['last_ip']))
     linked = store().query("SELECT v.*, (SELECT GROUP_CONCAT(DISTINCT site) FROM pageviews WHERE visitor_id = v.id) sites, "
                            "(SELECT COUNT(*) FROM pageviews WHERE visitor_id = v.id) pv FROM visitors v "
                            "WHERE v.device_id <> '' AND v.device_id = ? AND v.id <> ? ORDER BY v.last_seen DESC",
@@ -743,6 +760,44 @@ def analytics_ignore():
           [dict(label='统计状态', before='记录' if ignored else '不记录', after='不记录' if ignored else '记录')])
     flash(f'已{"排除" if ignored else "恢复记录"} IP {ip}。' + ('此后来自该 IP 的访问不会被记录；已有记录保留。' if ignored else ''))
     return redirect(safe_return(request.form.get('return_to'), url_for('admin.analytics_data')))
+
+
+SERVER_KINDS = [('', '全部'), ('human', '浏览器'), ('bot', '爬虫'), ('probe', '漏洞扫描'), ('monitor', '本站监控')]
+
+
+@admin.get('/analytics/server')
+def analytics_server():
+    """Requests from the web server's own access log, including clients that never run JavaScript."""
+    base = current_app.config.get('ANALYTICS_ACCESS_LOG') or f"/var/log/{request.host.split(':')[0]}.access.log"
+    files = access_log.log_files(base)
+    hits = access_log.read(base) if files else []
+    show = 'all' if request.args.get('show') == 'all' else 'pages'
+    kind = request.args.get('k', '') if request.args.get('k', '') in dict(SERVER_KINDS) else ''
+    status = request.args.get('st', '') if request.args.get('st', '') in ('2', '3', '4', '5') else ''
+    q = request.args.get('q', '').strip()[:100]
+    scope = [h for h in hits if show == 'all' or h['page']]
+    rows = [h for h in scope if (not kind or h['kind'] == kind) and (not status or str(h['status'])[0] == status)
+            and (not q or q in h['ip'] or q in h['path'] or q.lower() in h['ua'].lower())]
+    page = page_number()
+    per_page = 50
+    pages = max(1, math.ceil(len(rows) / per_page))
+    page = min(page, pages)
+    times = [h['rt'] for h in scope if h['rt'] is not None]
+    summary = dict(
+        total=len(scope), first=scope[-1]['ts'] if scope else None, last=scope[0]['ts'] if scope else None,
+        kinds=Counter(h['kind'] for h in scope), statuses=Counter(str(h['status'])[0] + 'xx' for h in scope),
+        ips=len({h['ip'] for h in scope}), avg_ms=round(sum(times) / len(times) * 1000) if times else None,
+        bots=bars([dict(name=name, count=count) for name, count in
+                   Counter(h['agent'] for h in scope if h['kind'] in ('bot', 'monitor')).most_common(10)]),
+        probes=bars([dict(name=name, count=count) for name, count in
+                     Counter(h['path'].split('?')[0] for h in scope if h['kind'] == 'probe').most_common(10)]),
+        missing=bars([dict(name=name, count=count) for name, count in
+                      Counter(h['path'].split('?')[0] for h in scope if h['status'] == 404 and h['kind'] != 'probe').most_common(10)]),
+        slow=sorted((h for h in scope if h['rt'] is not None and h['kind'] == 'human'), key=lambda h: -h['rt'])[:8])
+    args = {key: value for key, value in dict(show=show if show == 'all' else '', k=kind, st=status, q=q).items() if value}
+    return render('admin/analytics/server.html', analytics_page='server', base=base, files=files, summary=summary,
+                  rows=rows[(page - 1) * per_page: page * per_page], result=dict(page=page, pages=pages, total=len(rows)),
+                  show=show, kind=kind, status=status, q=q, args=args, server_kinds=SERVER_KINDS)
 
 
 @admin.post('/analytics/reclassify')

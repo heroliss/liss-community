@@ -63,3 +63,11 @@
 - 作品站在生产构建（设置 `SITE_URL`）时自动加载 `https://liss.pythonanywhere.com/static/liss-analytics.js`；本地测试可用 `LISS_ANALYTICS_SRC` 指向本地社区预览。
 - 接收端只接受来自社区自身和 `https://heroliss.github.io` 的请求，额外来源可用 `LISS_ANALYTICS_ORIGINS`（逗号分隔）加入；本机预览之间的 localhost 请求自动允许。每个 IP 每分钟最多 240 批，单批最大 64 KB。
 - `LISS_ANALYTICS=0` 可整体关闭收集和追踪脚本。
+
+## 服务器日志
+
+“服务器日志”页直接读取 PythonAnywhere 为网站写的访问日志（`/var/log/<域名>.access.log` 及自动轮换的旧日志，最多最近 60000 条），不写入统计数据库。这里能看到不运行 JavaScript、因而不出现在访客统计里的请求：搜索引擎爬虫（Googlebot、bingbot 等）、本站监控（liss-ops 的在线检查与坏链接检查）、请求 .php、.env、wp- 等不存在路径的漏洞扫描，以及 404 与响应时间。可按来源、状态码、范围（页面 / 全部请求）与关键词筛选。其他环境可用 `ANALYTICS_ACCESS_LOG` 指定日志路径。
+
+## 判断依据与网络提示
+
+访客详情页列出全部观察：强证据（一项即判疑似机器人）、辅助证据（两项以上且无真人操作才判）、真人特征（真实显卡、触摸与手机标识一致、请求头与 User-Agent 一致、运营商网络、时区与 IP 所在地一致、有真人操作），以及提示。IP 旁的“机房”表示云服务器 IP；访客列表中的“可能用代理”表示浏览器时区与 IP 所在地不一致，常见于使用 VPN 的真人，不作为机器人证据。

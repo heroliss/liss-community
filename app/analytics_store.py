@@ -82,7 +82,7 @@ VISITOR_COLUMNS = (('env', "TEXT NOT NULL DEFAULT ''"), ('human', 'INTEGER NOT N
                    ('kind_locked', 'INTEGER NOT NULL DEFAULT 0'), ('kind_reason', "TEXT NOT NULL DEFAULT ''"),
                    ('device_id', "TEXT NOT NULL DEFAULT ''"), ('fp', "TEXT NOT NULL DEFAULT ''"))
 PAGEVIEW_COLUMNS = (('inputs', 'INTEGER NOT NULL DEFAULT 0'),)
-ENV_TEXT = {'pf': 40, 'langs': 80, 'gpu': 120, 'conn': 16, 'cs': 8, 'ptr': 8, 'uab': 120, 'pv': 24, 'mdl': 60,
+ENV_TEXT = {'cv': 16, 'pf': 40, 'langs': 80, 'gpu': 120, 'conn': 16, 'cs': 8, 'ptr': 8, 'uab': 120, 'pv': 24, 'mdl': 60,
             'arch': 16, 'al': 80, 'chua': 200, 'chp': 24, 'chm': 4}
 ENV_INT = {'hc': (0, 1024), 'dm': (0, 1024), 'tp': (0, 64), 'cd': (0, 64), 'tzo': (-1000, 1000), 'pl': (0, 1000),
            'rtt': (0, 100_000), 'dl': (0, 100_000), 'h': (0, 1)}
@@ -94,7 +94,7 @@ ID = re.compile(r'[A-Za-z0-9_-]{8,40}')
 BOT = re.compile(r'bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|python|curl|wget|'
                  r'httpclient|java/|go-http|okhttp|scrapy|phantom|selenium|puppeteer|playwright|'
                  r'bingpreview|facebookexternalhit|embedly|monitor|uptime|google-|googleother|-google|'
-                 r'inspectiontool|validator|scanner|zgrab|censys|masscan|nuclei', re.I)
+                 r'inspectiontool|validator|scanner|zgrab|censys|masscan|nuclei|liss-ops|lychee', re.I)
 DATACENTER = re.compile(r'amazon|亚马逊|\baws\b|google|谷歌|microsoft|微软|azure|阿里云|alibaba|aliyun|腾讯云|'
                         r'digitalocean|linode|akamai|\bovh|hetzner|vultr|choopa|oracle|甲骨文|cloudflare|m247|'
                         r'datacamp|cdn77|leaseweb|contabo|scaleway|ionos|colocrossing|psychz|quadranet|'
@@ -211,33 +211,82 @@ def fingerprint(visitor: dict) -> str:
     if not env.get('gpu') and 'hc' not in env:
         return ''
     parts = [visitor.get('ua') or '', visitor.get('screen') or '', visitor.get('tz') or ''] + \
-            [str(env.get(k, '')) for k in ('gpu', 'hc', 'dm', 'tp', 'langs', 'pf', 'cd', 'mdl', 'pv')]
+            [str(env.get(k, '')) for k in ('gpu', 'hc', 'dm', 'tp', 'langs', 'pf', 'cd', 'mdl', 'pv', 'cv')]
     return hashlib.sha1('|'.join(parts).encode('utf-8')).hexdigest()[:16]
 
 
-def classify(visitor: dict, *, owner=False, region='', linked_me=False) -> tuple[int, list[str]]:
-    """Visitor type and the reasons, from what the visitor row recorded."""
+CARRIER = re.compile(r'电信|联通|移动|铁通|广电|教育网|鹏博士|长城宽带|telecom|unicom|mobile|cellular|wireless|broadband|'
+                     r'cable|\bTM\b|telekom|maxis|celcom|digi|unifi|singtel|starhub|softbank|kddi|ntt|docomo|comcast|'
+                     r'verizon|at&t|t-mobile|vodafone|orange|chunghwa|hinet|pccw|hkbn|smartone|csl|china', re.I)
+# Time zones and the region names an IP in that country gets from ip2region (Chinese or English).
+TZ_COUNTRY = {
+    ('Asia/Shanghai', 'Asia/Chongqing', 'Asia/Harbin', 'Asia/Urumqi'): ('中国',),
+    ('Asia/Hong_Kong',): ('香港', 'Hong Kong'), ('Asia/Taipei',): ('台湾', 'Taiwan'), ('Asia/Macau',): ('澳门', 'Macau', 'Macao'),
+    ('Asia/Kuala_Lumpur', 'Asia/Kuching'): ('马来西亚', 'Malaysia'), ('Asia/Singapore',): ('新加坡', 'Singapore'),
+    ('Asia/Tokyo',): ('日本', 'Japan'), ('Asia/Seoul',): ('韩国', 'Korea'), ('Asia/Bangkok',): ('泰国', 'Thailand'),
+    ('Asia/Jakarta',): ('印度尼西亚', 'Indonesia'), ('Asia/Manila',): ('菲律宾', 'Philippines'),
+    ('Asia/Ho_Chi_Minh', 'Asia/Saigon'): ('越南', 'Vietnam', 'Viet Nam'), ('Asia/Kolkata', 'Asia/Calcutta'): ('印度', 'India'),
+    ('America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Phoenix',
+     'America/Anchorage', 'Pacific/Honolulu'): ('美国', 'United States'),
+    ('America/Toronto', 'America/Vancouver'): ('加拿大', 'Canada'), ('America/Sao_Paulo',): ('巴西', 'Brazil'),
+    ('Europe/London',): ('英国', 'United Kingdom'), ('Europe/Amsterdam',): ('荷兰', 'Netherlands'),
+    ('Europe/Berlin',): ('德国', 'Germany'), ('Europe/Paris',): ('法国', 'France'),
+    ('Australia/Sydney', 'Australia/Melbourne', 'Australia/Brisbane', 'Australia/Perth'): ('澳大利亚', 'Australia'),
+}
+GREATER_CHINA_SPECIAL = ('香港', '台湾', '澳门', 'Hong Kong', 'Taiwan', 'Macau', 'Macao')
+
+
+def network_type(region: str) -> str:
+    """'dc' for cloud / hosting, 'isp' for consumer carriers, '' when unknown."""
+    if not region or region in ('本机', '内网'):
+        return ''
+    if DATACENTER.search(region):
+        return 'dc'
+    isp = (region.split('|') + ['', '', '', ''])[3] if '|' in region else ''
+    return 'isp' if isp not in ('', '0') and CARRIER.search(isp) else ''
+
+
+def tz_matches_region(tz: str, region: str):
+    """True / False when the browser time zone does / does not fit the IP's country; None when unknown."""
+    if not tz or not region or '|' not in region:
+        return None
+    country = region.split('|')[0]
+    for zones, names in TZ_COUNTRY.items():
+        if tz in zones:
+            if names == ('中国',):
+                return '中国' in country and not any(x in region for x in GREATER_CHINA_SPECIAL)
+            return any(name in region for name in names)
+    return None
+
+
+def signals(visitor: dict, region: str = '') -> dict:
+    """Every observation about a visitor: strong / weak signs of automation, signs of a real person, hints."""
     ua = visitor.get('ua') or ''
     try:
         env = json.loads(visitor.get('env') or '{}')
     except ValueError:
         env = {}
-    strong, weak = [], []
+    strong, weak, good, info = [], [], [], []
+    gpu = env.get('gpu', '')
     if env.get('wd'):
         strong.append('浏览器自报被自动化控制（webdriver）')
-    if re.search(r'swiftshader|llvmpipe|softpipe|mesa offscreen', env.get('gpu', ''), re.I):
+    if re.search(r'swiftshader|llvmpipe|softpipe|mesa offscreen', gpu, re.I):
         strong.append('软件渲染，没有真实显卡')
+    elif gpu:
+        good.append(f'真实显卡：{gpu[:60]}')
     lang, tz, screen = visitor.get('lang') or '', visitor.get('tz') or '', visitor.get('screen') or ''
     if '@posix' in lang:
         strong.append('语言为 posix（服务器环境）')
     if screen.split('@')[0] == '800x600':
         strong.append('屏幕 800×600（无界面浏览器默认值）')
-    mobile = bool(re.search(r'iPhone|iPod|Android.*Mobile', ua))
+    mobile = bool(re.search(r'iPhone|iPod|Android.*Mobile|Phone;', ua))
     size = re.match(r'(\d+)x(\d+)', screen)
     if mobile and size and min(int(size.group(1)), int(size.group(2))) > 1000:
         strong.append('自称手机，屏幕却是电脑尺寸')
     if mobile and env.get('tp') == 0:
         strong.append('自称手机，却不支持触摸')
+    elif mobile and env.get('tp'):
+        good.append(f'支持 {env["tp"]} 点触摸，与手机标识一致')
     if ua.startswith(('"', "'")):
         strong.append('User-Agent 格式异常')
     if tz == 'Etc/Unknown':
@@ -252,8 +301,11 @@ def classify(visitor: dict, *, owner=False, region='', linked_me=False) -> tuple
     if chua and not re.search(r'Chrome|Chromium|Edg|OPR', ua):
         strong.append('自称非 Chromium 浏览器，却发送了 Chromium 客户端提示')
     claimed = next((name for name, pattern in UA_PLATFORMS if re.search(pattern, ua)), '')
-    if env.get('chp') not in (None, '', 'Unknown') and claimed and env['chp'] != claimed:
-        strong.append(f'请求头系统为 {env["chp"]}，User-Agent 却是 {claimed}')
+    if env.get('chp') not in (None, '', 'Unknown') and claimed:
+        if env['chp'] != claimed:
+            strong.append(f'请求头系统为 {env["chp"]}，User-Agent 却是 {claimed}')
+        else:
+            good.append('请求头系统与 User-Agent 一致')
     if env.get('nc'):
         weak.append('Chrome 缺少 window.chrome 对象')
     if env.get('pl') == 0 and claimed in ('Windows', 'macOS', 'Linux') and 'Chrome/' in ua and 'Edg' not in ua:
@@ -267,9 +319,27 @@ def classify(visitor: dict, *, owner=False, region='', linked_me=False) -> tuple
         weak.append(f'Chrome {chrome.group(1)} 版本过旧')
     if 'X11; Linux' in ua and 'Android' not in ua:
         weak.append('桌面 Linux')
-    if region and DATACENTER.search(region):
+    net = network_type(region)
+    if net == 'dc':
         weak.append('IP 属于云服务器 / 机房')
-    automation = bool(BOT.search(ua)) or not ua
+    elif net == 'isp':
+        good.append('IP 属于运营商网络（家庭宽带或手机网络）')
+    if visitor.get('human'):
+        good.append('有真人操作（移动鼠标、触摸、滚轮或按键）')
+    match = tz_matches_region(tz, region)
+    if match is True:
+        good.append('时区与 IP 所在地一致')
+    elif match is False:
+        info.append(f'时区 {tz} 与 IP 所在地不一致，可能在使用代理或 VPN')
+    return dict(strong=strong, weak=weak, good=good, info=info, env=env,
+                automation=bool(BOT.search(ua)) or not ua, proxy=match is False, net=net)
+
+
+def classify(visitor: dict, *, owner=False, region='', linked_me=False) -> tuple[int, list[str]]:
+    """Visitor type and the reasons, from what the visitor row recorded."""
+    ua = visitor.get('ua') or ''
+    found = signals(visitor, region)
+    strong, weak, env, automation = found['strong'], found['weak'], found['env'], found['automation']
     if 'Claude/' in ua:
         return TEST, ['Claude 应用内置浏览器']
     if env.get('me') and not owner:

@@ -20,6 +20,10 @@
 <label title="默认只看真实访客；本人、测试、机器人可在这里单独查看">类型<select name="who" data-an-autosubmit="1">{% for value, label in kind_filters %}<option value="{{ value }}"{% if f.kind == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
 {%- endmacro %}
 
+{% macro kind_split_row(split, f, endpoint='admin.analytics_visitors', extra={}) -%}
+{% if split %}<nav class="an-kind-split" aria-label="访客类型分布"><span class="an-muted">所选时间内：</span>{% for code in [0, 4, 3, 1, 2] %}{% if split.get(code) %}<a href="{{ url_for(endpoint, **f.args(who=('' if code == 0 else kind_keys[code]), **extra)) }}"{% if (f.kind or 'visitor') == kind_keys[code] %} class="is-active"{% endif %}>{{ kind_badge(code) }} {{ split[code] }}</a>{% endif %}{% endfor %}{% if f.kind != 'all' %}<a href="{{ url_for(endpoint, **f.args(who='all', **extra)) }}" class="an-muted">全部 {{ split.values()|sum }}</a>{% endif %}</nav>{% endif %}
+{%- endmacro %}
+
 {% macro kind_badge(code, reason='', locked=false) -%}
 <span class="an-kind an-kind-{{ kind_keys.get(code, 'visitor') }}"{% if reason %} title="{{ reason }}{% if locked %}（手动设置）{% endif %}"{% endif %}>{{ kinds.get(code, '访客') }}{% if locked %} ·手动{% endif %}</span>
 {%- endmacro %}
@@ -35,7 +39,7 @@
 
 {% macro site_tag(site) -%}<span class="an-site an-site-{{ site }}">{{ site|site_name }}</span>{%- endmacro %}
 
-{% macro ip_link(ip, show_region=true) -%}{% if ip %}<a class="an-ip" href="{{ url_for('admin.analytics_ip', address=ip) }}">{{ ip }}</a>{% if show_region %}{% set where = ip|region %}{% if where %}<span class="an-region">{{ where }}</span>{% endif %}{% endif %}{% else %}—{% endif %}{%- endmacro %}
+{% macro ip_link(ip, show_region=true) -%}{% if ip %}<a class="an-ip" href="{{ url_for('admin.analytics_ip', address=ip) }}">{{ ip }}</a>{% if show_region %}{% set where = ip|region %}{% if where %}<span class="an-region">{{ where }}</span>{% endif %}{% if ip|nettype == 'dc' %}<span class="an-net an-net-dc" title="云服务器 / 机房 IP，常见于爬虫，也可能是 VPN">机房</span>{% endif %}{% endif %}{% else %}—{% endif %}{%- endmacro %}
 
 {% macro visitor_link(id, label=None) -%}<a class="an-visitor" href="{{ url_for('admin.analytics_visitor', visitor_id=id) }}" title="{{ id }}">{{ label or ('访客 ' ~ id[:8]) }}</a>{%- endmacro %}
 

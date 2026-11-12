@@ -126,6 +126,18 @@
           if (lose) lose.loseContext();
         }
       } catch (e) {}
+      try {
+        // Canvas rendering differs slightly between GPUs, drivers and font setups: a short hash helps
+        // tell apart devices that otherwise report the same hardware.
+        var cv = document.createElement('canvas'); cv.width = 220; cv.height = 40;
+        var ctx = cv.getContext('2d');
+        ctx.textBaseline = 'top'; ctx.font = '16px Arial'; ctx.fillStyle = '#f60'; ctx.fillRect(100, 1, 62, 20);
+        ctx.fillStyle = '#069'; ctx.fillText('Liss 访客 ✨ 0.1', 2, 15);
+        ctx.fillStyle = 'rgba(102,204,0,0.7)'; ctx.fillText('Liss 访客 ✨ 0.1', 4, 17);
+        var data = cv.toDataURL(), h = 2166136261;
+        for (var i = 0; i < data.length; i++) { h ^= data.charCodeAt(i); h = Math.imul(h, 16777619); }
+        out.cv = ('0000000' + (h >>> 0).toString(16)).slice(-8);
+      } catch (e) {}
       envCache = out;
     }
     var merged = {};

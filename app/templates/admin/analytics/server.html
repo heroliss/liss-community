@@ -1,0 +1,46 @@
+{% extends "admin/analytics/_base.html" %}
+{% import "admin/analytics/_macros.html" as an with context %}
+{% block analytics_content %}
+<header class="admin-heading"><div><h1>服务器日志</h1><p>社区服务器收到的全部请求，包括不运行 JavaScript、因此不会出现在访客统计里的搜索引擎爬虫、链接检查、本站监控与漏洞扫描。直接读取服务器日志，不占用统计数据库。</p></div></header>
+{% if not files %}
+<p class="an-empty an-empty-tall">没有找到访问日志 <code>{{ base }}</code>。在 PythonAnywhere 上日志位于 <code>/var/log/&lt;域名&gt;.access.log</code>；其他环境可设置 <code>ANALYTICS_ACCESS_LOG</code>。</p>
+{% else %}
+<form method="get" class="an-filters" data-an-filters>
+  <div class="an-range" role="group" aria-label="请求来源">
+    {% for value, label in server_kinds %}<label class="an-chip{% if kind == value %} is-active{% endif %}"><input type="radio" name="k" value="{{ value }}"{% if kind == value %} checked{% endif %} data-an-autosubmit="1">{{ label }}{% if value %} <small>{{ summary.kinds.get(value, 0) }}</small>{% else %} <small>{{ summary.total }}</small>{% endif %}</label>{% endfor %}
+  </div>
+  <div class="an-filter-row">
+    <label>范围<select name="show" data-an-autosubmit="1"><option value="pages">页面请求（不含静态文件）</option><option value="all"{% if show == 'all' %} selected{% endif %}>全部请求</option></select></label>
+    <label>状态<select name="st" data-an-autosubmit="1"><option value="">全部</option>{% for code in ['2', '3', '4', '5'] %}<option value="{{ code }}"{% if status == code %} selected{% endif %}>{{ code }}xx（{{ summary.statuses.get(code ~ 'xx', 0) }}）</option>{% endfor %}</select></label>
+    <label class="an-search">搜索<input type="search" name="q" value="{{ q }}" maxlength="100" placeholder="IP、路径或 User-Agent"></label>
+    <button class="button button-small" type="submit">应用</button>
+  </div>
+</form>
+<div class="an-kpis an-kpis-compact">
+  <div class="an-kpi"><span>请求</span><strong>{{ summary.total }}</strong><small>{{ summary.first|at('%m-%d %H:%M') }} 起</small></div>
+  <div class="an-kpi"><span>独立 IP</span><strong>{{ summary.ips }}</strong></div>
+  <div class="an-kpi"><span>爬虫 / 扫描</span><strong>{{ summary.kinds.get('bot', 0) }} / {{ summary.kinds.get('probe', 0) }}</strong><small>本站监控 {{ summary.kinds.get('monitor', 0) }}</small></div>
+  <div class="an-kpi"><span>平均响应</span><strong class="an-kpi-text">{{ summary.avg_ms ~ ' ms' if summary.avg_ms is not none else '—' }}</strong><small>4xx {{ summary.statuses.get('4xx', 0) }} · 5xx {{ summary.statuses.get('5xx', 0) }}</small></div>
+</div>
+<div class="an-grid-2">
+  <section class="an-card"><div class="an-card-head"><h2>爬虫与监控</h2></div>{{ an.bar_list(summary.bots, '没有爬虫请求') }}</section>
+  <section class="an-card"><div class="an-card-head"><h2>漏洞扫描路径</h2><span class="an-muted">本站没有这些文件，只是被自动探测</span></div>{{ an.bar_list(summary.probes, '没有扫描请求') }}</section>
+  <section class="an-card"><div class="an-card-head"><h2>不存在的页面（404）</h2></div>{{ an.bar_list(summary.missing, '没有 404') }}</section>
+  <section class="an-card"><div class="an-card-head"><h2>最慢的浏览器请求</h2></div>
+    {% if summary.slow %}<ol class="an-bars an-bars-plain">{% for h in summary.slow %}<li><div class="an-bar-label"><span title="{{ h.path }}">{{ h.path|truncate(60, true, '…') }}</span></div><span class="an-bar-value">{{ (h.rt * 1000)|round|int }}<small> ms</small></span></li>{% endfor %}</ol>{% else %}<p class="an-empty">暂无数据</p>{% endif %}</section>
+</div>
+<section class="an-section"><div class="an-card-head"><h2>请求记录</h2><span class="an-muted">共 {{ result.total }} 条，最新在前</span></div>
+{% if rows %}<table class="an-table an-table-wide an-table-rows"><thead><tr><th>时间</th><th>来源</th><th>IP</th><th>请求</th><th>状态</th><th>耗时</th></tr></thead><tbody>
+{% for h in rows %}<tr><td class="an-small">{{ h.ts|at('%m-%d %H:%M:%S') }}</td>
+  <td class="an-small"><span class="an-hit an-hit-{{ h.kind }}">{{ {'human': '浏览器', 'bot': '爬虫', 'probe': '扫描', 'monitor': '监控'}[h.kind] }}</span><br><span title="{{ h.ua }}">{{ h.agent|truncate(34, true, '…') }}</span></td>
+  <td class="an-small">{{ an.ip_link(h.ip) }}</td>
+  <td class="an-small"><code class="an-req">{{ h.method }} {{ h.path|truncate(80, true, '…') }}</code>{% if h.ref and h.ref != '-' %}<br><span class="an-muted" title="{{ h.ref }}">来自 {{ h.ref|truncate(60, true, '…') }}</span>{% endif %}</td>
+  <td><span class="an-status an-status-{{ h.status // 100 }}">{{ h.status }}</span></td>
+  <td class="an-small">{{ ((h.rt * 1000)|round|int ~ ' ms') if h.rt is not none else '—' }}</td></tr>{% endfor %}
+</tbody></table>
+{{ an.pager(result, 'admin.analytics_server', args) }}
+{% else %}<p class="an-empty">没有符合条件的请求。</p>{% endif %}
+</section>
+<p class="an-footnote">读取 {{ files|length }} 个日志文件（当前日志与 PythonAnywhere 自动轮换的旧日志，最多最近 60000 条）。“扫描”指请求 .php、.env、wp- 等本站不存在的常见漏洞路径。</p>
+{% endif %}
+{% endblock %}

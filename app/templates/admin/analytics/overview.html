@@ -4,7 +4,7 @@
 <header class="admin-heading"><div><h1>访问统计</h1><p>{{ f.label }}，{{ '全部站点' if f.site == 'all' else sites[f.site] }}，{{ '仅真实访客（已排除本人、测试与机器人）' if not f.kind else f.kind_label }}。时间按 UTC{{ '%+d'|format(config.ANALYTICS_UTC_OFFSET_MINUTES // 60) }} 显示。</p></div>
   <a class="an-live-pill" href="{{ url_for('admin.analytics_live') }}"><span class="an-pulse" aria-hidden="true"></span>{{ live_count }} 人在线</a></header>
 {{ an.filters(f, 'admin.analytics') }}
-{% if kind_split %}<nav class="an-kind-split" aria-label="访客类型分布"><span class="an-muted">所选时间内：</span>{% for code in [0, 4, 3, 1, 2] %}{% if kind_split.get(code) %}<a href="{{ url_for('admin.analytics_visitors', **f.args(who=('' if code == 0 else kind_keys[code]))) }}">{{ an.kind_badge(code) }} {{ kind_split[code] }}</a>{% endif %}{% endfor %}</nav>{% endif %}
+{{ an.kind_split_row(kind_split, f) }}
 
 <div class="an-kpis" aria-label="核心指标">
   <div class="an-kpi"><span>访客</span><strong>{{ kpi.uv }}</strong>{{ an.delta(changes.uv) }}<small>新 {{ kpi.new }} · 回访 {{ kpi.returning }}</small></div>

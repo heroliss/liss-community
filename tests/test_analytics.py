@@ -1,6 +1,7 @@
 """Visitor analytics: collection, dashboards, cleanup, ignore list and access control."""
 import html
 import json
+from pathlib import Path
 import re
 import tempfile
 import unittest
@@ -8,7 +9,7 @@ from unittest.mock import patch
 
 from app import create_app, db
 from app.admin import AdminAudit
-from app.analytics_store import classify, env_facts, parse_ua, refine_os
+from app.analytics_store import classify, env_facts, network_type, parse_ua, refine_os, signals, tz_matches_region
 from app.models import Role, User
 
 VID, SID, PV = 'a' * 24, 'b' * 24, 'c' * 24
@@ -401,6 +402,73 @@ class AnalyticsTests(unittest.TestCase):
         devices = self.client.get('/admin/analytics/visitors?range=all&by=device&who=all').get_data(as_text=True)
         self.assertIn('跨站 2', devices)
         self.assertIn('台设备', devices)
+
+
+    def test_evidence_network_and_proxy_hints(self):
+        self.assertEqual(network_type('美国|0|弗吉尼亚|0|亚马逊'), 'dc')
+        self.assertEqual(network_type('United States|Virginia|Ashburn|Amazon|US'), 'dc')
+        self.assertEqual(network_type('中国|广东省|深圳市|电信|CN'), 'isp')
+        self.assertEqual(network_type('Malaysia|Johor|Segamat|TM TECHNOLOGY SERVICES|MY'), 'isp')
+        self.assertEqual(network_type(''), '')
+        self.assertIs(tz_matches_region('Asia/Shanghai', '中国|广东省|深圳市|电信|CN'), True)
+        self.assertIs(tz_matches_region('Asia/Shanghai', '中国|香港|0|0|HK'), False)
+        self.assertIs(tz_matches_region('Asia/Shanghai', 'Taiwan|0|0|HiNet|TW'), False)
+        self.assertIs(tz_matches_region('Asia/Kuala_Lumpur', 'Malaysia|Johor|0|TM|MY'), True)
+        self.assertIsNone(tz_matches_region('Europe/Oslo', 'Norway|0|0|0|NO'))
+        found = signals(dict(ua=CHROME, tz='Asia/Shanghai', screen='1920x1080', human=1,
+                             env=json.dumps({'gpu': 'ANGLE (NVIDIA GeForce RTX 4070)', 'chp': 'Windows'})),
+                        'Taiwan|0|0|HiNet|TW')
+        self.assertTrue(any('真实显卡' in t for t in found['good']))
+        self.assertTrue(any('真人操作' in t for t in found['good']))
+        self.assertIn('请求头系统与 User-Agent 一致', found['good'])
+        self.assertTrue(found['proxy'] and found['info'])
+        self.assertEqual(parse_ua('Mozilla/5.0 (compatible; liss-ops-links)')['bot'], 1)
+        body = batch()
+        body['ctx'] = dict(body['ctx'], env={'gpu': 'ANGLE (NVIDIA GeForce RTX 4070)', 'cv': '1a2b3c4d'})
+        body['pv'] = dict(body['pv'], hi=True)
+        self.collect(body)
+        self.login()
+        page = self.client.get(f'/admin/analytics/visitor/{VID}').get_data(as_text=True)
+        self.assertIn('类型与判断依据', page)
+        self.assertIn('is-good', page)
+        visitors = self.client.get('/admin/analytics/visitors?range=all').get_data(as_text=True)
+        self.assertIn('an-kind-split', visitors)
+
+    def test_server_log_page(self):
+        log = Path(self.directory.name) / 'site.access.log'
+        lines = [
+            '10.0.0.1 - - [12/Nov/2026:19:50:01 +0000] "GET / HTTP/1.1" 200 5120 "-" "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" "66.249.66.1" response-time=0.210',
+            '10.0.0.1 - - [12/Nov/2026:19:50:02 +0000] "GET /wp-login.php HTTP/1.1" 404 900 "-" "Mozilla/5.0 zgrab" "45.1.2.3" response-time=0.010',
+            '10.0.0.1 - - [12/Nov/2026:19:50:03 +0000] "GET /healthz HTTP/1.1" 200 15 "-" "liss-ops-uptime" "20.1.2.3" response-time=0.005',
+            '10.0.0.1 - - [12/Nov/2026:19:50:04 +0000] "GET /post/5 HTTP/1.1" 200 8000 "https://www.bing.com/" "' + CHROME + '" "58.26.140.36" response-time=0.400',
+            '10.0.0.1 - - [12/Nov/2026:19:50:05 +0000] "GET /static/liss.css HTTP/1.1" 304 0 "-" "' + CHROME + '" "58.26.140.36" response-time=0.002',
+            '10.0.0.1 - - [12/Nov/2026:19:50:06 +0000] "GET /nope HTTP/1.1" 404 900 "-" "' + CHROME + '" "58.26.140.36" response-time=0.030',
+            'garbage line',
+        ]
+        log.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+        import gzip
+        with gzip.open(str(log) + '.2.gz', 'wt', encoding='utf-8') as handle:
+            handle.write(lines[0].replace('19:50:01', '18:00:00') + '\n')
+        self.app.config['ANALYTICS_ACCESS_LOG'] = str(log)
+        self.login()
+        page = self.client.get('/admin/analytics/server').get_data(as_text=True)
+        self.assertIn('服务器日志', page)
+        self.assertIn('Googlebot', page)
+        self.assertIn('/wp-login.php', page)
+        self.assertIn('66.249.66.1', page)
+        self.assertNotIn('/static/liss.css', page)  # Page requests only by default.
+        self.assertIn('/static/liss.css', self.client.get('/admin/analytics/server?show=all').get_data(as_text=True))
+        bots = self.client.get('/admin/analytics/server?k=bot').get_data(as_text=True)
+        self.assertIn('66.249.66.1', bots)
+        self.assertNotIn('GET /post/5', bots)  # Not in the request table; summary cards cover all kinds.
+        self.assertIn('/nope', self.client.get('/admin/analytics/server?st=4&k=human').get_data(as_text=True))
+        self.assertIn('liss-ops-uptime', self.client.get('/admin/analytics/server?show=all&k=monitor').get_data(as_text=True))
+        from app import access_log
+        hits = access_log.read(str(log))
+        self.assertEqual(len(hits), 7)  # Six current lines plus one rotated, garbage skipped.
+        self.assertEqual(hits[-1]['ts'] < hits[0]['ts'], True)
+        self.app.config['ANALYTICS_ACCESS_LOG'] = str(log) + '.missing'
+        self.assertIn('没有找到访问日志', self.client.get('/admin/analytics/server').get_data(as_text=True))
 
 
 if __name__ == '__main__':
