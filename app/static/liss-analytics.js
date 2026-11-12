@@ -1,7 +1,8 @@
 /* LISS visitor analytics tracker (community + portfolio).
  * <script src=".../static/liss-analytics.js" data-site="forum|works|atoll" async></script>
  * Sends small JSON batches with sendBeacon (text/plain, no preflight). Opt out per
- * browser with ?liss_analytics=off, opt back in with ?liss_analytics=on. */
+ * browser with ?liss_analytics=off, opt back in with ?liss_analytics=on. Mark this browser
+ * as the site owner (shown as 本人) with ?liss_analytics=me, undo with ?liss_analytics=notme. */
 (function () {
   'use strict';
   var script = document.currentScript;
@@ -19,6 +20,8 @@
     var flag = new URLSearchParams(location.search).get('liss_analytics');
     if (flag === 'off') set('liss-a:optout', '1');
     if (flag === 'on') { try { store && store.removeItem('liss-a:optout'); } catch (e) {} }
+    if (flag === 'me') set('liss-a:me', '1');
+    if (flag === 'notme') { try { store && store.removeItem('liss-a:me'); } catch (e) {} }
   } catch (e) {}
   if (get('liss-a:optout') === '1') return;
 
@@ -50,7 +53,7 @@
   var lastInput = now(), lastTick = now();
 
   function newPage() {
-    page = { id: random(), opened: now(), active: 0, scroll: 0, perf: null, clicks: 0, human: false };
+    page = { id: random(), opened: now(), active: 0, scroll: 0, perf: null, clicks: 0, human: false, inputs: 0, lastBurst: 0 };
     sentFirst = false; dirty = true; errors = 0;
   }
   newPage();
@@ -79,45 +82,92 @@
     } catch (e) {}
     return page.perf;
   }
-  var envCache = null;
+  // Browser signals that tell real browsers from automation and describe the device. Synchronous
+  // parts are read once; client hints and the notification check resolve shortly after load.
+  var envCache = null, envAsync = {}, envPending = 0, envSent = false;
+  function media(query) { try { return window.matchMedia(query).matches; } catch (e) { return false; } }
   function env() {
-    // Signals that tell real browsers from automation: webdriver flag, GPU (software renderers mean no
-    // real graphics card), touch support, CPU cores. Collected once per page load.
-    if (envCache) return envCache;
-    var nav = navigator, out = { wd: !!nav.webdriver };
-    try { out.pf = String(nav.platform || '').slice(0, 40); } catch (e) {}
-    try { out.langs = (nav.languages || []).slice(0, 6).join(',').slice(0, 80); } catch (e) {}
-    if (typeof nav.hardwareConcurrency === 'number') out.hc = nav.hardwareConcurrency;
-    if (typeof nav.deviceMemory === 'number') out.dm = nav.deviceMemory;
-    if (typeof nav.maxTouchPoints === 'number') out.tp = nav.maxTouchPoints;
-    try { out.cd = screen.colorDepth; out.tzo = new Date().getTimezoneOffset(); } catch (e) {}
-    try { if (nav.connection && nav.connection.effectiveType) out.conn = String(nav.connection.effectiveType).slice(0, 16); } catch (e) {}
-    try { out.cs = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; } catch (e) {}
+    if (!envCache) {
+      var nav = navigator, ua = nav.userAgent || '', out = { wd: !!nav.webdriver };
+      try { out.pf = String(nav.platform || '').slice(0, 40); } catch (e) {}
+      try { out.langs = (nav.languages || []).slice(0, 6).join(',').slice(0, 80); } catch (e) {}
+      if (typeof nav.hardwareConcurrency === 'number') out.hc = nav.hardwareConcurrency;
+      if (typeof nav.deviceMemory === 'number') out.dm = nav.deviceMemory;
+      if (typeof nav.maxTouchPoints === 'number') out.tp = nav.maxTouchPoints;
+      try { out.cd = screen.colorDepth; out.tzo = new Date().getTimezoneOffset(); } catch (e) {}
+      try {
+        var c = nav.connection;
+        if (c) { if (c.effectiveType) out.conn = String(c.effectiveType).slice(0, 16); if (typeof c.rtt === 'number') out.rtt = c.rtt; if (typeof c.downlink === 'number') out.dl = Math.round(c.downlink); if (c.saveData) out.sd = true; }
+      } catch (e) {}
+      out.cs = media('(prefers-color-scheme: dark)') ? 'dark' : 'light';
+      out.ptr = media('(pointer: fine)') ? 'fine' : media('(pointer: coarse)') ? 'coarse' : 'none';
+      out.hov = media('(hover: hover)');
+      if (media('(dynamic-range: high)')) out.hdr = true;
+      if (media('(color-gamut: p3)')) out.p3 = true;
+      if (media('(prefers-reduced-motion: reduce)')) out.rm = true;
+      try { out.oz = window.outerWidth === 0 && window.outerHeight === 0; } catch (e) {}
+      try { out.pl = nav.plugins ? nav.plugins.length : 0; } catch (e) {}
+      if (/Chrome\//.test(ua) && !/Edg|OPR|SamsungBrowser/.test(ua)) out.nc = !window.chrome;
+      try {
+        var brands = nav.userAgentData && nav.userAgentData.brands;
+        if (brands) {
+          var names = brands.map(function (b) { return b.brand + ' ' + b.version; }).join(', ');
+          out.uab = names.slice(0, 120);
+          out.hl = /Headless/i.test(names);
+        }
+      } catch (e) {}
+      try { if (get('liss-a:me') === '1') out.me = true; } catch (e) {}
+      try {
+        var gl = document.createElement('canvas').getContext('webgl');
+        if (gl) {
+          var info = gl.getExtension('WEBGL_debug_renderer_info');
+          out.gpu = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER) || '').slice(0, 120);
+          var lose = gl.getExtension('WEBGL_lose_context');
+          if (lose) lose.loseContext();
+        }
+      } catch (e) {}
+      envCache = out;
+    }
+    var merged = {};
+    Object.keys(envCache).forEach(function (k) { merged[k] = envCache[k]; });
+    Object.keys(envAsync).forEach(function (k) { merged[k] = envAsync[k]; });
+    return merged;
+  }
+  (function () {
     try {
-      var gl = document.createElement('canvas').getContext('webgl');
-      if (gl) {
-        var info = gl.getExtension('WEBGL_debug_renderer_info');
-        out.gpu = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER) || '').slice(0, 120);
-        var lose = gl.getExtension('WEBGL_lose_context');
-        if (lose) lose.loseContext();
+      var uad = navigator.userAgentData;
+      if (uad && uad.getHighEntropyValues) {
+        envPending++;
+        uad.getHighEntropyValues(['platformVersion', 'model', 'architecture', 'bitness']).then(function (v) {
+          if (v.platformVersion) envAsync.pv = String(v.platformVersion).slice(0, 24);
+          if (v.model) envAsync.mdl = String(v.model).slice(0, 60);
+          if (v.architecture) envAsync.arch = (String(v.architecture) + (v.bitness ? '-' + v.bitness : '')).slice(0, 16);
+        }).catch(function () {}).then(function () { envPending--; envSent = false; dirty = true; });
       }
     } catch (e) {}
-    envCache = out;
-    return out;
-  }
+    try {
+      // Headless Chrome reports Notification "denied" while the permission itself is still "prompt".
+      if (window.Notification && navigator.permissions && navigator.permissions.query) {
+        envPending++;
+        navigator.permissions.query({ name: 'notifications' }).then(function (status) {
+          if (Notification.permission === 'denied' && status.state === 'prompt') envAsync.np = true;
+        }).catch(function () {}).then(function () { envPending--; envSent = false; dirty = true; });
+      }
+    } catch (e) {}
+  })();
   function payload(end) {
     tick();
     var body = {
       v: 1, site: site, vid: vid, sid: session.id, now: now(),
       pv: { id: page.id, url: location.href.split('#')[0].slice(0, 1000), path: location.pathname.slice(0, 600), title: (document.title || '').slice(0, 300),
             ref: (document.referrer || '').slice(0, 600), active: page.active, total: now() - page.opened, scroll: page.scroll,
-            vp: window.innerWidth + 'x' + window.innerHeight, perf: perf(), end: !!end, hi: page.human },
+            vp: window.innerWidth + 'x' + window.innerHeight, perf: perf(), end: !!end, hi: page.human, inp: page.inputs },
       ev: queue.splice(0, 100),
       ctx: { lang: (navigator.language || '').slice(0, 24), tz: (function () { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; } })(),
              screen: (screen.width || 0) + 'x' + (screen.height || 0) + (window.devicePixelRatio && window.devicePixelRatio !== 1 ? '@' + Math.round(window.devicePixelRatio * 100) / 100 : ''),
              uid: data.uid || '', uname: data.uname || '' }
     };
-    if (!sentFirst) body.ctx.env = env();
+    if (!sentFirst || !envSent) { body.ctx.env = env(); envSent = envPending === 0; }
     if (freshSession && !sentFirst) { body.sref = (document.referrer || '').slice(0, 600); body.landing = location.pathname.slice(0, 600); body.utm = utm; }
     return body;
   }
@@ -190,7 +240,13 @@
     dirty = true;
   });
   var markInput = function () { lastInput = now(); };
-  var markHuman = function (event) { if (event.isTrusted && !page.human) { page.human = true; dirty = true; } };
+  var markHuman = function (event) {
+    if (!event.isTrusted) return;
+    if (!page.human) { page.human = true; dirty = true; }
+    var t = now();  // Count interaction bursts: inputs more than 0.6 s apart start a new one.
+    if (t - page.lastBurst > 600) { page.inputs++; dirty = true; }
+    page.lastBurst = t;
+  };
   ['pointerdown', 'pointermove', 'keydown', 'wheel', 'scroll', 'touchstart'].forEach(function (name) {
     window.addEventListener(name, markInput, { passive: true, capture: true });
     if (name !== 'scroll') window.addEventListener(name, markHuman, { passive: true, capture: true });

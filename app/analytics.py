@@ -76,7 +76,8 @@ def collect():
     site = payload.get('site') if isinstance(payload, dict) else None
     own = {request.host.split(':')[0].lower()} if site == 'forum' else {'heroliss.github.io'}
     try:
-        store().ingest(payload, ip=ip, ua=request.headers.get('User-Agent', ''), own_hosts=own)
+        store().ingest(payload, ip=ip, ua=request.headers.get('User-Agent', ''), own_hosts=own,
+                       headers=request.headers)
     except Exception:  # Analytics must never break the visitor's page.
         current_app.logger.exception('analytics ingest failed')
         return '', 500

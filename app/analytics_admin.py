@@ -16,8 +16,8 @@ from itsdangerous import BadData, URLSafeTimedSerializer
 
 from . import db
 from .admin import AdminAudit, admin
-from .analytics_store import (EVENT_TYPES, ID, KINDS, SITES, display_zone, fmt_bytes, fmt_duration, fmt_time,
-                              now_ms, valid_ip)
+from .analytics_store import (EVENT_TYPES, ID, KINDS, SITES, display_zone, env_facts, fmt_bytes, fmt_duration,
+                              fmt_time, now_ms, valid_ip)
 from .models import Permission, Role, User
 
 RANGES = [('today', '今天'), ('yesterday', '昨天'), ('7d', '近 7 天'), ('30d', '近 30 天'),
@@ -419,7 +419,7 @@ def analytics():
                   browsers=breakdown(f, 'browser'), systems=breakdown(f, 'os'), devices=breakdown(f, 'device'),
                   screens=breakdown(f, 'screen', 8), languages=breakdown(f, 'lang', 8), zones=breakdown(f, 'tz', 8),
                   sites_split=site_split(f), heat=heatmap(f), clicks=top_clicks(f, 12), perf=performance(f),
-                  errors=recent_errors(f), missing=not_found(f), areas=regions(f), live_count=live, storage=store().storage_stats())
+                  errors=recent_errors(f), missing=not_found(f), areas=regions(f), live_count=live, kind_split=store().kind_split(f.start, f.end, f.site), storage=store().storage_stats())
 
 
 @admin.get('/analytics/live')
@@ -495,10 +495,7 @@ def analytics_visitor(visitor_id):
                         'WHERE visitor_id = ? GROUP BY ip ORDER BY last DESC', (visitor_id,))
     favourite = store().query('SELECT site, path, MAX(title) title, COUNT(*) pv, SUM(active_ms) active FROM pageviews '
                               'WHERE visitor_id = ? GROUP BY site, path ORDER BY active DESC LIMIT 8', (visitor_id,))
-    try:
-        visitor['env_data'] = json.loads(visitor.get('env') or '{}')
-    except ValueError:
-        visitor['env_data'] = {}
+    visitor['facts'] = env_facts(visitor)
     return render('admin/analytics/visitor.html', analytics_page='visitors', visitor=visitor, totals=totals, ips=ips,
                   favourite=favourite, sessions=timeline('s.visitor_id = ?', (visitor_id,), page_number()))
 
@@ -511,7 +508,7 @@ def analytics_ip(address):
     totals = store().query('SELECT COUNT(*) pv, COUNT(DISTINCT session_id) sessions, COUNT(DISTINCT visitor_id) visitors, '
                            'COALESCE(SUM(active_ms),0) active, COALESCE(SUM(clicks),0) clicks, MIN(started_at) first, '
                            'MAX(last_seen) last FROM pageviews WHERE ip = ?', (ip,))[0]
-    visitors = store().query('SELECT v.*, COUNT(p.id) pv, SUM(p.active_ms) active, MAX(p.last_seen) last FROM pageviews p '
+    visitors = store().query('SELECT v.*, v.bot kind, COUNT(p.id) pv, SUM(p.active_ms) active, MAX(p.last_seen) last FROM pageviews p '
                              'JOIN visitors v ON v.id = p.visitor_id WHERE p.ip = ? GROUP BY v.id ORDER BY last DESC', (ip,))
     ignored = bool(store().scalar('SELECT 1 FROM ignored_ips WHERE ip = ?', (ip,)))
     return render('admin/analytics/ip.html', analytics_page='visitors', ip=ip, totals=totals, visitors=visitors,
@@ -724,6 +721,16 @@ def analytics_ignore():
           [dict(label='统计状态', before='记录' if ignored else '不记录', after='不记录' if ignored else '记录')])
     flash(f'已{"排除" if ignored else "恢复记录"} IP {ip}。' + ('此后来自该 IP 的访问不会被记录；已有记录保留。' if ignored else ''))
     return redirect(safe_return(request.form.get('return_to'), url_for('admin.analytics_data')))
+
+
+@admin.post('/analytics/reclassify')
+def analytics_reclassify():
+    store().reclassify_all()
+    counts = store().query('SELECT bot, COUNT(*) n FROM visitors GROUP BY bot')
+    summary = '、'.join(f"{KINDS.get(r['bot'], r['bot'])} {r['n']}" for r in counts) or '没有访客'
+    audit('analytics.reclassify', '全部访客', [dict(label='重新判断后', before='—', after=summary)])
+    flash(f'已重新判断全部访客类型：{summary}。手动设置过的访客保持不变。')
+    return redirect(url_for('admin.analytics_data'))
 
 
 @admin.post('/analytics/kind')

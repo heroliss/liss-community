@@ -17,7 +17,7 @@ import threading
 import time
 from urllib.parse import urlsplit
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 _LOCK = threading.RLock()
 
 SCHEMA = """
@@ -79,6 +79,14 @@ KINDS = {VISITOR: '访客', OWNER: '本人', TEST: '测试', BOT_KIND: '机器�
 OWNER_WINDOW_HOURS = 12  # Visits from an IP within this many hours of admin activity there count as 本人.
 VISITOR_COLUMNS = (('env', "TEXT NOT NULL DEFAULT ''"), ('human', 'INTEGER NOT NULL DEFAULT 0'),
                    ('kind_locked', 'INTEGER NOT NULL DEFAULT 0'), ('kind_reason', "TEXT NOT NULL DEFAULT ''"))
+PAGEVIEW_COLUMNS = (('inputs', 'INTEGER NOT NULL DEFAULT 0'),)
+ENV_TEXT = {'pf': 40, 'langs': 80, 'gpu': 120, 'conn': 16, 'cs': 8, 'ptr': 8, 'uab': 120, 'pv': 24, 'mdl': 60,
+            'arch': 16, 'al': 80, 'chua': 200, 'chp': 24, 'chm': 4}
+ENV_INT = {'hc': (0, 1024), 'dm': (0, 1024), 'tp': (0, 64), 'cd': (0, 64), 'tzo': (-1000, 1000), 'pl': (0, 1000),
+           'rtt': (0, 100_000), 'dl': (0, 100_000), 'h': (0, 1)}
+ENV_BOOL = ('wd', 'oz', 'nc', 'hl', 'hdr', 'p3', 'rm', 'sd', 'np', 'me', 'hov')
+UA_PLATFORMS = (('Windows', r'Windows'), ('macOS', r'Macintosh'), ('Android', r'Android'),
+                ('Chrome OS', r'CrOS'), ('Linux', r'X11; Linux'))
 EVENT_TYPES = {'click': '点击', 'outbound': '外链', 'error': '脚本错误', 'custom': '自定义'}
 ID = re.compile(r'[A-Za-z0-9_-]{8,40}')
 BOT = re.compile(r'bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|python|curl|wget|'
@@ -155,21 +163,40 @@ def parse_ua(ua: str) -> dict:
 
 
 def parse_env(raw) -> dict:
-    """Browser signals sent by the tracker (ctx.env); unknown keys are dropped."""
+    """Browser signals sent by the tracker (ctx.env) or read from request headers; unknown keys are dropped."""
     if not isinstance(raw, dict):
         return {}
     env = {}
-    for key, limit in (('pf', 40), ('langs', 80), ('gpu', 120), ('conn', 16), ('cs', 8)):
+    for key, limit in ENV_TEXT.items():
         if isinstance(raw.get(key), str) and raw[key]:
             env[key] = clip(raw[key], limit)
-    for key, low, high in (('hc', 0, 1024), ('dm', 0, 1024), ('tp', 0, 64), ('cd', 0, 64), ('tzo', -1000, 1000)):
+    for key, (low, high) in ENV_INT.items():
         if raw.get(key) is not None and not isinstance(raw.get(key), bool):
             value = as_int(raw.get(key), low, high)
             if value is not None:
                 env[key] = value
-    if isinstance(raw.get('wd'), bool):
-        env['wd'] = raw['wd']
+    for key in ENV_BOOL:
+        if isinstance(raw.get(key), bool):
+            env[key] = raw[key]
     return env
+
+
+def header_env(headers) -> dict:
+    """What the browser says about itself in request headers (beacons carry them too)."""
+    get = headers.get
+    return parse_env({'h': 1, 'al': get('Accept-Language', ''), 'chua': get('Sec-CH-UA', ''),
+                      'chp': get('Sec-CH-UA-Platform', '').strip('"'), 'chm': get('Sec-CH-UA-Mobile', '')})
+
+
+def refine_os(os_name: str, env: dict) -> str:
+    """Client hints know what the User-Agent hides: Windows 11 vs 10, macOS version."""
+    version = env.get('pv') or ''
+    major = as_int(version.split('.')[0]) if version else None
+    if os_name.startswith('Windows 10') and major is not None and env.get('chp', 'Windows') == 'Windows':
+        return 'Windows 11' if major >= 13 else 'Windows 10'
+    if os_name == 'macOS' and version and env.get('chp', 'macOS') == 'macOS':
+        return 'macOS ' + '.'.join(version.split('.')[:2])
+    return os_name
 
 
 def classify(visitor: dict, *, owner=False, region='') -> tuple[int, list[str]]:
@@ -199,6 +226,24 @@ def classify(visitor: dict, *, owner=False, region='') -> tuple[int, list[str]]:
         strong.append('User-Agent 格式异常')
     if tz == 'Etc/Unknown':
         strong.append('时区未知')
+    chua = env.get('chua', '')
+    if env.get('hl') or 'headless' in chua.lower():
+        strong.append('客户端提示显示为无界面浏览器')
+    if env.get('oz'):  # Also true in some embedded app browsers, so only supporting evidence.
+        weak.append('窗口外框尺寸为 0')
+    if env.get('np'):
+        strong.append('通知权限状态前后矛盾（无界面浏览器特征）')
+    if chua and not re.search(r'Chrome|Chromium|Edg|OPR', ua):
+        strong.append('自称非 Chromium 浏览器，却发送了 Chromium 客户端提示')
+    claimed = next((name for name, pattern in UA_PLATFORMS if re.search(pattern, ua)), '')
+    if env.get('chp') not in (None, '', 'Unknown') and claimed and env['chp'] != claimed:
+        strong.append(f'请求头系统为 {env["chp"]}，User-Agent 却是 {claimed}')
+    if env.get('nc'):
+        weak.append('Chrome 缺少 window.chrome 对象')
+    if env.get('pl') == 0 and claimed in ('Windows', 'macOS', 'Linux') and 'Chrome/' in ua and 'Edg' not in ua:
+        weak.append('桌面 Chrome 却没有任何插件')
+    if env.get('h') and not env.get('al'):
+        weak.append('请求缺少 Accept-Language')
     if tz in ('UTC', 'Etc/UTC', 'GMT', 'Etc/GMT', 'Etc/Universal'):
         weak.append('时区为 UTC')
     chrome = re.search(r'Chrome/(\d+)', ua)
@@ -211,10 +256,14 @@ def classify(visitor: dict, *, owner=False, region='') -> tuple[int, list[str]]:
     automation = bool(BOT.search(ua)) or not ua
     if 'Claude/' in ua:
         return TEST, ['Claude 应用内置浏览器']
+    if env.get('me') and not owner:
+        owner, owner_reason = True, '此浏览器已标记为本人'
+    else:
+        owner_reason = f'与后台登录同一 IP（前后 {OWNER_WINDOW_HOURS} 小时内）'
     if owner:
         if automation or strong:
             return TEST, ['来自本人 IP 的自动化访问'] + strong[:2]
-        return OWNER, [f'与后台登录同一 IP（前后 {OWNER_WINDOW_HOURS} 小时内）']
+        return OWNER, [owner_reason]
     if automation:
         return BOT_KIND, ['User-Agent 自报为爬虫或自动化工具']
     if strong or (len(weak) >= 2 and not visitor.get('human')):
@@ -262,6 +311,10 @@ class AnalyticsStore:
                     for name, spec in VISITOR_COLUMNS:
                         if name not in columns:
                             connection.execute(f'ALTER TABLE visitors ADD COLUMN {name} {spec}')
+                    columns = {row[1] for row in connection.execute('PRAGMA table_info(pageviews)')}
+                    for name, spec in PAGEVIEW_COLUMNS:
+                        if name not in columns:
+                            connection.execute(f'ALTER TABLE pageviews ADD COLUMN {name} {spec}')
                     connection.execute("INSERT OR IGNORE INTO meta(key, value) VALUES ('created_at', ?)", (str(now_ms()),))
                     version = connection.execute("SELECT value FROM meta WHERE key='schema'").fetchone()
                     if version is None or int(version[0]) < SCHEMA_VERSION:
@@ -285,7 +338,7 @@ class AnalyticsStore:
                 self._ignored = {row['ip'] for row in db.execute('SELECT ip FROM ignored_ips')}
         return self._ignored
 
-    def ingest(self, payload: dict, *, ip: str, ua: str, own_hosts=(), server_now=None) -> dict:
+    def ingest(self, payload: dict, *, ip: str, ua: str, own_hosts=(), server_now=None, headers=None) -> dict:
         """Record one tracker batch. Returns a small status dict; never raises on bad input."""
         server_now = server_now or now_ms()
         if not isinstance(payload, dict):
@@ -307,11 +360,20 @@ class AnalyticsStore:
         user_id = as_int(ctx.get('uid'), 1, 2**62)
         username = clip(ctx.get('uname'), 64)
         env = parse_env(ctx.get('env'))
-        env_json = json.dumps(env, ensure_ascii=False, sort_keys=True) if env else None
+        if headers is not None:
+            env.update(header_env(headers))
         human = 1 if page.get('hi') is True else 0
+        inputs = as_int(page.get('inp'), 0, 100_000) or 0
         ua = clip(ua, 400)
         with self.connect() as db:
-            visitor = db.execute('SELECT bot FROM visitors WHERE id=?', (vid,)).fetchone()
+            visitor = db.execute('SELECT bot, env FROM visitors WHERE id=?', (vid,)).fetchone()
+            if visitor is not None and env:
+                try:  # Keep signals from earlier batches (client hints arrive later than the first beacon).
+                    env = {**json.loads(visitor['env'] or '{}'), **env}
+                except ValueError:
+                    pass
+            env_json = json.dumps(env, ensure_ascii=False, sort_keys=True) if env else None
+            info['os'] = refine_os(info['os'], env)
             if visitor is None:
                 kind = classify(dict(ua=ua, lang=lang, tz=tz, screen=screen, env=env_json, human=human),
                                 region=self._region(ip))[0]
@@ -357,19 +419,19 @@ class AnalyticsStore:
                 path = clip(page.get('path'), 600) or (urlsplit(url).path if url else '/')
                 started = server_now - min(values['total'], 86_400_000)
                 db.execute('INSERT INTO pageviews (id, session_id, visitor_id, site, ip, bot, url, path, title, referrer, '
-                           'started_at, last_seen, active_ms, total_ms, scroll, viewport, ttfb_ms, dom_ms, load_ms, ended) '
-                           'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                           'started_at, last_seen, active_ms, total_ms, scroll, viewport, ttfb_ms, dom_ms, load_ms, ended, inputs) '
+                           'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                            (page['id'], sid, vid, site, ip, kind, url, path, clip(page.get('title'), 300),
                             clip(page.get('ref'), 600), started, server_now, values['active'], values['total'],
                             values['scroll'], clip(page.get('vp'), 24), values['ttfb'], values['dom'], values['load'],
-                            1 if page.get('end') else 0))
+                            1 if page.get('end') else 0, inputs))
             else:
                 db.execute('UPDATE pageviews SET last_seen=?, active_ms=MAX(active_ms, ?), total_ms=MAX(total_ms, ?), '
                            'scroll=MAX(scroll, ?), ttfb_ms=COALESCE(ttfb_ms, ?), dom_ms=COALESCE(dom_ms, ?), '
-                           'load_ms=COALESCE(load_ms, ?), ended=MAX(ended, ?), '
+                           'load_ms=COALESCE(load_ms, ?), ended=MAX(ended, ?), inputs=MAX(inputs, ?), '
                            'title=CASE WHEN length(title)=0 THEN ? ELSE title END WHERE id=?',
                            (server_now, values['active'], values['total'], values['scroll'], values['ttfb'],
-                            values['dom'], values['load'], 1 if page.get('end') else 0,
+                            values['dom'], values['load'], 1 if page.get('end') else 0, inputs,
                             clip(page.get('title'), 300), page['id']))
             path = db.execute('SELECT path FROM pageviews WHERE id=?', (page['id'],)).fetchone()['path']
             events = payload.get('ev') if isinstance(payload.get('ev'), list) else []
@@ -475,6 +537,14 @@ class AnalyticsStore:
                 self._reclassify(db, [visitor_id])
         return bool(changed)
 
+    def kind_split(self, start: int, end: int, site: str = 'all') -> dict:
+        sql = 'SELECT bot, COUNT(DISTINCT visitor_id) n FROM pageviews WHERE started_at >= ? AND started_at < ?'
+        params = [start, end]
+        if site != 'all':
+            sql += ' AND site = ?'
+            params.append(site)
+        return {row['bot']: row['n'] for row in self.query(sql + ' GROUP BY bot', params)}
+
     # ----------------------------------------------------------------- queries
     def query(self, sql, params=()):
         with self.connect() as db:
@@ -542,6 +612,47 @@ class AnalyticsStore:
 
 
 # --------------------------------------------------------------------- helpers
+def env_facts(visitor: dict) -> list[tuple[str, str]]:
+    """Readable (label, value) pairs for the visitor detail page."""
+    try:
+        e = json.loads(visitor.get('env') or '{}')
+    except ValueError:
+        e = {}
+    facts = []
+    def add(label, value):
+        if value not in (None, ''):
+            facts.append((label, str(value)))
+    add('设备型号', e.get('mdl'))
+    if e.get('pv'):
+        name = e.get('chp') or ''
+        if name == 'Windows':
+            name = refine_os('Windows 10/11', e)
+        add('系统版本', f"{name}（平台版本 {e['pv']}）".strip())
+    add('架构', e.get('arch'))
+    add('平台', e.get('pf'))
+    if 'hc' in e or 'dm' in e:
+        add('CPU / 内存', ' · '.join(x for x in (f"{e['hc']} 核" if 'hc' in e else '', f"{e['dm']} GB" if 'dm' in e else '') if x))
+    add('显卡', e.get('gpu'))
+    add('指针', {'fine': '鼠标 / 触控板', 'coarse': '触摸', 'none': '无'}.get(e.get('ptr')))
+    add('触摸点', e.get('tp'))
+    display = [x for x, k in (('HDR', 'hdr'), ('广色域 P3', 'p3')) if e.get(k)]
+    add('屏幕能力', ' · '.join(display + [f"{e['cd']} 位色深"] if 'cd' in e else display))
+    add('配色', {'dark': '深色', 'light': '浅色'}.get(e.get('cs')))
+    if e.get('rm'):
+        add('减弱动画', '开启')
+    net = ' · '.join(x for x in (e.get('conn') or '', f"延迟 {e['rtt']} ms" if 'rtt' in e else '',
+                                 f"约 {e['dl']} Mbps" if 'dl' in e else '', '省流量' if e.get('sd') else '') if x)
+    add('网络', net)
+    add('语言列表', e.get('langs'))
+    add('Accept-Language', e.get('al'))
+    add('客户端提示', ' · '.join(x for x in (e.get('chua') or e.get('uab') or '', e.get('chp') or '') if x))
+    add('插件数', e.get('pl'))
+    if e:
+        add('自动化标记', '是（webdriver）' if e.get('wd') else '否')
+        if e.get('me'):
+            add('本人标记', '此浏览器已标记为本人')
+    return facts
+
 def display_zone(offset_minutes: int):
     return timezone(timedelta(minutes=offset_minutes))
 

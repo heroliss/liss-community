@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from app import create_app, db
 from app.admin import AdminAudit
-from app.analytics_store import classify, parse_ua
+from app.analytics_store import classify, env_facts, parse_ua, refine_os
 from app.models import Role, User
 
 VID, SID, PV = 'a' * 24, 'b' * 24, 'c' * 24
@@ -262,7 +262,10 @@ class AnalyticsTests(unittest.TestCase):
         body['pv'] = dict(body['pv'], hi=True)
         self.collect(body)
         row = self.store().query('SELECT env, human, bot FROM visitors')[0]
-        self.assertEqual(json.loads(row['env']), {'wd': False, 'hc': 8, 'tp': 0, 'gpu': 'ANGLE (NVIDIA GeForce RTX 4070)'})
+        stored = json.loads(row['env'])
+        self.assertEqual({k: stored[k] for k in ('wd', 'hc', 'tp', 'gpu')}, {'wd': False, 'hc': 8, 'tp': 0, 'gpu': 'ANGLE (NVIDIA GeForce RTX 4070)'})
+        self.assertNotIn('bogus', stored)
+        self.assertEqual(stored['h'], 1)  # Request headers were read.
         self.assertEqual((row['human'], row['bot']), (1, 0))
         self.login()
         page = self.client.get(f'/admin/analytics/visitor/{VID}').get_data(as_text=True)
@@ -290,7 +293,70 @@ class AnalyticsTests(unittest.TestCase):
             connection.execute("UPDATE meta SET value = '1' WHERE key = 'schema'")
         store._ready = False
         self.assertEqual(store.scalar('SELECT COUNT(*) FROM pageviews WHERE bot = 2'), 1)
-        self.assertEqual(store.scalar("SELECT value FROM meta WHERE key = 'schema'"), '2')
+        self.assertEqual(store.scalar("SELECT value FROM meta WHERE key = 'schema'"), '3')
+
+
+    def test_header_and_fingerprint_signals(self):
+        iphone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 Version/18.1 Mobile/15E148 Safari/604.1'
+        phone = {'lang': 'zh-CN', 'tz': 'Asia/Shanghai', 'screen': '390x844@3'}
+        # A real iPhone (Safari sends no client hints) stays a visitor.
+        self.collect(batch(ctx=phone), ua=iphone, client=None)
+        self.assertEqual(self.store().scalar('SELECT bot FROM visitors'), 0)
+        # The same claim with Chromium client hints is a disguise.
+        body = batch(vid='d' * 24, sid='e' * 24, pv=dict(batch()['pv'], id='f' * 24), ctx=phone)
+        self.client.post('/analytics/collect', data=json.dumps(body), content_type='text/plain',
+                         headers={'Origin': 'https://heroliss.github.io', 'User-Agent': iphone,
+                                  'Sec-CH-UA': '"Chromium";v="141", "Not?A_Brand";v="8"', 'Sec-CH-UA-Platform': '"Linux"',
+                                  'Accept-Language': 'en-US'}, environ_base={'REMOTE_ADDR': '192.0.2.9'})
+        row = self.store().query("SELECT bot, kind_reason, env FROM visitors WHERE id = ?", ('d' * 24,))[0]
+        self.assertEqual(row['bot'], 2)
+        self.assertIn('Chromium 客户端提示', row['kind_reason'])
+        self.assertEqual(json.loads(row['env'])['chp'], 'Linux')
+        reasons = classify(dict(ua=CHROME, tz='Asia/Shanghai', screen='1920x1080',
+                                env=json.dumps({'h': 1, 'al': 'zh-CN', 'chua': '"Chromium";v="142"', 'chp': 'Linux'})))
+        self.assertEqual(reasons[0], 2)
+        self.assertIn('请求头系统为 Linux', reasons[1][0])
+        for env in ({'hl': True}, {'np': True}):
+            self.assertEqual(classify(dict(ua=CHROME, tz='Asia/Shanghai', screen='1920x1080', env=json.dumps(env)))[0], 2, env)
+        weak = classify(dict(ua=CHROME, tz='UTC', screen='1920x1080', env=json.dumps({'h': 1, 'pl': 0})))
+        self.assertEqual(weak[0], 2)
+        self.assertIn('请求缺少 Accept-Language', weak[1])
+        self.assertEqual(refine_os('Windows 10/11', {'pv': '15.0.0', 'chp': 'Windows'}), 'Windows 11')
+        self.assertEqual(refine_os('Windows 10/11', {'pv': '10.0.0'}), 'Windows 10')
+        self.assertEqual(refine_os('macOS', {'pv': '15.3.1'}), 'macOS 15.3')
+
+    def test_owner_flag_inputs_reclassify_and_breakdown(self):
+        body = batch()
+        body['ctx'] = dict(body['ctx'], env={'me': True, 'pv': '15.0.0', 'mdl': '', 'ptr': 'fine', 'hdr': True})
+        body['pv'] = dict(body['pv'], hi=True, inp=7)
+        self.collect(body)
+        row = self.store().query('SELECT bot, kind_reason, os FROM visitors')[0]
+        self.assertEqual((row['bot'], row['os']), (4, 'Windows 11'))
+        self.assertIn('标记为本人', row['kind_reason'])
+        self.assertEqual(self.store().scalar('SELECT inputs FROM pageviews'), 7)
+        # Later batches without the async signals keep them (merge, not replace).
+        later = batch()
+        later['ctx'] = dict(later['ctx'], env={'hc': 8})
+        self.collect(later)
+        env = json.loads(self.store().scalar('SELECT env FROM visitors'))
+        self.assertTrue(env['me'] and env['hdr'] and env['hc'] == 8)
+        facts = dict(env_facts(self.store().query('SELECT * FROM visitors')[0]))
+        self.assertEqual(facts['指针'], '鼠标 / 触控板')
+        self.assertIn('HDR', facts['屏幕能力'])
+        self.login()
+        overview = self.client.get('/admin/analytics?range=all').get_data(as_text=True)
+        self.assertIn('an-kind-split', overview)
+        self.assertIn('an-kind-owner', overview)
+        page = self.client.get(f'/admin/analytics/visitor/{VID}').get_data(as_text=True)
+        self.assertIn('操作 7 次', page)
+        self.assertIn('Windows 11', page)
+        with self.store().connect() as connection:
+            connection.execute('UPDATE visitors SET bot = 0')
+        token = self.csrf('/admin/analytics/data')
+        response = self.client.post('/admin/analytics/reclassify', data={'csrf_token': token})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.store().scalar('SELECT bot FROM visitors'), 4)
+        self.assertIn('本人 1', self.client.get('/admin/analytics/data').get_data(as_text=True))
 
 
 if __name__ == '__main__':

@@ -59,7 +59,7 @@
       <p class="an-session-source">来源：{% if s.referrer %}<a href="{{ s.referrer }}" target="_blank" rel="noopener noreferrer">{{ s.referrer|truncate(90, true, '…') }}</a>{% else %}直接访问 / 站内{% endif %}{% if s.utm %} · {{ s.utm }}{% endif %}</p>
     </div>
     <ol class="an-views">{% for v in s.views %}
-      <li><div class="an-view-line"><time>{{ v.started_at|at('%H:%M:%S') }}</time><a href="{{ v|page_url }}" target="_blank" rel="noopener noreferrer" class="an-view-title" title="{{ v.url or v.path }}">{{ v.title or v.path }}</a><span class="an-view-stats"><span title="可见且有操作的停留时间">停留 {{ v.active_ms|dur }}</span><span title="页面打开总时长">共 {{ v.total_ms|dur }}</span><span title="最大滚动深度">滚动 {{ v.scroll }}%</span>{% if v.load_ms %}<span title="页面加载完成">加载 {{ (v.load_ms / 1000)|round(1) }} 秒</span>{% endif %}</span></div>
+      <li><div class="an-view-line"><time>{{ v.started_at|at('%H:%M:%S') }}</time><a href="{{ v|page_url }}" target="_blank" rel="noopener noreferrer" class="an-view-title" title="{{ v.url or v.path }}">{{ v.title or v.path }}</a><span class="an-view-stats"><span title="可见且有操作的停留时间">停留 {{ v.active_ms|dur }}</span><span title="页面打开总时长">共 {{ v.total_ms|dur }}</span><span title="最大滚动深度">滚动 {{ v.scroll }}%</span>{% if v.inputs %}<span title="鼠标、触摸、滚轮或键盘操作的次数（连续操作算一次）">操作 {{ v.inputs }} 次</span>{% endif %}{% if v.load_ms %}<span title="页面加载完成">加载 {{ (v.load_ms / 1000)|round(1) }} 秒</span>{% endif %}</span></div>
         <small class="an-view-path">{{ v.path }}{% if v.viewport %} · 视口 {{ v.viewport }}{% endif %}</small>
         {% if v.events %}<ol class="an-events">{% for e in v.events %}{{ event_row(e, false) }}{% endfor %}</ol>{% endif %}
       </li>{% endfor %}

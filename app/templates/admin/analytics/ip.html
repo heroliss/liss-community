@@ -12,7 +12,7 @@
 </div>
 <section class="an-card"><div class="an-card-head"><h2>来自此 IP 的访客</h2></div>
   <table class="an-table an-table-wide"><thead><tr><th>访客</th><th>浏览器 / 系统 / 设备</th><th>屏幕</th><th>浏览</th><th>停留</th><th>最近</th></tr></thead><tbody>
-  {% for v in visitors %}<tr><td>{{ an.visitor_link(v.id, ('@' ~ v.username) if v.username else None) }}{% if v.note %}<small class="an-note">{{ v.note }}</small>{% endif %}</td><td class="an-small">{{ v.browser }} · {{ v.os }} · {{ v.device }}</td><td class="an-small">{{ v.screen or '—' }}</td><td>{{ v.pv }}</td><td>{{ v.active|dur }}</td><td class="an-small">{{ v.last|ago }}</td></tr>{% endfor %}
+  {% for v in visitors %}<tr><td>{{ an.visitor_link(v.id, ('@' ~ v.username) if v.username else None) }} {{ an.kind_badge(v.kind, v.kind_reason, v.kind_locked) }}{% if v.note %}<small class="an-note">{{ v.note }}</small>{% endif %}</td><td class="an-small">{{ v.browser }} · {{ v.os }} · {{ v.device }}</td><td class="an-small">{{ v.screen or '—' }}</td><td>{{ v.pv }}</td><td>{{ v.active|dur }}</td><td class="an-small">{{ v.last|ago }}</td></tr>{% endfor %}
   </tbody></table></section>
 <section class="an-section"><div class="an-card-head"><h2>访问轨迹</h2></div>{{ an.timeline(sessions, 'admin.analytics_ip', {'address': ip}) }}</section>
 <details class="an-danger"><summary>删除此 IP 的全部记录</summary>

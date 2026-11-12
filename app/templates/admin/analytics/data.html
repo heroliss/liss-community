@@ -20,12 +20,15 @@
       <form method="post" action="{{ url_for('admin.analytics_ignore') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="ip" value="{{ i.ip }}"><input type="hidden" name="ignored" value="0"><button class="button button-small button-secondary" type="submit">恢复记录</button></form></li>{% endfor %}</ul>
     {% else %}<p class="an-empty">目前没有排除任何 IP。</p>{% endif %}
   </section>
-  <section class="an-card" aria-labelledby="optout-heading"><div class="an-card-head"><h2 id="optout-heading">不记录我自己的浏览器</h2></div>
-    <p class="an-help">IP 会变化时，可以按浏览器排除。在要排除的设备上分别打开下面的链接一次即可（社区和作品站各自独立）；改回记录用对应的“恢复”链接。</p>
+  <section class="an-card" aria-labelledby="optout-heading"><div class="an-card-head"><h2 id="optout-heading">我自己的设备</h2></div>
+    <p class="an-help">登录后台时所用的 IP 会自动识别为本人。不登录的设备（例如手机）可以在该设备上打开下面的链接一次，把这个浏览器标记为本人（照常记录，但归入“本人”）；也可以完全停止记录。社区和作品站各自独立，需要分别打开。</p>
     <ul class="an-links">
-      <li><span>社区</span><a href="{{ community_root }}?liss_analytics=off" target="_blank" rel="noopener">停止记录此浏览器</a><a href="{{ community_root }}?liss_analytics=on" target="_blank" rel="noopener">恢复</a></li>
-      <li><span>作品站与玻璃海</span><a href="https://heroliss.github.io/liss-works/?liss_analytics=off" target="_blank" rel="noopener">停止记录此浏览器</a><a href="https://heroliss.github.io/liss-works/?liss_analytics=on" target="_blank" rel="noopener">恢复</a></li>
+      <li><span>社区</span><a href="{{ community_root }}?liss_analytics=me" target="_blank" rel="noopener">标记为本人</a><a href="{{ community_root }}?liss_analytics=notme" target="_blank" rel="noopener">取消标记</a><a href="{{ community_root }}?liss_analytics=off" target="_blank" rel="noopener">停止记录</a><a href="{{ community_root }}?liss_analytics=on" target="_blank" rel="noopener">恢复记录</a></li>
+      <li><span>作品站与玻璃海</span><a href="https://heroliss.github.io/liss-works/?liss_analytics=me" target="_blank" rel="noopener">标记为本人</a><a href="https://heroliss.github.io/liss-works/?liss_analytics=notme" target="_blank" rel="noopener">取消标记</a><a href="https://heroliss.github.io/liss-works/?liss_analytics=off" target="_blank" rel="noopener">停止记录</a><a href="https://heroliss.github.io/liss-works/?liss_analytics=on" target="_blank" rel="noopener">恢复记录</a></li>
     </ul>
+    <div class="an-card-head an-sub"><h2>访客类型</h2></div>
+    <p class="an-help">判断规则更新后，或想让旧记录用最新规则重新归类时使用。手动设置过类型的访客不受影响。</p>
+    <form method="post" action="{{ url_for('admin.analytics_reclassify') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-small button-secondary" type="submit">重新判断全部访客</button></form>
     <div class="an-card-head an-sub"><h2>IP 归属地库</h2></div>
     <p class="an-help">{% if ip_db %}已启用离线归属地查询（{% for d in ip_db %}{{ d.name }} {{ d.bytes }}{% if not loop.last %}、{% endif %}{% endfor %}），数据来自开源项目 <a href="https://github.com/lionsoul2014/ip2region" target="_blank" rel="noopener noreferrer">ip2region</a>。更新时下载新的 xdb 文件替换数据目录中的同名文件并 Reload。{% else %}未安装。把 ip2region 的 <code>ip2region_v4.xdb</code> 放到数据目录并 Reload 后，访客 IP 旁会显示国家、省份、城市与运营商。{% endif %}</p>
     <div class="an-card-head an-sub"><h2>导出</h2></div>
