@@ -6,7 +6,8 @@
   Uses the PythonAnywhere Files API. Create a token once at
   https://www.pythonanywhere.com/account/#api_token and save it (only the token) in
     $HOME\.config\liss\pythonanywhere-token.txt
-  or set $env:PYTHONANYWHERE_TOKEN. The token is never printed.
+  or in <Destination>\pythonanywhere-token.txt, or set $env:PYTHONANYWHERE_TOKEN.
+  The token is never printed.
 
   Downloads every ~/liss-backups/daily/<date>/ folder that is not yet present locally,
   plus manual *.bundle files in ~/liss-backups. Existing local files are never deleted.
@@ -20,10 +21,11 @@ param(
     [string]$ApiHost = 'www.pythonanywhere.com'
 )
 $ErrorActionPreference = 'Stop'
-$tokenFile = Join-Path $HOME '.config\liss\pythonanywhere-token.txt'
+# Token lookup: environment, then next to the backups, then ~/.config/liss.
+$tokenFiles = @((Join-Path $Destination 'pythonanywhere-token.txt'), (Join-Path $HOME '.config\liss\pythonanywhere-token.txt'))
 $token = $env:PYTHONANYWHERE_TOKEN
-if (-not $token -and (Test-Path -LiteralPath $tokenFile)) { $token = (Get-Content -LiteralPath $tokenFile -Raw).Trim() }
-if (-not $token) { throw "缺少 PythonAnywhere API token：请保存到 $tokenFile（只放 token 本身）或设置 PYTHONANYWHERE_TOKEN。" }
+foreach ($tokenFile in $tokenFiles) { if (-not $token -and (Test-Path -LiteralPath $tokenFile)) { $token = (Get-Content -LiteralPath $tokenFile -Raw).Trim() } }
+if (-not $token) { throw "缺少 PythonAnywhere API token：请保存到 $($tokenFiles[0])（只放 token 本身）或设置 PYTHONANYWHERE_TOKEN。" }
 $headers = @{ Authorization = "Token $token" }
 $base = "https://$ApiHost/api/v0/user/$User/files/path"
 $remoteRoot = "/home/$User/liss-backups"
