@@ -29,6 +29,9 @@ def create_app(config_name):
     db.init_app(app)
     login_manager.init_app(app)
     pagedown.init_app(app)
+    # Registered first so it runs last, after every other after_request hook.
+    from .compression import install as install_compression
+    install_compression(app)
     from .post_preview import post_preview
     app.add_template_filter(post_preview, 'post_preview')
     from .frontend_assets import install as install_frontend_assets

@@ -24,7 +24,7 @@ for name in ('LISS_EMAIL_ACCOUNTS', 'LISS_MAIL_PROVIDER', 'LISS_MAIL_API_KEY',
              'LISS_ALIYUN_REGION', 'LISS_ALIYUN_SENDER_VERIFIED',
              'LISS_MAIL_TIMEOUT', 'LISS_PORTFOLIO_DIR', 'LISS_PORTFOLIO_URL',
              'LISS_INDEXING_ENABLED', 'BACKGROUND_MAX_STORAGE_BYTES', 'LISS_AUTO_BACKUP',
-             'LISS_GOOGLE_VERIFICATION'):
+             'LISS_GOOGLE_VERIFICATION', 'LISS_INDEXNOW_KEY'):
     if name in settings:
         os.environ[name] = str(settings[name])
 os.environ['FLASK_CONFIG'] = 'public-demo'

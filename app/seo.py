@@ -140,6 +140,15 @@ def google_verification(token):
     return Response(f'google-site-verification: google{token}.html', mimetype='text/html')
 
 
+@seo.get('/<token>.txt')
+def indexnow_key(token):
+    """IndexNow ownership key file (https://www.indexnow.org); value from LISS_INDEXNOW_KEY."""
+    key = str(current_app.config.get('LISS_INDEXNOW_KEY') or '')
+    if not re.fullmatch(r'[0-9a-f]{32}', token) or token != key:
+        abort(404)
+    return Response(key, mimetype='text/plain')
+
+
 @seo.get('/sitemap.xml')
 def sitemap():
     require_indexing()
