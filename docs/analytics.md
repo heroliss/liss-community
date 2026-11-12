@@ -26,9 +26,17 @@
 
 所有页面支持今天、昨天、近 7 / 30 / 90 天、全部和自定义日期，以及按站点筛选。时间按 UTC+8 显示，可用环境变量 `LISS_ANALYTICS_UTC_OFFSET`（分钟）调整。
 
+## IP 归属地与 404
+
+把开源项目 [ip2region](https://github.com/lionsoul2014/ip2region)（Apache-2.0 / MIT）的 `data/ip2region_v4.xdb`（约 11 MB）放入数据目录并 Reload，访客 IP 旁会显示国家、省份、城市与运营商，概览增加“地区”分布（国内按省份）。未放置时功能自动隐藏；更新数据时替换同名文件即可。IPv6 库约 37 MB，免费账户空间有限，默认不放。
+
+概览“404 页面”列出访客打开过的不存在地址（作品站标题含“没有找到页面”，社区标题以“· 404”结尾）及其来源页，用于发现坏链接。
+
 ## 存储与维护
 
-数据保存在数据目录下独立的 `analytics.sqlite`（与 `public-demo.sqlite` 同目录），不经过社区的写锁，不修改社区数据库结构，也不会自动删除。备份数据目录时一并复制该文件即可；删除该文件等于清空统计，下次访问自动重建。
+数据保存在数据目录下独立的 `analytics.sqlite`（与 `public-demo.sqlite` 同目录），不经过社区的写锁，不修改社区数据库结构，也不会自动删除。删除该文件等于清空统计，下次访问自动重建。
+
+每日备份：在 PythonAnywhere 的 Tasks 中添加每日任务运行 `deploy/daily_backup.py`（用 web app 的 virtualenv Python），它在 `~/liss-backups/daily/<日期>/` 生成核验过的社区备份包和 `analytics.sqlite` 一致副本，保留最近 7 天。异地副本：在自己的电脑上运行 `scripts/pull_forum_backups.ps1`（需先在 PythonAnywhere Account 页面创建 API token 并保存到 `~/.config/liss/pythonanywhere-token.txt`），只下载本地尚无的文件，不删除本地文件。
 
 ## 部署要点
 
