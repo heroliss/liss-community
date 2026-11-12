@@ -121,6 +121,24 @@ def as_int(value, low=0, high=10**10):
     return max(low, min(high, number))
 
 
+def agent_name(ua: str) -> str:
+    """Best short name for an automated client: Googlebot, liss-ops-uptime, python-requests, curl ..."""
+    if not ua:
+        return ''
+    match = re.search(r'([A-Za-z][\w.-]*?(?:bot|spider|crawler|fetcher|checker|monitor|preview|inspectiontool|scanner))\b',
+                      ua, re.I)
+    if match:
+        return match.group(1)[:40]
+    match = re.search(r'compatible;\s*([^;/)]+)', ua)
+    if match:
+        return match.group(1).strip()[:40]
+    if 'HeadlessChrome' in ua:
+        return 'HeadlessChrome'
+    if not ua.startswith('Mozilla/'):
+        return re.split(r'[/\s;(]', ua.strip('"\' '), maxsplit=1)[0][:40]
+    return ''
+
+
 def parse_ua(ua: str) -> dict:
     """Small, dependency-free classification good enough for a personal site."""
     text = ua or ''
@@ -157,8 +175,8 @@ def parse_ua(ua: str) -> dict:
             browser = name + (' ' + version.split('.')[0] if version else '')
             break
     if bot:
-        name = re.search(r'([A-Za-z][A-Za-z0-9_-]*(?:bot|spider|crawler))', text, re.I)
-        browser = '机器人' + (' · ' + name.group(1) if name else '')
+        name = agent_name(text)
+        browser = '机器人' + (' · ' + name if name else '')
     device = ('机器人' if bot else '平板' if re.search(r'iPad|Tablet|Tab(?!le)|Android(?!.*Mobile)', text)
               else '手机' if re.search(r'Mobi|iPhone|Android', text) else '电脑')
     return dict(browser=browser[:40], os=os_name[:40], device=device, bot=int(bot))
