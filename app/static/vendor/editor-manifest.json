@@ -44,5 +44,29 @@
         "sha256": "fab3dd6bdab226f1c08630b1dd917e11fcb4ec5e1e020e2c16f83a0a13863e85"
       }
     ]
+  },
+  {
+    "package": "moment",
+    "version": "2.29.4",
+    "npm_integrity": "sha512-5LC9SOxjSc2HF6vO2CyuTDNivEdoz2IvyJJGj6X8DJ0eFyfszE0QiEd+iXmBvUP3WHxSjFH/vIsA0EN00cgr8w==",
+    "source": "https://registry.npmjs.org/moment/-/moment-2.29.4.tgz",
+    "files": [
+      {
+        "name": "LICENSE",
+        "bytes": 1075,
+        "sha256": "8f38f320bbf5eb84c08e08676f7ee1d2204ebe5797f6a090d077329cf212fca3"
+      },
+      {
+        "name": "moment.min.js",
+        "bytes": 58103,
+        "sha256": "f343aa319a17a3fc372ee6ad5af482b9bf6a298cb22652b4aa7502604821071f"
+      },
+      {
+        "name": "zh-cn.js",
+        "bytes": 4507,
+        "sha256": "53138532aad7c571af10cf6b17a678552e9a9e7ef5014d250f97af8dc61ae6e1"
+      }
+    ],
+    "note": "min/moment.min.js and locale/zh-cn.js from the npm tarball (the community only uses zh-cn)"
   }
 ]

@@ -137,6 +137,15 @@ class AnalyticsTests(unittest.TestCase):
         self.assertEqual(self.client.get('/admin/analytics/visitor/zz').status_code, 404)
         self.assertEqual(self.client.get('/admin/analytics/ip/not-an-ip').status_code, 404)
 
+    def test_overview_lists_404_pages_with_referrers(self):
+        missing = batch(pv=dict(batch()['pv'], id='m' * 24, path='/liss-works/old-link/', title='没有找到页面 · Liss Works',
+                                ref='https://example.org/blog'))
+        self.collect(missing)
+        self.login()
+        page = self.client.get('/admin/analytics?range=all').get_data(as_text=True)
+        self.assertIn('/liss-works/old-link/', page)
+        self.assertIn('https://example.org/blog', page)
+
     def test_tracker_tag_on_community_pages_not_admin(self):
         self.assertIn('liss-analytics.js', self.client.get('/').get_data(as_text=True))
         self.login()
@@ -172,6 +181,19 @@ class AnalyticsTests(unittest.TestCase):
         self.client.post('/admin/analytics/ignore', data={'ip': '203.0.113.7', 'ignored': '0', 'csrf_token': token})
         self.collect(batch())
         self.assertEqual(self.store().scalar('SELECT COUNT(*) FROM pageviews'), 1)
+
+    def test_region_lookup_without_and_with_database(self):
+        from app.ip_region import RegionLookup, area, pretty
+        lookup = RegionLookup(self.directory.name)
+        self.assertFalse(lookup.available)
+        self.assertEqual((lookup.lookup('127.0.0.1'), lookup.lookup('10.1.2.3'), lookup.lookup('8.8.8.8')), ('本机', '内网', ''))
+        self.assertEqual(pretty('中国|广东省|深圳市|电信|CN'), '中国 广东省 深圳市 · 电信')
+        self.assertEqual(area('中国|广东省|深圳市|电信|CN'), '广东省')
+        self.assertEqual(area('United States|California|0|Google LLC|US'), 'United States')
+        self.login()
+        self.collect(batch())
+        self.assertEqual(self.client.get('/admin/analytics?range=all').status_code, 200)
+        self.assertIn('未安装', self.client.get('/admin/analytics/data').get_data(as_text=True))
 
     def test_user_agent_classification(self):
         self.assertEqual(parse_ua(CHROME)['device'], '电脑')

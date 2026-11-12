@@ -33,6 +33,7 @@
     </tbody></table>{% else %}<p class="an-empty">暂无数据</p>{% endif %}
   </section>
   <section class="an-card" aria-labelledby="ref-heading"><div class="an-card-head"><h2 id="ref-heading">访问来源</h2></div>{{ an.bar_list(referrers) }}
+    {% if areas is not none %}<div class="an-card-head an-sub"><h2>地区</h2><span class="an-muted">按访问次数，国内按省份</span></div>{{ an.bar_list(areas) }}{% endif %}
     <div class="an-card-head an-sub"><h2>站点分布</h2></div>{{ an.bar_list(sites_split, unit='次浏览') }}</section>
 </div>
 
@@ -62,6 +63,8 @@
     {% macro click_cell(row) %}<span class="an-click"><strong>{{ row.label or row.target or '（无文字）' }}</strong><small>{{ row.site|site_name }} · {{ row.path }}{% if row.type == 'outbound' %} · 外链{% endif %}</small></span>{% endmacro %}{{ an.bar_list(clicks, link=click_cell) }}</section>
   <section class="an-card" aria-labelledby="perf-heading"><div class="an-card-head"><h2 id="perf-heading">加载性能</h2><span class="an-muted">访客浏览器实测平均值</span></div>
     {% if perf %}<table class="an-table"><thead><tr><th>站点</th><th>样本</th><th>首字节</th><th>可交互</th><th>加载完成</th></tr></thead><tbody>{% for p in perf %}<tr><td>{{ an.site_tag(p.site) }}</td><td>{{ p.samples }}</td><td>{{ (p.ttfb or 0)|round|int }} ms</td><td>{{ ((p.dom or 0) / 1000)|round(2) }} 秒</td><td>{{ ((p.load or 0) / 1000)|round(2) }} 秒</td></tr>{% endfor %}</tbody></table>{% else %}<p class="an-empty">暂无数据</p>{% endif %}
+    <div class="an-card-head an-sub"><h2>404 页面</h2><span class="an-muted">访客打开了不存在的地址</span></div>
+    {% if missing %}<ol class="an-errors an-missing">{% for m in missing %}<li><strong>{{ an.site_tag(m.site) }}{{ m.path }}</strong><small>{{ m.count }} 次 · {{ m.visitors }} 位访客 · 最近 {{ m.last|ago }}{% if m.ref_list %} · 来自 {% for r in m.ref_list %}<a href="{{ r }}" target="_blank" rel="noopener noreferrer">{{ r|truncate(60, true, '…') }}</a>{% if not loop.last %}、{% endif %}{% endfor %}{% else %} · 无来源（直接输入或书签）{% endif %}</small></li>{% endfor %}</ol>{% else %}<p class="an-empty">没有访客遇到 404。</p>{% endif %}
     <div class="an-card-head an-sub"><h2>脚本错误</h2></div>
     {% if errors %}<ol class="an-errors">{% for e in errors %}<li><strong>{{ e.label|truncate(120, true, '…') }}</strong><small>{{ e.site|site_name }} · {{ e.path }} · {{ e.count }} 次 · 最近 {{ e.last|ago }}</small></li>{% endfor %}</ol>{% else %}<p class="an-empty">没有记录到脚本错误。</p>{% endif %}
   </section>

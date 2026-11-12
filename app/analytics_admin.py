@@ -252,6 +252,20 @@ def recent_errors(f: Filters, limit=10):
                          f"WHERE {where} AND e.type = 'error' GROUP BY label, site, path ORDER BY last DESC LIMIT {int(limit)}", params)
 
 
+NOT_FOUND = "(p.title LIKE '%没有找到页面%' OR p.title LIKE '%· 404' OR p.title LIKE '%· 404 %')"
+
+
+def not_found(f: Filters, limit=10):
+    """Pages that rendered a 404: broken links and where visitors found them."""
+    where, params = f.where()
+    rows = store().query(f"SELECT site, path, COUNT(*) count, COUNT(DISTINCT visitor_id) visitors, MAX(started_at) last, "
+                         f"GROUP_CONCAT(DISTINCT NULLIF(referrer, '')) refs FROM pageviews p WHERE {where} AND {NOT_FOUND} "
+                         f"GROUP BY site, path ORDER BY count DESC LIMIT {int(limit)}", params)
+    for row in rows:
+        row['ref_list'] = [ref for ref in (row.pop('refs') or '').split(',') if ref][:3]
+    return rows
+
+
 def site_split(f: Filters):
     where, params = f.where()
     rows = store().query(f'SELECT site, COUNT(*) count, COUNT(DISTINCT visitor_id) visitors FROM pageviews p '
@@ -317,6 +331,30 @@ def ago_filter(ms):
     return f'{seconds // 86400} 天前'
 
 
+@admin.app_template_filter('region')
+def region_filter(ip):
+    from .ip_region import pretty
+    lookup = current_app.extensions.get('ip_region')
+    return pretty(lookup.lookup(ip)) if lookup and ip else ''
+
+
+def regions(f: Filters, limit=12):
+    """Visits grouped by province (China) or country, via the offline IP database."""
+    from .ip_region import area
+    lookup = current_app.extensions.get('ip_region')
+    if not lookup or not lookup.available:
+        return None
+    where, params = f.where('s')
+    counts, visitors = {}, {}
+    for row in store().query(f'SELECT ip, COUNT(*) c, COUNT(DISTINCT visitor_id) v FROM sessions s WHERE {where} GROUP BY ip', params):
+        name = area(lookup.lookup(row['ip']))
+        counts[name] = counts.get(name, 0) + row['c']
+        visitors[name] = visitors.get(name, 0) + row['v']
+    rows = [dict(name=name, count=count, visitors=visitors[name]) for name, count in counts.items()]
+    rows.sort(key=lambda row: -row['count'])
+    return bars(rows[:limit])
+
+
 @admin.app_template_filter('site_name')
 def site_name_filter(value):
     return SITES.get(value, value or '—')
@@ -347,7 +385,7 @@ def analytics():
                   browsers=breakdown(f, 'browser'), systems=breakdown(f, 'os'), devices=breakdown(f, 'device'),
                   screens=breakdown(f, 'screen', 8), languages=breakdown(f, 'lang', 8), zones=breakdown(f, 'tz', 8),
                   sites_split=site_split(f), heat=heatmap(f), clicks=top_clicks(f, 12), perf=performance(f),
-                  errors=recent_errors(f), live_count=live, storage=store().storage_stats())
+                  errors=recent_errors(f), missing=not_found(f), areas=regions(f), live_count=live, storage=store().storage_stats())
 
 
 @admin.get('/analytics/live')
@@ -495,7 +533,9 @@ def analytics_events():
 def analytics_data():
     stats = store().storage_stats()
     ignored = store().query('SELECT * FROM ignored_ips ORDER BY created_at DESC')
-    return render('admin/analytics/data.html', analytics_page='data', stats=stats, ignored=ignored,
+    lookup = current_app.extensions.get('ip_region')
+    ip_db = [dict(name=s.path.name, bytes=fmt_bytes(s.path.stat().st_size)) for s in (lookup.searchers.values() if lookup else [])]
+    return render('admin/analytics/data.html', analytics_page='data', stats=stats, ignored=ignored, ip_db=ip_db,
                   size=fmt_bytes(stats['bytes']), my_ip=request.remote_addr or '',
                   community_root=url_for('main.index', _external=True))
 

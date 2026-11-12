@@ -85,7 +85,9 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
-{{ moment.include_moment() }}
+{# Self-hosted moment 2.29.4 (npm tarball) + zh-cn locale: no overseas CDN dependency. #}
+{{ moment.include_moment(local_js=url_for('static', filename='vendor/moment-2.29.4/moment.min.js')) }}
+<script src="{{ url_for('static', filename='vendor/moment-2.29.4/zh-cn.js') }}"></script>
 {{ moment.locale("zh-cn") }}
 {% for asset in asset_urls('runtime') %}<script src="{{ asset }}" defer></script>{% endfor %}
 {% if request.endpoint in ['main.index','main.post','main.user','main.write','main.edit','main.search','community.project_talk'] %}{% for asset in asset_urls('gallery') %}<script src="{{ asset }}" defer></script>{% endfor %}{% endif %}

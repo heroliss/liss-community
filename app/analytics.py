@@ -101,6 +101,8 @@ def install(app):
     data_dir = Path(app.config.get('PUBLIC_DEMO_DIR') or app.instance_path)
     data_dir.mkdir(parents=True, exist_ok=True)
     app.extensions['analytics'] = AnalyticsStore(data_dir / 'analytics.sqlite')
+    from .ip_region import RegionLookup
+    app.extensions['ip_region'] = RegionLookup(data_dir)  # Optional ip2region_v4.xdb in the data directory.
     app.config.setdefault('ANALYTICS_ENABLED', os.environ.get('LISS_ANALYTICS', '1') != '0')
     extra = [origin.strip().rstrip('/') for origin in os.environ.get('LISS_ANALYTICS_ORIGINS', '').split(',') if origin.strip()]
     app.config.setdefault('ANALYTICS_ALLOWED_ORIGINS', tuple(extra))

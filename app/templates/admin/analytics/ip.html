@@ -2,7 +2,7 @@
 {% import "admin/analytics/_macros.html" as an with context %}
 {% block analytics_content %}
 <a class="an-back" href="{{ url_for('admin.analytics_visitors', by='ip') }}">{{ ui.icon('back') }}IP 列表</a>
-<header class="admin-heading"><div><h1>IP {{ ip }}{% if ignored %} <span class="admin-status">已排除统计</span>{% endif %}</h1><p>首次 {{ totals.first|at('%Y-%m-%d %H:%M') }} · 最近 {{ totals.last|ago }} · <a href="https://www.ip138.com/iplookup.php?ip={{ ip }}" target="_blank" rel="noopener noreferrer">查询归属地 {{ ui.icon('globe') }}</a></p></div>
+<header class="admin-heading"><div><h1>IP {{ ip }}{% if ignored %} <span class="admin-status">已排除统计</span>{% endif %}</h1><p>{% if ip|region %}{{ ip|region }} · {% endif %}首次 {{ totals.first|at('%Y-%m-%d %H:%M') }} · 最近 {{ totals.last|ago }} · <a href="https://www.ip138.com/iplookup.php?ip={{ ip }}" target="_blank" rel="noopener noreferrer">查询归属地 {{ ui.icon('globe') }}</a></p></div>
   <form method="post" action="{{ url_for('admin.analytics_ignore') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="ip" value="{{ ip }}"><input type="hidden" name="ignored" value="{{ '0' if ignored else '1' }}"><input type="hidden" name="return_to" value="{{ url_for('admin.analytics_ip', address=ip) }}"><button class="button button-small button-secondary" type="submit">{{ '恢复记录此 IP' if ignored else '不再记录此 IP' }}</button></form></header>
 <div class="an-kpis an-kpis-compact">
   <div class="an-kpi"><span>访客</span><strong>{{ totals.visitors }}</strong></div>

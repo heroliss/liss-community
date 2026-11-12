@@ -55,6 +55,12 @@ def create_app(config_name):
         response.headers.setdefault('X-Frame-Options', 'DENY')
         response.headers.setdefault('Content-Security-Policy', "frame-ancestors 'none'")
         response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+        # HTTPS deployments (secure cookies) ask browsers to stay on HTTPS. The
+        # proxy's scheme header is not trusted, so key on the deployment setting;
+        # never pin localhost previews.
+        if (app.config.get('SESSION_COOKIE_SECURE') and not app.debug
+                and request.host.split(':')[0] not in {'localhost', '127.0.0.1', '[::1]'}):
+            response.headers.setdefault('Strict-Transport-Security', 'max-age=31536000')
         return response
 
     if not app.debug and not app.testing and not app.config['SSL_DISABLE']:

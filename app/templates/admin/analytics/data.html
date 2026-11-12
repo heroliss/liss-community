@@ -26,6 +26,8 @@
       <li><span>社区</span><a href="{{ community_root }}?liss_analytics=off" target="_blank" rel="noopener">停止记录此浏览器</a><a href="{{ community_root }}?liss_analytics=on" target="_blank" rel="noopener">恢复</a></li>
       <li><span>作品站与玻璃海</span><a href="https://heroliss.github.io/liss-works/?liss_analytics=off" target="_blank" rel="noopener">停止记录此浏览器</a><a href="https://heroliss.github.io/liss-works/?liss_analytics=on" target="_blank" rel="noopener">恢复</a></li>
     </ul>
+    <div class="an-card-head an-sub"><h2>IP 归属地库</h2></div>
+    <p class="an-help">{% if ip_db %}已启用离线归属地查询（{% for d in ip_db %}{{ d.name }} {{ d.bytes }}{% if not loop.last %}、{% endif %}{% endfor %}），数据来自开源项目 <a href="https://github.com/lionsoul2014/ip2region" target="_blank" rel="noopener noreferrer">ip2region</a>。更新时下载新的 xdb 文件替换数据目录中的同名文件并 Reload。{% else %}未安装。把 ip2region 的 <code>ip2region_v4.xdb</code> 放到数据目录并 Reload 后，访客 IP 旁会显示国家、省份、城市与运营商。{% endif %}</p>
     <div class="an-card-head an-sub"><h2>导出</h2></div>
     <p class="an-help">导出全部历史数据（UTF-8 CSV，可用 Excel 打开）。按时间筛选导出请在概览或事件页使用导出链接。</p>
     <div class="an-actions"><a class="button button-small button-secondary" href="{{ url_for('admin.analytics_export', kind='pageviews', range='all', bots='1') }}">{{ ui.icon('download') }} 浏览记录</a><a class="button button-small button-secondary" href="{{ url_for('admin.analytics_export', kind='sessions', range='all', bots='1') }}">{{ ui.icon('download') }} 访问次数</a><a class="button button-small button-secondary" href="{{ url_for('admin.analytics_export', kind='events', range='all', bots='1') }}">{{ ui.icon('download') }} 事件</a></div>

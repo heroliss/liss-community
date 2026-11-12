@@ -199,3 +199,7 @@
 .an-facts code { display: block; padding: 6px 8px; line-height: 1.6; }
 .an-table td:not(:first-child) { white-space: nowrap; }
 .an-table td.an-clip, .an-table td.an-small { white-space: normal; }
+.an-missing strong { color: var(--text); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .75rem; }
+.an-missing small a { color: var(--muted); }
+.an-region { display: block; font-size: .6875rem; color: var(--subtle); white-space: normal; line-height: 1.5; }
+.an-session-meta .an-region, .admin-heading .an-region { display: inline; margin-left: 6px; }

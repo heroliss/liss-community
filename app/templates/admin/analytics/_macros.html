@@ -27,7 +27,7 @@
 
 {% macro site_tag(site) -%}<span class="an-site an-site-{{ site }}">{{ site|site_name }}</span>{%- endmacro %}
 
-{% macro ip_link(ip) -%}{% if ip %}<a class="an-ip" href="{{ url_for('admin.analytics_ip', address=ip) }}">{{ ip }}</a>{% else %}—{% endif %}{%- endmacro %}
+{% macro ip_link(ip, show_region=true) -%}{% if ip %}<a class="an-ip" href="{{ url_for('admin.analytics_ip', address=ip) }}">{{ ip }}</a>{% if show_region %}{% set where = ip|region %}{% if where %}<span class="an-region">{{ where }}</span>{% endif %}{% endif %}{% else %}—{% endif %}{%- endmacro %}
 
 {% macro visitor_link(id, label=None) -%}<a class="an-visitor" href="{{ url_for('admin.analytics_visitor', visitor_id=id) }}" title="{{ id }}">{{ label or ('访客 ' ~ id[:8]) }}</a>{%- endmacro %}
 

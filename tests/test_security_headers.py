@@ -60,3 +60,11 @@ class ProductionSecretTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+    def test_https_deployments_send_hsts_but_local_previews_do_not(self):
+        self.assertIsNone(self.client.get('/').headers.get('Strict-Transport-Security'))
+        self.app.config['SESSION_COOKIE_SECURE'] = True
+        remote = self.client.get('/', base_url='https://liss.example.org')
+        self.assertEqual(remote.headers.get('Strict-Transport-Security'), 'max-age=31536000')
+        local = self.client.get('/', base_url='https://127.0.0.1:8896')
+        self.assertIsNone(local.headers.get('Strict-Transport-Security'))
