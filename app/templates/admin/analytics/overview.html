@@ -1,7 +1,7 @@
 {% extends "admin/analytics/_base.html" %}
 {% import "admin/analytics/_macros.html" as an with context %}
 {% block analytics_content %}
-<header class="admin-heading"><div><h1>访问统计</h1><p>{{ f.label }}，{{ '全部站点' if f.site == 'all' else sites[f.site] }}{% if not f.bots %}，已排除机器人{% endif %}。时间按 UTC{{ '%+d'|format(config.ANALYTICS_UTC_OFFSET_MINUTES // 60) }} 显示。</p></div>
+<header class="admin-heading"><div><h1>访问统计</h1><p>{{ f.label }}，{{ '全部站点' if f.site == 'all' else sites[f.site] }}，{{ '仅真实访客（已排除本人、测试与机器人）' if not f.kind else f.kind_label }}。时间按 UTC{{ '%+d'|format(config.ANALYTICS_UTC_OFFSET_MINUTES // 60) }} 显示。</p></div>
   <a class="an-live-pill" href="{{ url_for('admin.analytics_live') }}"><span class="an-pulse" aria-hidden="true"></span>{{ live_count }} 人在线</a></header>
 {{ an.filters(f, 'admin.analytics') }}
 

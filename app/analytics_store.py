@@ -17,7 +17,7 @@ import threading
 import time
 from urllib.parse import urlsplit
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 _LOCK = threading.RLock()
 
 SCHEMA = """
@@ -55,6 +55,8 @@ CREATE TABLE IF NOT EXISTS events (
   path TEXT NOT NULL DEFAULT '', x INTEGER, y INTEGER, data TEXT NOT NULL DEFAULT '');
 CREATE TABLE IF NOT EXISTS ignored_ips (
   ip TEXT PRIMARY KEY, note TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS owner_marks (
+  ip TEXT NOT NULL, hour INTEGER NOT NULL, PRIMARY KEY (ip, hour));
 CREATE INDEX IF NOT EXISTS pv_started ON pageviews(started_at);
 CREATE INDEX IF NOT EXISTS pv_session ON pageviews(session_id);
 CREATE INDEX IF NOT EXISTS pv_visitor ON pageviews(visitor_id);
@@ -71,11 +73,22 @@ CREATE INDEX IF NOT EXISTS vi_last ON visitors(last_seen);
 """
 
 SITES = {'forum': '社区', 'works': '作品站', 'atoll': '玻璃海'}
+# The `bot` column on every table holds the visitor type; 0 (real visitor) is the default view.
+VISITOR, BOT_KIND, SUSPECT, TEST, OWNER = 0, 1, 2, 3, 4
+KINDS = {VISITOR: '访客', OWNER: '本人', TEST: '测试', BOT_KIND: '机器人', SUSPECT: '疑似机器人'}
+OWNER_WINDOW_HOURS = 12  # Visits from an IP within this many hours of admin activity there count as 本人.
+VISITOR_COLUMNS = (('env', "TEXT NOT NULL DEFAULT ''"), ('human', 'INTEGER NOT NULL DEFAULT 0'),
+                   ('kind_locked', 'INTEGER NOT NULL DEFAULT 0'), ('kind_reason', "TEXT NOT NULL DEFAULT ''"))
 EVENT_TYPES = {'click': '点击', 'outbound': '外链', 'error': '脚本错误', 'custom': '自定义'}
 ID = re.compile(r'[A-Za-z0-9_-]{8,40}')
 BOT = re.compile(r'bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|python|curl|wget|'
                  r'httpclient|java/|go-http|okhttp|scrapy|phantom|selenium|puppeteer|playwright|'
-                 r'bingpreview|facebookexternalhit|embedly|monitor|uptime', re.I)
+                 r'bingpreview|facebookexternalhit|embedly|monitor|uptime|google-|googleother|-google|'
+                 r'inspectiontool|validator|scanner|zgrab|censys|masscan|nuclei', re.I)
+DATACENTER = re.compile(r'amazon|亚马逊|\baws\b|google|谷歌|microsoft|微软|azure|阿里云|alibaba|aliyun|腾讯云|'
+                        r'digitalocean|linode|akamai|\bovh|hetzner|vultr|choopa|oracle|甲骨文|cloudflare|m247|'
+                        r'datacamp|cdn77|leaseweb|contabo|scaleway|ionos|colocrossing|psychz|quadranet|'
+                        r'数据中心|机房', re.I)
 
 
 def now_ms() -> int:
@@ -141,6 +154,74 @@ def parse_ua(ua: str) -> dict:
     return dict(browser=browser[:40], os=os_name[:40], device=device, bot=int(bot))
 
 
+def parse_env(raw) -> dict:
+    """Browser signals sent by the tracker (ctx.env); unknown keys are dropped."""
+    if not isinstance(raw, dict):
+        return {}
+    env = {}
+    for key, limit in (('pf', 40), ('langs', 80), ('gpu', 120), ('conn', 16), ('cs', 8)):
+        if isinstance(raw.get(key), str) and raw[key]:
+            env[key] = clip(raw[key], limit)
+    for key, low, high in (('hc', 0, 1024), ('dm', 0, 1024), ('tp', 0, 64), ('cd', 0, 64), ('tzo', -1000, 1000)):
+        if raw.get(key) is not None and not isinstance(raw.get(key), bool):
+            value = as_int(raw.get(key), low, high)
+            if value is not None:
+                env[key] = value
+    if isinstance(raw.get('wd'), bool):
+        env['wd'] = raw['wd']
+    return env
+
+
+def classify(visitor: dict, *, owner=False, region='') -> tuple[int, list[str]]:
+    """Visitor type and the reasons, from what the visitor row recorded."""
+    ua = visitor.get('ua') or ''
+    try:
+        env = json.loads(visitor.get('env') or '{}')
+    except ValueError:
+        env = {}
+    strong, weak = [], []
+    if env.get('wd'):
+        strong.append('浏览器自报被自动化控制（webdriver）')
+    if re.search(r'swiftshader|llvmpipe|softpipe|mesa offscreen', env.get('gpu', ''), re.I):
+        strong.append('软件渲染，没有真实显卡')
+    lang, tz, screen = visitor.get('lang') or '', visitor.get('tz') or '', visitor.get('screen') or ''
+    if '@posix' in lang:
+        strong.append('语言为 posix（服务器环境）')
+    if screen.split('@')[0] == '800x600':
+        strong.append('屏幕 800×600（无界面浏览器默认值）')
+    mobile = bool(re.search(r'iPhone|iPod|Android.*Mobile', ua))
+    size = re.match(r'(\d+)x(\d+)', screen)
+    if mobile and size and min(int(size.group(1)), int(size.group(2))) > 1000:
+        strong.append('自称手机，屏幕却是电脑尺寸')
+    if mobile and env.get('tp') == 0:
+        strong.append('自称手机，却不支持触摸')
+    if ua.startswith(('"', "'")):
+        strong.append('User-Agent 格式异常')
+    if tz == 'Etc/Unknown':
+        strong.append('时区未知')
+    if tz in ('UTC', 'Etc/UTC', 'GMT', 'Etc/GMT', 'Etc/Universal'):
+        weak.append('时区为 UTC')
+    chrome = re.search(r'Chrome/(\d+)', ua)
+    if chrome and int(chrome.group(1)) < 120:
+        weak.append(f'Chrome {chrome.group(1)} 版本过旧')
+    if 'X11; Linux' in ua and 'Android' not in ua:
+        weak.append('桌面 Linux')
+    if region and DATACENTER.search(region):
+        weak.append('IP 属于云服务器 / 机房')
+    automation = bool(BOT.search(ua)) or not ua
+    if 'Claude/' in ua:
+        return TEST, ['Claude 应用内置浏览器']
+    if owner:
+        if automation or strong:
+            return TEST, ['来自本人 IP 的自动化访问'] + strong[:2]
+        return OWNER, [f'与后台登录同一 IP（前后 {OWNER_WINDOW_HOURS} 小时内）']
+    if automation:
+        return BOT_KIND, ['User-Agent 自报为爬虫或自动化工具']
+    if strong or (len(weak) >= 2 and not visitor.get('human')):
+        return SUSPECT, strong + weak
+    return VISITOR, weak
+
+
 def referrer_host(referrer: str, own_hosts=()) -> str:
     if not referrer:
         return ''
@@ -165,6 +246,7 @@ class AnalyticsStore:
         self.path = Path(path)
         self._ready = False
         self._ignored = None
+        self.region = None  # Optional ip -> region string callable (ip2region), set by install().
 
     @contextmanager
     def connect(self):
@@ -176,8 +258,16 @@ class AnalyticsStore:
                 connection.execute('PRAGMA synchronous=NORMAL')
                 if not self._ready:
                     connection.executescript(SCHEMA)
-                    connection.execute("INSERT OR IGNORE INTO meta(key, value) VALUES ('schema', ?)", (str(SCHEMA_VERSION),))
+                    columns = {row[1] for row in connection.execute('PRAGMA table_info(visitors)')}
+                    for name, spec in VISITOR_COLUMNS:
+                        if name not in columns:
+                            connection.execute(f'ALTER TABLE visitors ADD COLUMN {name} {spec}')
                     connection.execute("INSERT OR IGNORE INTO meta(key, value) VALUES ('created_at', ?)", (str(now_ms()),))
+                    version = connection.execute("SELECT value FROM meta WHERE key='schema'").fetchone()
+                    if version is None or int(version[0]) < SCHEMA_VERSION:
+                        self._reclassify(connection)  # Rows written before types existed only knew bot / not bot.
+                        connection.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('schema', ?)",
+                                           (str(SCHEMA_VERSION),))
                     connection.commit()
                     self._ready = True
                 yield connection
@@ -216,21 +306,27 @@ class AnalyticsStore:
         lang, tz, screen = clip(ctx.get('lang'), 24), clip(ctx.get('tz'), 48), clip(ctx.get('screen'), 24)
         user_id = as_int(ctx.get('uid'), 1, 2**62)
         username = clip(ctx.get('uname'), 64)
+        env = parse_env(ctx.get('env'))
+        env_json = json.dumps(env, ensure_ascii=False, sort_keys=True) if env else None
+        human = 1 if page.get('hi') is True else 0
         ua = clip(ua, 400)
         with self.connect() as db:
-            visitor = db.execute('SELECT id FROM visitors WHERE id=?', (vid,)).fetchone()
+            visitor = db.execute('SELECT bot FROM visitors WHERE id=?', (vid,)).fetchone()
             if visitor is None:
+                kind = classify(dict(ua=ua, lang=lang, tz=tz, screen=screen, env=env_json, human=human),
+                                region=self._region(ip))[0]
                 db.execute('INSERT INTO visitors (id, first_seen, last_seen, first_ip, last_ip, ua, browser, os, device, bot, '
-                           'lang, tz, screen, user_id, username) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                           'lang, tz, screen, user_id, username, env, human) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                            (vid, server_now, server_now, ip, ip, ua, info['browser'], info['os'], info['device'],
-                            info['bot'], lang, tz, screen, user_id, username))
+                            kind, lang, tz, screen, user_id, username, env_json or '', human))
             else:
-                db.execute('UPDATE visitors SET last_seen=?, last_ip=?, ua=?, browser=?, os=?, device=?, bot=?, '
+                kind = visitor['bot']
+                db.execute('UPDATE visitors SET last_seen=?, last_ip=?, ua=?, browser=?, os=?, device=?, '
                            'lang=COALESCE(?, lang), tz=COALESCE(?, tz), '
                            'screen=COALESCE(?, screen), user_id=COALESCE(?, user_id), '
-                           'username=COALESCE(?, username) WHERE id=?',
-                           (server_now, ip, ua, info['browser'], info['os'], info['device'], info['bot'],
-                            lang or None, tz or None, screen or None, user_id, username or None, vid))
+                           'username=COALESCE(?, username), env=COALESCE(?, env), human=MAX(human, ?) WHERE id=?',
+                           (server_now, ip, ua, info['browser'], info['os'], info['device'],
+                            lang or None, tz or None, screen or None, user_id, username or None, env_json, human, vid))
             session = db.execute('SELECT id, visitor_id FROM sessions WHERE id=?', (sid,)).fetchone()
             if session is not None and session['visitor_id'] != vid:
                 return {'stored': False, 'reason': 'session-owner'}
@@ -241,7 +337,7 @@ class AnalyticsStore:
                            'referrer, referrer_host, landing, utm, lang, tz, screen, user_id, username) '
                            'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                            (sid, vid, site, server_now, server_now, ip, ua, info['browser'], info['os'], info['device'],
-                            info['bot'], referrer, referrer_host(referrer, own_hosts), landing,
+                            kind, referrer, referrer_host(referrer, own_hosts), landing,
                             clip(payload.get('utm'), 200), lang, tz, screen, user_id, username))
             else:
                 db.execute('UPDATE sessions SET last_seen=?, ip=?, user_id=COALESCE(?, user_id), '
@@ -263,7 +359,7 @@ class AnalyticsStore:
                 db.execute('INSERT INTO pageviews (id, session_id, visitor_id, site, ip, bot, url, path, title, referrer, '
                            'started_at, last_seen, active_ms, total_ms, scroll, viewport, ttfb_ms, dom_ms, load_ms, ended) '
                            'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-                           (page['id'], sid, vid, site, ip, info['bot'], url, path, clip(page.get('title'), 300),
+                           (page['id'], sid, vid, site, ip, kind, url, path, clip(page.get('title'), 300),
                             clip(page.get('ref'), 600), started, server_now, values['active'], values['total'],
                             values['scroll'], clip(page.get('vp'), 24), values['ttfb'], values['dom'], values['load'],
                             1 if page.get('end') else 0))
@@ -282,8 +378,8 @@ class AnalyticsStore:
             for event in events[:100]:
                 if existing + stored_events >= 500 or not isinstance(event, dict):
                     break
-                kind = event.get('type')
-                if kind not in EVENT_TYPES:
+                etype = event.get('type')
+                if etype not in EVENT_TYPES:
                     continue
                 ts = (as_int(event.get('t'), 0, 10**14) or client_now) + offset
                 ts = max(server_now - 86_400_000, min(server_now, ts))
@@ -291,14 +387,93 @@ class AnalyticsStore:
                 data = clip(json.dumps(data, ensure_ascii=False, separators=(',', ':')), 1500) if isinstance(data, (dict, list)) else clip(data, 1500)
                 db.execute('INSERT INTO events (pageview_id, session_id, visitor_id, site, ip, bot, ts, type, label, target, href, path, x, y, data) '
                            'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-                           (page['id'], sid, vid, site, ip, info['bot'], ts, kind, clip(event.get('label'), 200),
+                           (page['id'], sid, vid, site, ip, kind, ts, etype, clip(event.get('label'), 200),
                             clip(event.get('target'), 200), clip(event.get('href'), 600), path,
                             as_int(event.get('x'), -100000, 1000000), as_int(event.get('y'), -100000, 10000000), data))
                 stored_events += 1
-                clicks += kind in {'click', 'outbound'}
+                clicks += etype in {'click', 'outbound'}
             if clicks:
                 db.execute('UPDATE pageviews SET clicks=clicks+? WHERE id=?', (clicks, page['id']))
+            self._reclassify(db, [vid])
         return {'stored': True, 'events': stored_events}
+
+    # ----------------------------------------------------------- visitor types
+    def _region(self, ip: str) -> str:
+        try:
+            return self.region(ip) if self.region and ip else ''
+        except Exception:
+            return ''
+
+    def _reclassify(self, db, visitor_ids=None):
+        """Recompute the type of the given visitors (all when None) and copy it onto their rows."""
+        if visitor_ids is None:
+            rows = db.execute('SELECT * FROM visitors').fetchall()
+        else:
+            ids = list(dict.fromkeys(visitor_ids))
+            if not ids:
+                return
+            rows = db.execute(f'SELECT * FROM visitors WHERE id IN ({",".join("?" * len(ids))})', ids).fetchall()
+        window = OWNER_WINDOW_HOURS
+        for row in rows:
+            visitor = dict(row)
+            if visitor['kind_locked']:
+                kind, reason = visitor['bot'], visitor['kind_reason'] or '手动设置'
+            else:
+                owner = db.execute('SELECT 1 FROM pageviews p JOIN owner_marks o ON o.ip = p.ip '
+                                   f'AND o.hour BETWEEN p.started_at / 3600000 - {window} AND p.started_at / 3600000 + {window} '
+                                   'WHERE p.visitor_id = ? LIMIT 1', (visitor['id'],)).fetchone() is not None
+                kind, reasons = classify(visitor, owner=owner, region=self._region(visitor['last_ip']))
+                reason = '；'.join(reasons)
+            if kind != visitor['bot'] or reason != visitor['kind_reason']:
+                db.execute('UPDATE visitors SET bot=?, kind_reason=? WHERE id=?', (kind, reason, visitor['id']))
+            for table in ('sessions', 'pageviews', 'events'):
+                db.execute(f'UPDATE {table} SET bot=? WHERE visitor_id=? AND bot<>?', (kind, visitor['id'], kind))
+
+    def reclassify_all(self):
+        with self.connect() as db:
+            self._reclassify(db)
+
+    def mark_owner(self, ip: str, when=None) -> bool:
+        """Remember that the site owner (an administrator) used this IP now; returns True when new."""
+        ip = valid_ip(ip)
+        if not ip:
+            return False
+        hour = (when or now_ms()) // 3_600_000
+        with self.connect() as db:
+            if db.execute('INSERT OR IGNORE INTO owner_marks (ip, hour) VALUES (?, ?)', (ip, hour)).rowcount != 1:
+                return False
+            window = OWNER_WINDOW_HOURS * 3_600_000
+            ids = [r[0] for r in db.execute('SELECT DISTINCT visitor_id FROM pageviews WHERE ip = ? AND started_at BETWEEN ? AND ?',
+                                            (ip, hour * 3_600_000 - window, (hour + 1) * 3_600_000 + window))]
+            self._reclassify(db, ids)
+        return True
+
+    def mark_owner_users(self, user_ids) -> int:
+        """Treat the IPs where these (administrator) accounts were seen by the tracker as owner IPs."""
+        ids = [int(i) for i in user_ids if isinstance(i, int)]
+        if not ids:
+            return 0
+        with self.connect() as db:
+            marks = db.execute(f'SELECT DISTINCT p.ip, p.started_at / 3600000 FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
+                               f'WHERE v.user_id IN ({",".join("?" * len(ids))}) AND length(p.ip) > 0', ids).fetchall()
+            added = sum(db.execute('INSERT OR IGNORE INTO owner_marks (ip, hour) VALUES (?, ?)', tuple(m)).rowcount for m in marks)
+            if added:
+                self._reclassify(db)
+        return added
+
+    def set_kind(self, visitor_id: str, kind) -> bool:
+        """Pin a visitor to a type (manual correction), or None to return to automatic."""
+        if not ID.fullmatch(visitor_id or '') or (kind is not None and kind not in KINDS):
+            return False
+        with self.connect() as db:
+            if kind is None:
+                changed = db.execute('UPDATE visitors SET kind_locked=0 WHERE id=?', (visitor_id,)).rowcount
+            else:
+                changed = db.execute('UPDATE visitors SET kind_locked=1, bot=?, kind_reason=? WHERE id=?',
+                                     (kind, '手动设置', visitor_id)).rowcount
+            if changed:
+                self._reclassify(db, [visitor_id])
+        return bool(changed)
 
     # ----------------------------------------------------------------- queries
     def query(self, sql, params=()):

@@ -1,7 +1,8 @@
 {% extends "admin/analytics/_base.html" %}
 {% import "admin/analytics/_macros.html" as an with context %}
 {% block analytics_content %}
-<header class="admin-heading"><div><h1>实时访问</h1><p>最近 {{ window_minutes }} 分钟内仍在浏览的访客；页面每 20 秒自动刷新（离开标签页时暂停）。</p></div>
+<header class="admin-heading"><div><h1>实时访问</h1><p>最近 {{ window_minutes }} 分钟内仍在浏览的访客；页面每 20 秒自动刷新（离开标签页时暂停）。当前显示：{{ f.kind_label }}。</p>
+  <form method="get" class="an-filters-inline" data-an-filters>{{ an.kind_select(f) }}<noscript><button class="button button-small" type="submit">应用</button></noscript></form></div>
   <span class="an-live-pill"><span class="an-pulse" aria-hidden="true"></span>{{ active|length }} 人在线</span></header>
 <div data-an-refresh="20">
 <section class="an-card" aria-labelledby="online-heading"><div class="an-card-head"><h2 id="online-heading">正在浏览</h2></div>

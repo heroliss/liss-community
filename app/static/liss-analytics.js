@@ -50,7 +50,7 @@
   var lastInput = now(), lastTick = now();
 
   function newPage() {
-    page = { id: random(), opened: now(), active: 0, scroll: 0, perf: null, clicks: 0 };
+    page = { id: random(), opened: now(), active: 0, scroll: 0, perf: null, clicks: 0, human: false };
     sentFirst = false; dirty = true; errors = 0;
   }
   newPage();
@@ -79,18 +79,45 @@
     } catch (e) {}
     return page.perf;
   }
+  var envCache = null;
+  function env() {
+    // Signals that tell real browsers from automation: webdriver flag, GPU (software renderers mean no
+    // real graphics card), touch support, CPU cores. Collected once per page load.
+    if (envCache) return envCache;
+    var nav = navigator, out = { wd: !!nav.webdriver };
+    try { out.pf = String(nav.platform || '').slice(0, 40); } catch (e) {}
+    try { out.langs = (nav.languages || []).slice(0, 6).join(',').slice(0, 80); } catch (e) {}
+    if (typeof nav.hardwareConcurrency === 'number') out.hc = nav.hardwareConcurrency;
+    if (typeof nav.deviceMemory === 'number') out.dm = nav.deviceMemory;
+    if (typeof nav.maxTouchPoints === 'number') out.tp = nav.maxTouchPoints;
+    try { out.cd = screen.colorDepth; out.tzo = new Date().getTimezoneOffset(); } catch (e) {}
+    try { if (nav.connection && nav.connection.effectiveType) out.conn = String(nav.connection.effectiveType).slice(0, 16); } catch (e) {}
+    try { out.cs = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; } catch (e) {}
+    try {
+      var gl = document.createElement('canvas').getContext('webgl');
+      if (gl) {
+        var info = gl.getExtension('WEBGL_debug_renderer_info');
+        out.gpu = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER) || '').slice(0, 120);
+        var lose = gl.getExtension('WEBGL_lose_context');
+        if (lose) lose.loseContext();
+      }
+    } catch (e) {}
+    envCache = out;
+    return out;
+  }
   function payload(end) {
     tick();
     var body = {
       v: 1, site: site, vid: vid, sid: session.id, now: now(),
       pv: { id: page.id, url: location.href.split('#')[0].slice(0, 1000), path: location.pathname.slice(0, 600), title: (document.title || '').slice(0, 300),
             ref: (document.referrer || '').slice(0, 600), active: page.active, total: now() - page.opened, scroll: page.scroll,
-            vp: window.innerWidth + 'x' + window.innerHeight, perf: perf(), end: !!end },
+            vp: window.innerWidth + 'x' + window.innerHeight, perf: perf(), end: !!end, hi: page.human },
       ev: queue.splice(0, 100),
       ctx: { lang: (navigator.language || '').slice(0, 24), tz: (function () { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; } })(),
              screen: (screen.width || 0) + 'x' + (screen.height || 0) + (window.devicePixelRatio && window.devicePixelRatio !== 1 ? '@' + Math.round(window.devicePixelRatio * 100) / 100 : ''),
              uid: data.uid || '', uname: data.uname || '' }
     };
+    if (!sentFirst) body.ctx.env = env();
     if (freshSession && !sentFirst) { body.sref = (document.referrer || '').slice(0, 600); body.landing = location.pathname.slice(0, 600); body.utm = utm; }
     return body;
   }
@@ -163,8 +190,10 @@
     dirty = true;
   });
   var markInput = function () { lastInput = now(); };
+  var markHuman = function (event) { if (event.isTrusted && !page.human) { page.human = true; dirty = true; } };
   ['pointerdown', 'pointermove', 'keydown', 'wheel', 'scroll', 'touchstart'].forEach(function (name) {
     window.addEventListener(name, markInput, { passive: true, capture: true });
+    if (name !== 'scroll') window.addEventListener(name, markHuman, { passive: true, capture: true });
   });
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'hidden') send(false);

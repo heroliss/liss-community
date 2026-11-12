@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from app import create_app, db
 from app.admin import AdminAudit
-from app.analytics_store import parse_ua
+from app.analytics_store import classify, parse_ua
 from app.models import Role, User
 
 VID, SID, PV = 'a' * 24, 'b' * 24, 'c' * 24
@@ -112,7 +112,8 @@ class AnalyticsTests(unittest.TestCase):
 
     def test_dashboards_require_admin_and_render(self):
         self.collect(batch())
-        self.collect(batch(vid='f' * 24, sid='g' * 24, pv=dict(batch()['pv'], id='h' * 24)), ip='198.51.100.4',
+        self.collect(batch(vid='f' * 24, sid='g' * 24, pv=dict(batch()['pv'], id='h' * 24),
+                           ctx={'lang': 'zh-CN', 'tz': 'Asia/Shanghai', 'screen': '390x844@3'}), ip='198.51.100.4',
                      ua='Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 Mobile MicroMessenger/8.0.50')
         self.assertEqual(self.client.get('/admin/analytics').status_code, 403)
         self.login()
@@ -201,6 +202,95 @@ class AnalyticsTests(unittest.TestCase):
         android = parse_ua('Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/141.0 Mobile Safari/537.36')
         self.assertEqual((android['os'], android['device'], android['browser']), ('Android 14', '手机', 'Chrome 141'))
         self.assertEqual(parse_ua('Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) Version/17.0 Safari/604.1')['device'], '平板')
+
+
+    def test_visitor_types_from_recorded_signals(self):
+        iphone = ('Mozilla/5.0 (iPhone; CPU iPhone OS 18_7_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) '
+                  'Version/26.0 Mobile/15E148 Safari/604.1')
+        linux = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36'
+        cases = [
+            (dict(ua=CHROME, lang='zh-CN', tz='Asia/Kuala_Lumpur', screen='2560x1440'), 0),
+            (dict(ua=CHROME.replace('Chrome/', 'Claude/5.1 Chrome/'), tz='Asia/Kuala_Lumpur', screen='2560x1440'), 3),
+            (dict(ua=CHROME.replace('Chrome', 'HeadlessChrome'), tz='UTC', screen='800x600'), 1),
+            (dict(ua='Mozilla/5.0 (compatible; Google-InspectionTool/1.0;)'), 1),
+            (dict(ua=iphone, lang='en-US@posix', tz='UTC', screen='1920x1080'), 2),
+            (dict(ua='"' + iphone, tz='Etc/Unknown', screen='390x844@3'), 2),
+            (dict(ua=CHROME.replace('142', '104'), tz='UTC', screen='1366x768'), 2),
+            (dict(ua=linux, tz='UTC', screen='1366x768'), 2),
+            (dict(ua=linux, tz='UTC', screen='1366x768', human=1), 0),  # Two weak signals, but a person moved the mouse.
+            (dict(ua=CHROME, tz='Asia/Shanghai', screen='1920x1080', env='{"wd": true}'), 2),
+            (dict(ua=CHROME, tz='Asia/Shanghai', screen='1920x1080',
+                  env='{"gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device))"}'), 2),
+            (dict(ua=iphone, tz='Asia/Shanghai', screen='390x844@3', env='{"tp": 0}'), 2),
+        ]
+        for visitor, expected in cases:
+            self.assertEqual(classify(visitor)[0], expected, visitor)
+        self.assertEqual(classify(dict(ua=CHROME, tz='Asia/Shanghai', screen='1920x1080'), owner=True)[0], 4)
+        self.assertEqual(classify(dict(ua=CHROME, screen='800x600'), owner=True)[0], 3)
+        self.assertEqual(classify(dict(ua=linux, tz='UTC', screen='1920x1080'), region='美国|0|弗吉尼亚|0|亚马逊')[0], 2)
+
+    def test_owner_ip_marking_and_type_filters(self):
+        self.collect(batch(), ip='198.51.100.20')
+        self.collect(batch(vid='d' * 24, sid='e' * 24, pv=dict(batch()['pv'], id='f' * 24)), ip='203.0.113.7')
+        self.collect(batch(vid='g' * 24, sid='h' * 24, pv=dict(batch()['pv'], id='i' * 24)), ip='192.0.2.5',
+                     ua=CHROME.replace('Chrome', 'HeadlessChrome'))
+        kinds = {r['id'][0]: r['bot'] for r in self.store().query('SELECT id, bot FROM visitors')}
+        self.assertEqual(kinds, {'a': 0, 'd': 0, 'g': 1})
+        self.login()
+        # The administrator now browses from 198.51.100.20: that earlier visitor becomes 本人, on every table.
+        self.client.get('/admin/analytics', environ_base={'REMOTE_ADDR': '198.51.100.20'})
+        self.assertEqual(self.store().scalar('SELECT bot FROM visitors WHERE id = ?', (VID,)), 4)
+        self.assertEqual(self.store().scalar('SELECT COUNT(*) FROM pageviews WHERE visitor_id = ? AND bot <> 4', (VID,)), 0)
+        default = self.client.get('/admin/analytics/visitors?range=all').get_data(as_text=True)
+        self.assertIn('203.0.113.7', default)
+        self.assertNotIn('198.51.100.20', default)
+        self.assertNotIn('192.0.2.5', default)
+        owner = self.client.get('/admin/analytics/visitors?range=all&who=owner').get_data(as_text=True)
+        self.assertIn('198.51.100.20', owner)
+        self.assertIn('an-kind-owner', owner)
+        self.assertIn('192.0.2.5', self.client.get('/admin/analytics/visitors?range=all&who=all').get_data(as_text=True))
+        self.assertIn('192.0.2.5', self.client.get('/admin/analytics/visitors?range=all&bots=1').get_data(as_text=True))
+        self.assertNotIn('192.0.2.5', self.client.get('/admin/analytics/live').get_data(as_text=True))
+        self.assertIn('192.0.2.5', self.client.get('/admin/analytics/live?who=bot').get_data(as_text=True))
+        # Later visits from the owner IP are classified on arrival.
+        self.collect(batch(vid='j' * 24, sid='k' * 24, pv=dict(batch()['pv'], id='l' * 24)), ip='198.51.100.20')
+        self.assertEqual(self.store().scalar('SELECT bot FROM pageviews WHERE id = ?', ('l' * 24,)), 4)
+
+    def test_manual_type_and_tracker_signals(self):
+        body = batch()
+        body['ctx'] = dict(body['ctx'], env={'wd': False, 'hc': 8, 'tp': 0, 'gpu': 'ANGLE (NVIDIA GeForce RTX 4070)', 'bogus': 'x'})
+        body['pv'] = dict(body['pv'], hi=True)
+        self.collect(body)
+        row = self.store().query('SELECT env, human, bot FROM visitors')[0]
+        self.assertEqual(json.loads(row['env']), {'wd': False, 'hc': 8, 'tp': 0, 'gpu': 'ANGLE (NVIDIA GeForce RTX 4070)'})
+        self.assertEqual((row['human'], row['bot']), (1, 0))
+        self.login()
+        page = self.client.get(f'/admin/analytics/visitor/{VID}').get_data(as_text=True)
+        self.assertIn('RTX 4070', page)
+        self.assertIn('有真人操作', page)
+        token = self.csrf(f'/admin/analytics/visitor/{VID}')
+        self.client.post('/admin/analytics/kind', data={'visitor': VID, 'kind': '1', 'csrf_token': token})
+        self.assertEqual(self.store().scalar('SELECT COUNT(*) FROM pageviews WHERE bot = 1'), 1)
+        self.collect(body)  # A manually set type survives new visits.
+        self.assertEqual(self.store().scalar('SELECT bot FROM visitors'), 1)
+        self.client.post('/admin/analytics/kind', data={'visitor': VID, 'kind': 'auto', 'csrf_token': token})
+        self.assertEqual(self.store().scalar('SELECT bot FROM visitors'), 0)
+        bad = self.client.post('/admin/analytics/kind', data={'visitor': VID, 'kind': '9', 'csrf_token': token})
+        self.assertEqual(bad.status_code, 400)
+
+    def test_upgrade_reclassifies_old_rows(self):
+        iphone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7_8 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile Safari/604.1'
+        body = batch()
+        body['ctx'] = {'lang': 'en-US@posix', 'tz': 'UTC', 'screen': '1920x1080'}
+        self.collect(body, ua=iphone)
+        store = self.store()
+        with store.connect() as connection:
+            for table in ('visitors', 'sessions', 'pageviews', 'events'):
+                connection.execute(f'UPDATE {table} SET bot = 0')
+            connection.execute("UPDATE meta SET value = '1' WHERE key = 'schema'")
+        store._ready = False
+        self.assertEqual(store.scalar('SELECT COUNT(*) FROM pageviews WHERE bot = 2'), 1)
+        self.assertEqual(store.scalar("SELECT value FROM meta WHERE key = 'schema'"), '2')
 
 
 if __name__ == '__main__':

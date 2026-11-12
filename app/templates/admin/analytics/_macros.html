@@ -9,11 +9,19 @@
   <div class="an-filter-row">
     <label class="an-dates{% if f.range != 'custom' %} is-quiet{% endif %}"><span>从</span><input type="date" name="from" value="{{ f.date_from }}"><span>至</span><input type="date" name="to" value="{{ f.date_to }}"></label>
     <label>站点<select name="site" data-an-autosubmit="1"><option value="all">全部站点</option>{% for key, label in sites.items() %}<option value="{{ key }}"{% if f.site == key %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-    <label class="an-check"><input type="checkbox" name="bots" value="1"{% if f.bots %} checked{% endif %} data-an-autosubmit="1">包含机器人</label>
+    {{ kind_select(f) }}
     {% if extra %}{{ extra }}{% endif %}
     <button class="button button-small" type="submit">应用</button>
   </div>
 </form>
+{%- endmacro %}
+
+{% macro kind_select(f) -%}
+<label title="默认只看真实访客；本人、测试、机器人可在这里单独查看">类型<select name="who" data-an-autosubmit="1">{% for value, label in kind_filters %}<option value="{{ value }}"{% if f.kind == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+{%- endmacro %}
+
+{% macro kind_badge(code, reason='', locked=false) -%}
+<span class="an-kind an-kind-{{ kind_keys.get(code, 'visitor') }}"{% if reason %} title="{{ reason }}{% if locked %}（手动设置）{% endif %}"{% endif %}>{{ kinds.get(code, '访客') }}{% if locked %} ·手动{% endif %}</span>
 {%- endmacro %}
 
 {% macro delta(value, invert=false) -%}

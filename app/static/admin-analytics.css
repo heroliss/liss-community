@@ -203,3 +203,17 @@
 .an-missing small a { color: var(--muted); }
 .an-region { display: block; font-size: .6875rem; color: var(--subtle); white-space: normal; line-height: 1.5; }
 .an-session-meta .an-region, .admin-heading .an-region { display: inline; margin-left: 6px; }
+
+/* Visitor types */
+.an-kind { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 999px; font-size: .6875rem; font-weight: 600; line-height: 1.6; vertical-align: middle; white-space: nowrap; border: 1px solid currentColor; }
+.an-kind-visitor { color: var(--muted); }
+.an-kind-owner { color: #2e9d6a; }
+.an-kind-test { color: #3b82c4; }
+.an-kind-bot { color: #b4572f; }
+.an-kind-suspect { color: #b08516; }
+h1 .an-kind { font-size: .75rem; margin-left: 6px; }
+.an-kind-box { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.an-kind-box p { margin: 0; font-size: .8125rem; }
+.an-filters-inline { display: flex; align-items: end; gap: 10px; margin-top: 10px; }
+.an-filters-inline label { display: grid; gap: 6px; font-size: .75rem; font-weight: 400; color: var(--muted); margin: 0; }
+.an-filters-inline select { min-height: 34px; background: var(--input); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; font: inherit; font-size: .8125rem; }

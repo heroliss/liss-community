@@ -17,7 +17,7 @@
   {% if mode == 'ip' %}
   <td>{{ an.ip_link(r.ip) }}{% if r.ignored %} <span class="admin-status">已排除</span>{% endif %}</td><td>{{ r.visitors }}</td><td class="an-small">{{ (r.agents or '')|replace(',', '，') }}</td>
   {% else %}
-  <td>{{ an.visitor_link(r.visitor_id, ('@' ~ r.username) if r.username else None) }}{% if r.is_new %} <span class="admin-status is-positive">新</span>{% endif %}{% if r.note %}<small class="an-note">{{ r.note }}</small>{% endif %}</td>
+  <td>{{ an.visitor_link(r.visitor_id, ('@' ~ r.username) if r.username else None) }}{% if r.kind %} {{ an.kind_badge(r.kind, r.kind_reason, r.kind_locked) }}{% endif %}{% if r.is_new %} <span class="admin-status is-positive" title="首次来访在所选时间范围内">新</span>{% endif %}{% if r.note %}<small class="an-note">{{ r.note }}</small>{% endif %}</td>
   <td class="an-small">{% for ip in r.ip_list[:3] %}{{ an.ip_link(ip) }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% if r.ip_list|length > 3 %}<br><span class="an-muted">等 {{ r.ip_list|length }} 个</span>{% endif %}</td>
   <td class="an-small">{{ r.browser }}<br>{{ r.os }} · {{ r.device }}{% if r.screen %} · {{ r.screen }}{% endif %}</td>
   {% endif %}

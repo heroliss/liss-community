@@ -91,6 +91,8 @@ def tracker_context():
     try:
         if current_user.is_authenticated:
             uid, uname = current_user.id, (current_user.username or '')
+            if current_user.is_administrator():
+                store().mark_owner(request.remote_addr or '')  # Visits from here count as 本人.
     except Exception:
         pass
     return dict(analytics_tracker=dict(site='forum', uid=uid, uname=uname,
@@ -103,6 +105,7 @@ def install(app):
     app.extensions['analytics'] = AnalyticsStore(data_dir / 'analytics.sqlite')
     from .ip_region import RegionLookup
     app.extensions['ip_region'] = RegionLookup(data_dir)  # Optional ip2region_v4.xdb in the data directory.
+    app.extensions['analytics'].region = app.extensions['ip_region'].lookup
     app.config.setdefault('ANALYTICS_ENABLED', os.environ.get('LISS_ANALYTICS', '1') != '0')
     extra = [origin.strip().rstrip('/') for origin in os.environ.get('LISS_ANALYTICS_ORIGINS', '').split(',') if origin.strip()]
     app.config.setdefault('ANALYTICS_ALLOWED_ORIGINS', tuple(extra))

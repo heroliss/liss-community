@@ -16,12 +16,19 @@ from itsdangerous import BadData, URLSafeTimedSerializer
 
 from . import db
 from .admin import AdminAudit, admin
-from .analytics_store import (EVENT_TYPES, ID, SITES, display_zone, fmt_bytes, fmt_duration, fmt_time,
+from .analytics_store import (EVENT_TYPES, ID, KINDS, SITES, display_zone, fmt_bytes, fmt_duration, fmt_time,
                               now_ms, valid_ip)
+from .models import Permission, Role, User
 
 RANGES = [('today', '今天'), ('yesterday', '昨天'), ('7d', '近 7 天'), ('30d', '近 30 天'),
           ('90d', '近 90 天'), ('all', '全部'), ('custom', '自定义')]
 LIVE_WINDOW_MS = 5 * 60 * 1000
+# Visitor type filter: '' = real visitors only (default), 'all', or one type.
+KIND_FILTERS = [('', '仅访客'), ('all', '全部类型'), ('owner', '本人'), ('test', '测试'), ('bot', '机器人'),
+                ('suspect', '疑似机器人')]
+KIND_CODES = {'owner': 4, 'test': 3, 'bot': 1, 'suspect': 2}
+KIND_KEYS = {code: key for key, code in KIND_CODES.items()} | {0: 'visitor'}
+_owner_seeded = {'done': False}
 PER_PAGE = 30
 
 
@@ -48,7 +55,11 @@ class Filters:
         self.site = args.get('site', 'all')
         if self.site not in SITES:
             self.site = 'all'
-        self.bots = args.get('bots') == '1'
+        self.kind = args.get('who', '')
+        if self.kind not in dict(KIND_FILTERS):
+            self.kind = ''
+        if args.get('bots') == '1' and not self.kind:  # Links from before visitor types existed.
+            self.kind = 'all'
         self.date_from, self.date_to = args.get('from', ''), args.get('to', '')
         tz = zone()
         today = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -80,6 +91,14 @@ class Filters:
         return dict(RANGES)[self.range] if self.range != 'custom' else f'{self.date_from} 至 {self.date_to}'
 
     @property
+    def bots(self):
+        return self.kind != ''
+
+    @property
+    def kind_label(self):
+        return dict(KIND_FILTERS)[self.kind]
+
+    @property
     def days(self):
         return max(1, round((self.end - self.start) / 86_400_000))
 
@@ -87,8 +106,8 @@ class Filters:
         values = {'range': self.range, 'site': self.site}
         if self.range == 'custom':
             values.update({'from': self.date_from, 'to': self.date_to})
-        if self.bots:
-            values['bots'] = '1'
+        if self.kind:
+            values['who'] = self.kind
         values.update({key: value for key, value in extra.items() if value not in (None, '')})
         return values
 
@@ -98,9 +117,16 @@ class Filters:
         if self.site != 'all':
             clauses.append(f'{alias}.site = ?')
             params.append(self.site)
-        if not self.bots:
-            clauses.append(f'{alias}.bot = 0')
+        clause, extra = self.kind_clause(alias)
+        if clause:
+            clauses.append(clause)
+            params.extend(extra)
         return ' AND '.join(clauses), tuple(params)
+
+    def kind_clause(self, alias='p'):
+        if self.kind == 'all':
+            return '', []
+        return f'{alias}.bot = ?', [KIND_CODES.get(self.kind, 0)]
 
 
 def page_number():
@@ -303,8 +329,16 @@ def timeline(where_sql, params, page=1, per_page=15):
 
 # ---------------------------------------------------------------------- views
 def render(template, **context):
-    return render_template(template, admin_section='analytics', sites=SITES, ranges=RANGES,
-                           event_types=EVENT_TYPES, **context)
+    if not _owner_seeded['done']:
+        # Once per process: IPs where administrator accounts were tracked count as owner IPs (covers
+        # visits recorded before owner marking existed). Admin page views themselves are marked by
+        # analytics.tracker_context.
+        _owner_seeded['done'] = True
+        admins = User.query.join(Role).filter(
+            Role.permissions.op('&')(Permission.ADMINISTER) == Permission.ADMINISTER).with_entities(User.id).all()
+        store().mark_owner_users([row[0] for row in admins])
+    return render_template(template, admin_section='analytics', sites=SITES, ranges=RANGES, kinds=KINDS,
+                           kind_keys=KIND_KEYS, kind_filters=KIND_FILTERS, event_types=EVENT_TYPES, **context)
 
 
 @admin.app_template_filter('at')
@@ -390,15 +424,20 @@ def analytics():
 
 @admin.get('/analytics/live')
 def analytics_live():
+    f = Filters(request.args)
     since = now_ms() - LIVE_WINDOW_MS
+    kind_p, params = f.kind_clause('p')
+    kind_e, _ = f.kind_clause('e')
+    where_p = f' AND {kind_p}' if kind_p else ''
     active = store().query('SELECT p.*, v.browser, v.os, v.device, v.username, v.note FROM pageviews p '
-                           'JOIN visitors v ON v.id = p.visitor_id WHERE p.last_seen >= ? AND p.bot = 0 '
+                           f'JOIN visitors v ON v.id = p.visitor_id WHERE p.last_seen >= ?{where_p} '
                            'AND p.last_seen = (SELECT MAX(last_seen) FROM pageviews q WHERE q.visitor_id = p.visitor_id) '
-                           'ORDER BY p.last_seen DESC LIMIT 100', (since,))
+                           'ORDER BY p.last_seen DESC LIMIT 100', (since, *params))
     recent = store().query('SELECT p.*, v.browser, v.device, v.username FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
-                           'ORDER BY p.started_at DESC LIMIT 60')
-    events = store().query('SELECT * FROM events ORDER BY ts DESC LIMIT 40')
-    return render('admin/analytics/live.html', analytics_page='live', active=active, recent=recent,
+                           f'WHERE 1 = 1{where_p} ORDER BY p.started_at DESC LIMIT 60', tuple(params))
+    events = store().query(f'SELECT * FROM events e WHERE 1 = 1{" AND " + kind_e if kind_e else ""} '
+                           'ORDER BY ts DESC LIMIT 40', tuple(params))
+    return render('admin/analytics/live.html', analytics_page='live', f=f, active=active, recent=recent,
                   events=events, window_minutes=LIVE_WINDOW_MS // 60000)
 
 
@@ -428,7 +467,7 @@ def analytics_visitors():
         sql = (f'SELECT p.visitor_id, MIN(p.started_at) first, MAX(p.last_seen) last, COUNT(*) pv, '
                f'COUNT(DISTINCT p.session_id) sessions, SUM(p.active_ms) active, GROUP_CONCAT(DISTINCT p.ip) ips, '
                f'GROUP_CONCAT(DISTINCT p.site) sites, v.browser, v.os, v.device, v.screen, v.username, v.user_id, '
-               f'v.note, v.first_seen, v.last_ip FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
+               f'v.note, v.first_seen, v.last_ip, v.bot kind, v.kind_reason, v.kind_locked FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
                f'WHERE {where} GROUP BY p.visitor_id ORDER BY {order}')
         count = f'SELECT COUNT(DISTINCT p.visitor_id) FROM pageviews p WHERE {where}'
     result = paged(sql, count, params, page_number())
@@ -456,6 +495,10 @@ def analytics_visitor(visitor_id):
                         'WHERE visitor_id = ? GROUP BY ip ORDER BY last DESC', (visitor_id,))
     favourite = store().query('SELECT site, path, MAX(title) title, COUNT(*) pv, SUM(active_ms) active FROM pageviews '
                               'WHERE visitor_id = ? GROUP BY site, path ORDER BY active DESC LIMIT 8', (visitor_id,))
+    try:
+        visitor['env_data'] = json.loads(visitor.get('env') or '{}')
+    except ValueError:
+        visitor['env_data'] = {}
     return render('admin/analytics/visitor.html', analytics_page='visitors', visitor=visitor, totals=totals, ips=ips,
                   favourite=favourite, sessions=timeline('s.visitor_id = ?', (visitor_id,), page_number()))
 
@@ -620,7 +663,11 @@ def deletion_plan(form):
         return dict(scope=scope, value=visitor, where='visitor_id = ?', params=[visitor],
                     title='删除某个访客的访问数据', label=f'访客 {visitor[:12]}')
     if scope == 'bots':
-        return dict(scope=scope, value='', where='bot = 1', params=[], title='删除机器人访问', label='全部机器人访问记录')
+        return dict(scope=scope, value='', where='bot IN (1, 2)', params=[], title='删除机器人访问',
+                    label='全部机器人与疑似机器人访问记录')
+    if scope == 'self':
+        return dict(scope=scope, value='', where='bot IN (3, 4)', params=[], title='删除本人与测试访问',
+                    label='全部本人与测试访问记录')
     if scope == 'all':
         return dict(scope=scope, value='', where='1 = 1', params=[], title='清空全部访问统计', label='全部访问统计数据')
     abort(400, description='未知的清理范围。')
@@ -677,6 +724,19 @@ def analytics_ignore():
           [dict(label='统计状态', before='记录' if ignored else '不记录', after='不记录' if ignored else '记录')])
     flash(f'已{"排除" if ignored else "恢复记录"} IP {ip}。' + ('此后来自该 IP 的访问不会被记录；已有记录保留。' if ignored else ''))
     return redirect(safe_return(request.form.get('return_to'), url_for('admin.analytics_data')))
+
+
+@admin.post('/analytics/kind')
+def analytics_kind():
+    visitor = request.form.get('visitor', '')
+    value = request.form.get('kind', '')
+    kind = None if value == 'auto' else int(value) if value.isdigit() and int(value) in KINDS else -1
+    if kind == -1 or not store().set_kind(visitor, kind):
+        abort(400, description='访客或类型无效。')
+    label = '自动判断' if kind is None else KINDS[kind]
+    audit('analytics.kind', f'访客 {visitor[:12]}', [dict(label='访客类型', before='—', after=label)])
+    flash(f'访客类型已设为：{label}。')
+    return redirect(url_for('admin.analytics_visitor', visitor_id=visitor))
 
 
 @admin.post('/analytics/note')
