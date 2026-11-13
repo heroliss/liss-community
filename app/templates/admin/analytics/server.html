@@ -19,11 +19,12 @@
 <div class="an-kpis an-kpis-compact">
   <div class="an-kpi"><span>请求</span><strong>{{ summary.total }}</strong><small>{{ summary.first|at('%m-%d %H:%M') }} 起</small></div>
   <div class="an-kpi"><span>独立 IP</span><strong>{{ summary.ips }}</strong></div>
-  <div class="an-kpi"><span>爬虫 / 扫描</span><strong>{{ summary.kinds.get('bot', 0) }} / {{ summary.kinds.get('probe', 0) }}</strong><small>本站监控 {{ summary.kinds.get('monitor', 0) }}</small></div>
+  <div class="an-kpi"><span>爬虫 / 扫描</span><strong>{{ summary.kinds.get('bot', 0) }} / {{ summary.kinds.get('probe', 0) }}</strong><small>机房来源 {{ summary.kinds.get('cloud', 0) }} · 本站监控 {{ summary.kinds.get('monitor', 0) }}</small></div>
   <div class="an-kpi"><span>平均响应</span><strong class="an-kpi-text">{{ summary.avg_ms ~ ' ms' if summary.avg_ms is not none else '—' }}</strong><small>4xx {{ summary.statuses.get('4xx', 0) }} · 5xx {{ summary.statuses.get('5xx', 0) }}</small></div>
 </div>
 <div class="an-grid-2">
   <section class="an-card"><div class="an-card-head"><h2>爬虫与监控</h2></div>{{ an.bar_list(summary.bots, '没有爬虫请求') }}</section>
+  <section class="an-card"><div class="an-card-head"><h2>机房来源（疑似伪装爬虫）</h2><span class="an-muted">浏览器标识正常，但 IP 属于云服务器</span></div>{{ an.bar_list(summary.clouds, '没有机房来源的请求') }}</section>
   <section class="an-card"><div class="an-card-head"><h2>漏洞扫描路径</h2><span class="an-muted">本站没有这些文件，只是被自动探测</span></div>{{ an.bar_list(summary.probes, '没有扫描请求') }}</section>
   <section class="an-card"><div class="an-card-head"><h2>不存在的页面（404）</h2></div>{{ an.bar_list(summary.missing, '没有 404') }}</section>
   <section class="an-card"><div class="an-card-head"><h2>最慢的浏览器请求</h2></div>
@@ -32,7 +33,7 @@
 <section class="an-section"><div class="an-card-head"><h2>请求记录</h2><span class="an-muted">共 {{ result.total }} 条，最新在前</span></div>
 {% if rows %}<table class="an-table an-table-wide an-table-rows"><thead><tr><th>时间</th><th>来源</th><th>IP</th><th>请求</th><th>状态</th><th>耗时</th></tr></thead><tbody>
 {% for h in rows %}<tr><td class="an-small">{{ h.ts|at('%m-%d %H:%M:%S') }}</td>
-  <td class="an-small"><span class="an-hit an-hit-{{ h.kind }}">{{ {'human': '浏览器', 'bot': '爬虫', 'probe': '扫描', 'monitor': '监控'}[h.kind] }}</span><br><span title="{{ h.ua }}">{{ h.agent|truncate(34, true, '…') }}</span></td>
+  <td class="an-small"><span class="an-hit an-hit-{{ h.kind }}"{% if h.kind == 'cloud' %} title="看起来像浏览器，但来自云服务器 / 机房 IP：多半是伪装的爬虫，也可能是用 VPN 的真人"{% endif %}>{{ {'human': '浏览器', 'cloud': '机房', 'bot': '爬虫', 'probe': '扫描', 'monitor': '监控'}[h.kind] }}</span><br><span title="{{ h.ua }}">{{ h.agent|truncate(34, true, '…') }}</span></td>
   <td class="an-small">{{ an.ip_link(h.ip) }}</td>
   <td class="an-small"><code class="an-req">{{ h.method }} {{ h.path|truncate(80, true, '…') }}</code>{% if h.ref and h.ref != '-' %}<br><span class="an-muted" title="{{ h.ref }}">来自 {{ h.ref|truncate(60, true, '…') }}</span>{% endif %}</td>
   <td><span class="an-status an-status-{{ h.status // 100 }}">{{ h.status }}</span></td>

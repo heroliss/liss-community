@@ -375,7 +375,7 @@ def raw_region(ip):
 
 @admin.app_template_filter('nettype')
 def nettype_filter(ip):
-    return network_type(raw_region(ip))
+    return network_type(raw_region(ip), ip or '')
 
 
 @admin.app_template_filter('region')
@@ -792,7 +792,8 @@ def analytics_ignore():
     return redirect(safe_return(request.form.get('return_to'), url_for('admin.analytics_data')))
 
 
-SERVER_KINDS = [('', '全部'), ('human', '浏览器'), ('bot', '爬虫'), ('probe', '漏洞扫描'), ('monitor', '本站监控')]
+SERVER_KINDS = [('', '全部'), ('human', '浏览器'), ('cloud', '机房来源'), ('bot', '爬虫'), ('probe', '漏洞扫描'),
+                ('monitor', '本站监控')]
 
 
 @admin.get('/analytics/server')
@@ -800,7 +801,7 @@ def analytics_server():
     """Requests from the web server's own access log, including clients that never run JavaScript."""
     base = current_app.config.get('ANALYTICS_ACCESS_LOG') or f"/var/log/{request.host.split(':')[0]}.access.log"
     files = access_log.log_files(base)
-    hits = access_log.read(base) if files else []
+    hits = access_log.read(base, raw_region) if files else []
     show = 'all' if request.args.get('show') == 'all' else 'pages'
     kind = request.args.get('k', '') if request.args.get('k', '') in dict(SERVER_KINDS) else ''
     status = request.args.get('st', '') if request.args.get('st', '') in ('2', '3', '4', '5') else ''
@@ -819,6 +820,8 @@ def analytics_server():
         ips=len({h['ip'] for h in scope}), avg_ms=round(sum(times) / len(times) * 1000) if times else None,
         bots=bars([dict(name=name, count=count) for name, count in
                    Counter(h['agent'] for h in scope if h['kind'] in ('bot', 'monitor')).most_common(10)]),
+        clouds=bars([dict(name=name, count=count) for name, count in
+                     Counter(h['ip'] for h in scope if h['kind'] == 'cloud').most_common(8)]),
         probes=bars([dict(name=name, count=count) for name, count in
                      Counter(h['path'].split('?')[0] for h in scope if h['kind'] == 'probe').most_common(10)]),
         missing=bars([dict(name=name, count=count) for name, count in

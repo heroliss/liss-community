@@ -13,7 +13,7 @@ from pathlib import Path
 import re
 import threading
 
-from .analytics_store import parse_ua
+from .analytics_store import network_type, parse_ua
 
 LINE = re.compile(r'^(?P<peer>\S+) \S+ \S+ \[(?P<time>[^\]]+)\] "(?P<method>[A-Z]+) (?P<path>\S+) [^"]*" (?P<status>\d{3}) '
                   r'(?P<bytes>\d+|-) "(?P<ref>[^"]*)" "(?P<ua>[^"]*)"(?: "(?P<fwd>[^"]*)")?(?: response-time=(?P<rt>[\d.]+))?')
@@ -64,18 +64,21 @@ def _parse_file(path: Path) -> list[dict]:
     return rows
 
 
-def classify_hit(hit: dict) -> str:
-    """'monitor' (this site's own checks), 'bot', 'probe' (vulnerability scanning) or 'human'."""
+def classify_hit(hit: dict, region=None) -> str:
+    """'monitor' (own checks), 'bot', 'probe' (vulnerability scanning), 'cloud' (browser-like client on a
+    cloud / hosting IP: usually a disguised crawler, sometimes a VPN) or 'human'."""
     if OWN_MONITORS.search(hit['ua']):
         return 'monitor'
     if PROBE.search(hit['path']):
         return 'probe'
     if parse_ua(hit['ua'])['bot']:
         return 'bot'
+    if network_type(region(hit['ip']) if region else '', hit['ip']) == 'dc':
+        return 'cloud'
     return 'human'
 
 
-def read(base: str) -> list[dict]:
+def read(base: str, region=None) -> list[dict]:
     """All parsed requests, newest first (at most MAX_LINES)."""
     rows = []
     for path in log_files(base):
@@ -87,8 +90,8 @@ def read(base: str) -> list[dict]:
     rows.reverse()
     for row in rows:
         if 'kind' not in row:
-            row['kind'] = classify_hit(row)
+            row['kind'] = classify_hit(row, region)
             row['page'] = not ASSET.match(row['path'])
             agent = parse_ua(row['ua'])
-            row['agent'] = agent['browser'] if row['kind'] != 'human' else f"{agent['browser']} · {agent['os']}"
+            row['agent'] = agent['browser'] if row['kind'] not in ('human', 'cloud') else f"{agent['browser']} · {agent['os']}"
     return rows

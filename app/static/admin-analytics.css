@@ -257,3 +257,4 @@ h1 .an-kind { font-size: .75rem; margin-left: 6px; }
 .an-status-2 { color: #38a876; } .an-status-3 { color: var(--muted); } .an-status-4 { color: #c09224; } .an-status-5 { color: #d0663e; }
 .an-chip small { margin-left: 4px; opacity: .7; }
 @media (min-width: 861px) and (max-width: 1180px) { .an-kpis-compact { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.an-hit-cloud { color: #c09224; background: color-mix(in srgb, #c09224 16%, transparent); }

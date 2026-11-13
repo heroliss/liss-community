@@ -410,6 +410,13 @@ class AnalyticsTests(unittest.TestCase):
         self.assertEqual(network_type('中国|广东省|深圳市|电信|CN'), 'isp')
         self.assertEqual(network_type('Malaysia|Johor|Segamat|TM TECHNOLOGY SERVICES|MY'), 'isp')
         self.assertEqual(network_type(''), '')
+        self.assertEqual(network_type('中国|香港特别行政区|0|0|HK', '43.130.59.209'), 'dc')
+        self.assertEqual(network_type('', '170.106.161.78'), 'dc')
+        self.assertEqual(network_type('', '8.8.8.8'), '')
+        old_ios = signals(dict(ua='Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 Version/13.0.3 Mobile/15E148 Safari/604.1',
+                               tz='Asia/Shanghai', screen='390x844@3', last_ip='43.130.59.209'), '中国|香港特别行政区|0|0|HK')
+        self.assertIn('iOS 13 版本过旧', old_ios['weak'])
+        self.assertIn('IP 属于云服务器 / 机房', old_ios['weak'])
         self.assertIs(tz_matches_region('Asia/Shanghai', '中国|广东省|深圳市|电信|CN'), True)
         self.assertIs(tz_matches_region('Asia/Shanghai', '中国|香港|0|0|HK'), False)
         self.assertIs(tz_matches_region('Asia/Shanghai', 'Taiwan|0|0|HiNet|TW'), False)
@@ -443,6 +450,7 @@ class AnalyticsTests(unittest.TestCase):
             '10.0.0.1 - - [12/Nov/2026:19:50:04 +0000] "GET /post/5 HTTP/1.1" 200 8000 "https://www.bing.com/" "' + CHROME + '" "58.26.140.36" response-time=0.400',
             '10.0.0.1 - - [12/Nov/2026:19:50:05 +0000] "GET /static/liss.css HTTP/1.1" 304 0 "-" "' + CHROME + '" "58.26.140.36" response-time=0.002',
             '10.0.0.1 - - [12/Nov/2026:19:50:06 +0000] "GET /nope HTTP/1.1" 404 900 "-" "' + CHROME + '" "58.26.140.36" response-time=0.030',
+            '10.0.0.1 - - [12/Nov/2026:19:50:07 +0000] "GET /welcome HTTP/1.1" 200 900 "-" "Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1" "43.130.59.209" response-time=0.080',
             'garbage line',
         ]
         log.write_text('\n'.join(lines) + '\n', encoding='utf-8')
@@ -463,9 +471,12 @@ class AnalyticsTests(unittest.TestCase):
         self.assertNotIn('GET /post/5', bots)  # Not in the request table; summary cards cover all kinds.
         self.assertIn('/nope', self.client.get('/admin/analytics/server?st=4&k=human').get_data(as_text=True))
         self.assertIn('liss-ops-uptime', self.client.get('/admin/analytics/server?show=all&k=monitor').get_data(as_text=True))
+        cloud = self.client.get('/admin/analytics/server?k=cloud').get_data(as_text=True)
+        self.assertIn('43.130.59.209', cloud)  # Tencent Cloud range with a browser User-Agent.
+        self.assertIn('机房来源', cloud)
         from app import access_log
         hits = access_log.read(str(log))
-        self.assertEqual(len(hits), 7)  # Six current lines plus one rotated, garbage skipped.
+        self.assertEqual(len(hits), 8)  # Seven current lines plus one rotated, garbage skipped.
         self.assertEqual(hits[-1]['ts'] < hits[0]['ts'], True)
         self.app.config['ANALYTICS_ACCESS_LOG'] = str(log) + '.missing'
         self.assertIn('没有找到访问日志', self.client.get('/admin/analytics/server').get_data(as_text=True))

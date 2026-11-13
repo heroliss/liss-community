@@ -95,7 +95,7 @@ BOT = re.compile(r'bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|
                  r'httpclient|java/|go-http|okhttp|scrapy|phantom|selenium|puppeteer|playwright|'
                  r'bingpreview|facebookexternalhit|embedly|monitor|uptime|google-|googleother|-google|'
                  r'inspectiontool|validator|scanner|zgrab|censys|masscan|nuclei|liss-ops|lychee', re.I)
-DATACENTER = re.compile(r'amazon|亚马逊|\baws\b|google|谷歌|microsoft|微软|azure|阿里云|alibaba|aliyun|腾讯云|'
+DATACENTER = re.compile(r'amazon|亚马逊|\baws\b|google|谷歌|microsoft|微软|azure|阿里云|alibaba|aliyun|腾讯云|tencent|'
                         r'digitalocean|linode|akamai|\bovh|hetzner|vultr|choopa|oracle|甲骨文|cloudflare|m247|'
                         r'datacamp|cdn77|leaseweb|contabo|scaleway|ionos|colocrossing|psychz|quadranet|'
                         r'数据中心|机房', re.I)
@@ -254,8 +254,24 @@ TZ_COUNTRY = {
 GREATER_CHINA_SPECIAL = ('香港', '台湾', '澳门', 'Hong Kong', 'Taiwan', 'Macau', 'Macao')
 
 
-def network_type(region: str) -> str:
+# Cloud ranges ip2region labels only by place (e.g. Tencent Cloud's Hong Kong blocks show as "中国|香港").
+CLOUD_NETS = tuple(ipaddress.ip_network(n) for n in (
+    '43.128.0.0/10', '49.51.0.0/16', '101.32.0.0/16', '119.28.0.0/16', '129.226.0.0/16', '150.109.0.0/16',
+    '162.62.0.0/16', '170.106.0.0/16'))  # Tencent Cloud overseas
+
+
+def in_cloud_net(ip: str) -> bool:
+    try:
+        address = ipaddress.ip_address(ip or '')
+    except ValueError:
+        return False
+    return address.version == 4 and any(address in net for net in CLOUD_NETS)
+
+
+def network_type(region: str, ip: str = '') -> str:
     """'dc' for cloud / hosting, 'isp' for consumer carriers, '' when unknown."""
+    if ip and in_cloud_net(ip):
+        return 'dc'
     if not region or region in ('本机', '内网'):
         return ''
     if DATACENTER.search(region):
@@ -335,9 +351,12 @@ def signals(visitor: dict, region: str = '') -> dict:
     chrome = re.search(r'Chrome/(\d+)', ua)
     if chrome and int(chrome.group(1)) < 120:
         weak.append(f'Chrome {chrome.group(1)} 版本过旧')
+    ios = re.search(r'(?:iPhone|CPU) OS (\d+)_', ua)
+    if ios and int(ios.group(1)) <= 14:
+        weak.append(f'iOS {ios.group(1)} 版本过旧')
     if 'X11; Linux' in ua and 'Android' not in ua:
         weak.append('桌面 Linux')
-    net = network_type(region)
+    net = network_type(region, visitor.get('last_ip') or '')
     if net == 'dc':
         weak.append('IP 属于云服务器 / 机房')
     elif net == 'isp':

@@ -18,7 +18,7 @@ LISS 每周访问摘要 · {{ s.start.strftime('%Y-%m-%d') }} 至 {{ s.end.strft
 {% for code in [0, 4, 3, 1, 2] %}{% if s.split.get(code) %}- {{ kinds[code] }}：{{ s.split[code] }}
 {% endif %}{% endfor %}
 服务器日志（社区页面请求）
-- 共 {{ s.server.total }} 次，爬虫 {{ s.server.bots }}，漏洞扫描 {{ s.server.probes }}，5xx 错误 {{ s.server.errors }}，频率限制拦截 {{ s.server.limited }}
+- 共 {{ s.server.total }} 次，爬虫 {{ s.server.bots }}，机房来源 {{ s.server.clouds }}，漏洞扫描 {{ s.server.probes }}，5xx 错误 {{ s.server.errors }}，频率限制拦截 {{ s.server.limited }}
 {% for name, count in s.crawlers %}- {{ name }}：{{ count }}
 {% endfor %}
 查看完整统计：{{ admin_url }}

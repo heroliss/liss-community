@@ -50,7 +50,9 @@ def build_summary(start: datetime, end: datetime) -> dict:
     changes = {key: pct_change(current[key] or 0, previous[key] or 0) for key in ('uv', 'pv', 'sessions')}
     split = store().kind_split(f.start, f.end)
     base = current_app.config.get('ANALYTICS_ACCESS_LOG') or '/var/log/liss.pythonanywhere.com.access.log'
-    hits = [h for h in access_log.read(base) if f.start <= h['ts'] < f.end and h['page']] if access_log.log_files(base) else []
+    lookup = current_app.extensions.get('ip_region')
+    hits = ([h for h in access_log.read(base, lookup.lookup if lookup else None) if f.start <= h['ts'] < f.end and h['page']]
+            if access_log.log_files(base) else [])
     errors = store().scalar("SELECT COUNT(*) FROM events WHERE type = 'error' AND bot = 0 AND ts >= ? AND ts < ?",
                             (f.start, f.end)) or 0
     return dict(
@@ -59,6 +61,7 @@ def build_summary(start: datetime, end: datetime) -> dict:
         devices=breakdown(f, 'device', 4), areas=(regions(f, 6) or [])[:6], split=split, errors=errors,
         crawlers=Counter(h['agent'] for h in hits if h['kind'] in ('bot', 'monitor')).most_common(6),
         server=dict(total=len(hits), bots=sum(h['kind'] == 'bot' for h in hits), probes=sum(h['kind'] == 'probe' for h in hits),
+                    clouds=sum(h['kind'] == 'cloud' for h in hits),
                     errors=sum(h['status'] >= 500 for h in hits), limited=sum(h['status'] == 429 for h in hits)))
 
 
