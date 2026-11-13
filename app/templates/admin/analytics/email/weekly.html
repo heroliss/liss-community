@@ -1,0 +1,40 @@
+{% macro delta(value) -%}{% if value is not none %}<span style="font-size:12px;color:{{ '#2e9d6a' if value >= 0 else '#c0502e' }};">{{ '%+d'|format(value) }}%</span>{% endif %}{%- endmacro %}
+
+<div style="margin:0;padding:24px 0;background:#f3f5f6;font-family:-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;">
+<tr><td style="padding:24px 28px 8px;">
+  <p style="margin:0;font-size:13px;color:#6b7a83;">LISS · 每周访问摘要</p>
+  <h1 style="margin:6px 0 2px;font-size:20px;color:#17232b;">{{ s.start.strftime('%m月%d日') }} – {{ s.end.strftime('%m月%d日') }}</h1>
+  <p style="margin:0;font-size:12px;color:#8a959c;">仅统计真实访客，已排除本人、测试与机器人</p>
+</td></tr>
+<tr><td style="padding:12px 28px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+    {% for label, key in [('访客', 'uv'), ('浏览量', 'pv'), ('访问次数', 'sessions')] %}
+    <td style="width:33%;padding:12px;background:#f6f8f9;border-radius:8px;{% if not loop.last %}border-right:6px solid #ffffff;{% endif %}">
+      <div style="font-size:12px;color:#6b7a83;">{{ label }}</div>
+      <div style="font-size:24px;font-weight:700;color:#17232b;">{{ s.kpi[key] }} {{ delta(s.changes[key]) }}</div>
+    </td>{% endfor %}
+  </tr></table>
+  <p style="margin:10px 0 0;font-size:13px;color:#4a5961;">新访客 {{ s.kpi.new }} · 回访 {{ s.kpi.returning }} · 平均访问 {{ (s.kpi.avg_session / 1000)|round|int }} 秒 · 脚本错误 {{ s.errors }}</p>
+</td></tr>
+
+<tr><td style="padding:8px 28px;">
+  <h2 style="margin:12px 0 6px;font-size:14px;color:#17232b;">热门页面</h2>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;">
+  {% for p in s.pages %}<tr><td style="padding:5px 0;border-bottom:1px solid #eef0f2;color:#24313a;">{{ (p.title or p.path)|truncate(40, true, '…') }}</td><td style="padding:5px 0;border-bottom:1px solid #eef0f2;text-align:right;color:#24313a;">{{ p.count }}</td></tr>{% else %}<tr><td style="padding:5px 0;color:#8a959c;">无</td></tr>{% endfor %}</table>
+  <h2 style="margin:16px 0 6px;font-size:14px;color:#17232b;">来源</h2>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;">
+  {% for r in s.referrers %}<tr><td style="padding:5px 0;border-bottom:1px solid #eef0f2;color:#24313a;">{{ r.name }}</td><td style="padding:5px 0;border-bottom:1px solid #eef0f2;text-align:right;color:#24313a;">{{ r.count }}</td></tr>{% else %}<tr><td style="padding:5px 0;color:#8a959c;">无</td></tr>{% endfor %}</table>
+  {% if s.areas %}<h2 style="margin:16px 0 6px;font-size:14px;color:#17232b;">地区</h2>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;">{% for a in s.areas %}<tr><td style="padding:5px 0;border-bottom:1px solid #eef0f2;color:#24313a;">{{ a.name }}</td><td style="padding:5px 0;border-bottom:1px solid #eef0f2;text-align:right;color:#24313a;">{{ a.count }}</td></tr>{% endfor %}</table>{% endif %}
+  <h2 style="margin:16px 0 6px;font-size:14px;color:#17232b;">访客类型（全部记录）</h2>
+  <p style="margin:0;font-size:13px;color:#4a5961;">{% set parts = [] %}{% for code in [0, 4, 3, 1, 2] %}{% if s.split.get(code) %}{% set _ = parts.append(kinds[code] ~ ' ' ~ s.split[code]) %}{% endif %}{% endfor %}{{ parts|join(' · ') or '无' }}</p>
+  <h2 style="margin:16px 0 6px;font-size:14px;color:#17232b;">服务器日志</h2>
+  <p style="margin:0 0 6px;font-size:13px;color:#4a5961;">社区页面请求 {{ s.server.total }} 次 · 爬虫 {{ s.server.bots }} · 漏洞扫描 {{ s.server.probes }} · 5xx {{ s.server.errors }} · 频率限制拦截 {{ s.server.limited }}</p>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;">{% for name, count in s.crawlers %}<tr><td style="padding:5px 0;border-bottom:1px solid #eef0f2;color:#24313a;">{{ name }}</td><td style="padding:5px 0;border-bottom:1px solid #eef0f2;text-align:right;color:#24313a;">{{ count }}</td></tr>{% endfor %}</table>
+</td></tr>
+<tr><td style="padding:20px 28px 26px;">
+  <a href="{{ admin_url }}" style="display:inline-block;padding:10px 18px;background:#17232b;color:#ffffff;border-radius:8px;text-decoration:none;font-size:14px;">查看完整统计</a>
+  <p style="margin:14px 0 0;font-size:11px;color:#9aa4aa;">每周一自动发送。可在后台“访问统计 → 数据管理”查看发送状态或发送测试摘要。</p>
+</td></tr>
+</table></div>

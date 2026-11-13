@@ -614,9 +614,39 @@ def analytics_data():
     ignored = store().query('SELECT * FROM ignored_ips ORDER BY created_at DESC')
     lookup = current_app.extensions.get('ip_region')
     ip_db = [dict(name=s.path.name, bytes=fmt_bytes(s.path.stat().st_size)) for s in (lookup.searchers.values() if lookup else [])]
+    from . import weekly_digest
+    digest = dict(enabled=weekly_digest.enabled(current_app), to=weekly_digest.recipient(),
+                  status=store().scalar("SELECT value FROM meta WHERE key = 'digest_status'") or '尚未发送',
+                  week=store().scalar("SELECT value FROM meta WHERE key = 'digest_week'") or '')
     return render('admin/analytics/data.html', analytics_page='data', stats=stats, ignored=ignored, ip_db=ip_db,
-                  size=fmt_bytes(stats['bytes']), my_ip=request.remote_addr or '',
+                  size=fmt_bytes(stats['bytes']), my_ip=request.remote_addr or '', digest=digest,
+                  rate_limit=current_app.config.get('PAGE_RATE_LIMIT') or 0,
                   community_root=url_for('main.index', _external=True))
+
+
+@admin.get('/analytics/digest/preview')
+def analytics_digest_preview():
+    from . import weekly_digest
+    start, end = weekly_digest.week_bounds(datetime.now(zone()).replace(tzinfo=None))
+    message = weekly_digest.render_message(weekly_digest.recipient() or '（未设置）', start, end)
+    return message['html']
+
+
+@admin.post('/analytics/digest/test')
+def analytics_digest_test():
+    from . import weekly_digest
+    if not weekly_digest.enabled(current_app):
+        flash('邮件服务未配置或已关闭，无法发送摘要。')
+        return redirect(url_for('admin.analytics_data'))
+    to = weekly_digest.recipient()
+    if not to:
+        flash('站长账号没有已验证的邮箱：请先在个人资料中绑定并验证邮箱。')
+        return redirect(url_for('admin.analytics_data'))
+    start, end = weekly_digest.week_bounds(datetime.now(zone()).replace(tzinfo=None))
+    app = current_app._get_current_object()
+    weekly_digest.send(app, weekly_digest.render_message(to, start, end), None, wait=True)
+    flash(f"测试摘要（上周数据）：{app.extensions.get('weekly_digest_last', '未知')} → {to}")
+    return redirect(url_for('admin.analytics_data'))
 
 
 @admin.get('/analytics/export')

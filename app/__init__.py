@@ -32,6 +32,8 @@ def create_app(config_name):
     # Registered first so it runs last, after every other after_request hook.
     from .compression import install as install_compression
     install_compression(app)
+    from .rate_limit import install as install_rate_limit
+    install_rate_limit(app)
     from .post_preview import post_preview
     app.add_template_filter(post_preview, 'post_preview')
     from .frontend_assets import install as install_frontend_assets
@@ -48,6 +50,8 @@ def create_app(config_name):
         install_analytics(app)
         from .auto_backup import install as install_auto_backup
         install_auto_backup(app)
+        from .weekly_digest import install as install_weekly_digest
+        install_weekly_digest(app)
         from .admin import install as install_admin
         install_admin(app)
         from .owner_identity import install as install_owner_identity

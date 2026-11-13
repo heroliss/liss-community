@@ -26,6 +26,13 @@
       <li><span>社区</span><a href="{{ community_root }}?liss_analytics=me" target="_blank" rel="noopener">标记为本人</a><a href="{{ community_root }}?liss_analytics=notme" target="_blank" rel="noopener">取消标记</a><a href="{{ community_root }}?liss_analytics=off" target="_blank" rel="noopener">停止记录</a><a href="{{ community_root }}?liss_analytics=on" target="_blank" rel="noopener">恢复记录</a></li>
       <li><span>作品站与玻璃海</span><a href="https://heroliss.github.io/liss-works/?liss_analytics=me" target="_blank" rel="noopener">标记为本人</a><a href="https://heroliss.github.io/liss-works/?liss_analytics=notme" target="_blank" rel="noopener">取消标记</a><a href="https://heroliss.github.io/liss-works/?liss_analytics=off" target="_blank" rel="noopener">停止记录</a><a href="https://heroliss.github.io/liss-works/?liss_analytics=on" target="_blank" rel="noopener">恢复记录</a></li>
     </ul>
+    <div class="an-card-head an-sub"><h2>每周摘要邮件</h2></div>
+    {% if digest.enabled %}<p class="an-help">每周一由社区自动把上周（周一至周日）的真实访客摘要发到 {% if digest.to %}<code>{{ digest.to }}</code>{% else %}站长账号的已验证邮箱（<strong>目前没有</strong>，请先在个人资料中绑定并验证邮箱）{% endif %}。最近状态：{{ digest.status }}{% if digest.week %}（{{ digest.week }}）{% endif %}。</p>
+    <div class="an-actions"><a class="button button-small button-secondary" href="{{ url_for('admin.analytics_digest_preview') }}" target="_blank" rel="noopener">预览上周摘要</a>
+      <form method="post" action="{{ url_for('admin.analytics_digest_test') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-small button-secondary" type="submit">立即发送一封测试</button></form></div>
+    {% else %}<p class="an-help">邮件服务未配置（或设置了 <code>LISS_WEEKLY_DIGEST=0</code>），不会发送摘要。</p>{% endif %}
+    <div class="an-card-head an-sub"><h2>访问频率限制</h2></div>
+    <p class="an-help">{% if rate_limit %}同一 IP 每分钟最多 {{ rate_limit }} 次页面请求（不含静态文件与统计上报），超出时返回“请求过于频繁”。被拦截的请求可在“服务器日志”中按状态 4xx 查看。可用 <code>LISS_PAGE_RATE_LIMIT</code> 调整，0 为关闭。{% else %}已关闭。{% endif %}</p>
     <div class="an-card-head an-sub"><h2>访客类型</h2></div>
     <p class="an-help">判断规则更新后，或想让旧记录用最新规则重新归类时使用。手动设置过类型的访客不受影响。</p>
     <form method="post" action="{{ url_for('admin.analytics_reclassify') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-small button-secondary" type="submit">重新判断全部访客</button></form>

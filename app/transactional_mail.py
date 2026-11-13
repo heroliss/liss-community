@@ -50,6 +50,12 @@ def deliver_account_email(recipient, subject, template, **context):
         'text': render_template(template + '.txt', **context),
         'html': render_template(template + '.html', **context),
     }
+    return send_message(config, message)
+
+
+def send_message(config, message):
+    """Send an already rendered message ({to, subject, text, html}); needs no app or request context
+    except for the test outbox."""
     provider = config['LISS_MAIL_PROVIDER'].lower()
     if provider == 'outbox':
         # This transport cannot be enabled outside Flask's explicit testing mode.
@@ -62,12 +68,12 @@ def deliver_account_email(recipient, subject, template, **context):
     if provider == 'brevo':
         endpoint = 'https://api.brevo.com/v3/smtp/email'
         payload = {'sender': {'name': sender_name, 'email': sender_email},
-                   'to': [{'email': recipient}], 'subject': message['subject'],
+                   'to': [{'email': message['to']}], 'subject': message['subject'],
                    'htmlContent': message['html'], 'textContent': message['text']}
         headers = {'api-key': config['LISS_MAIL_API_KEY']}
     else:
         endpoint = 'https://api.resend.com/emails'
-        payload = {'from': f'{sender_name} <{sender_email}>', 'to': [recipient],
+        payload = {'from': f'{sender_name} <{sender_email}>', 'to': [message['to']],
                    'subject': message['subject'], 'html': message['html'],
                    'text': message['text']}
         headers = {'Authorization': 'Bearer ' + config['LISS_MAIL_API_KEY']}

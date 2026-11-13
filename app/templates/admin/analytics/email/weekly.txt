@@ -1,0 +1,24 @@
+LISS 每周访问摘要 · {{ s.start.strftime('%Y-%m-%d') }} 至 {{ s.end.strftime('%Y-%m-%d') }}（仅真实访客）
+
+访客 {{ s.kpi.uv }}{% if s.changes.uv is not none %}（{{ '%+d'|format(s.changes.uv) }}%）{% endif %} · 浏览量 {{ s.kpi.pv }}{% if s.changes.pv is not none %}（{{ '%+d'|format(s.changes.pv) }}%）{% endif %} · 访问次数 {{ s.kpi.sessions }}
+新访客 {{ s.kpi.new }} · 回访 {{ s.kpi.returning }} · 平均访问时长 {{ (s.kpi.avg_session / 1000)|round|int }} 秒 · 脚本错误 {{ s.errors }}
+
+热门页面
+{% for p in s.pages %}- {{ p.title or p.path }}：{{ p.count }} 次
+{% else %}- 无
+{% endfor %}
+来源
+{% for r in s.referrers %}- {{ r.name }}：{{ r.count }}
+{% else %}- 无
+{% endfor %}{% if s.areas %}
+地区
+{% for a in s.areas %}- {{ a.name }}：{{ a.count }}
+{% endfor %}{% endif %}
+访客类型（全部记录）
+{% for code in [0, 4, 3, 1, 2] %}{% if s.split.get(code) %}- {{ kinds[code] }}：{{ s.split[code] }}
+{% endif %}{% endfor %}
+服务器日志（社区页面请求）
+- 共 {{ s.server.total }} 次，爬虫 {{ s.server.bots }}，漏洞扫描 {{ s.server.probes }}，5xx 错误 {{ s.server.errors }}，频率限制拦截 {{ s.server.limited }}
+{% for name, count in s.crawlers %}- {{ name }}：{{ count }}
+{% endfor %}
+查看完整统计：{{ admin_url }}
