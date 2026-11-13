@@ -522,7 +522,10 @@ class AnalyticsTests(unittest.TestCase):
         self.assertEqual(self.store().scalar('SELECT COUNT(*) FROM campaigns'), 1)
         self.client.post('/admin/analytics/campaign/delete', data={'name': '简历', 'csrf_token': token})
         self.assertEqual(self.store().scalar('SELECT COUNT(*) FROM campaigns'), 0)
+        from_forum = batch(vid='k' * 24, sid='m' * 24, pv=dict(batch()['pv'], id='n' * 24), sref='https://liss.pythonanywhere.com/post/5')
+        self.collect(from_forum, ip='203.0.113.11', client=self.app.test_client())
         journeys = self.client.get('/admin/analytics/journeys?range=all').get_data(as_text=True)
+        self.assertRegex(journeys, r'an-site-forum[^<]*</span></span><span class="an-path-arrow"[^>]*>→</span><span><span class="an-site an-site-works')
         self.assertIn('最常见的路径', journeys)
         self.assertIn('社区首页', journeys)
         page = self.client.get('/admin/analytics/page?range=all&s=works&path=/liss-works/projects/glass-atoll/').get_data(as_text=True)
@@ -534,7 +537,7 @@ class AnalyticsTests(unittest.TestCase):
         from app.analytics_admin import Filters, kpis
         with self.app.test_request_context('/admin/analytics?range=all'):
             numbers = kpis(Filters({'range': 'all'}))
-        self.assertEqual((numbers['sessions'], numbers['engaged']), (2, 1))  # The shared visit bounced quickly.
+        self.assertEqual((numbers['sessions'], numbers['engaged']), (3, 2))  # The shared visit bounced quickly.
 
 
 if __name__ == '__main__':

@@ -152,6 +152,16 @@ def journeys(store, f, max_rows=60_000) -> dict:
             if a[0] != b[0]:
                 flows[(a[0], b[0])] += 1
 
+    # The community and github.io keep separate visits, so moves between them show up as a new visit
+    # whose referrer is the other site, not inside one visit.
+    where_s, params_s = f.where('s')
+    for row in store.query(f"SELECT s.referrer, s.site, COUNT(*) c FROM sessions s WHERE {where_s} AND s.referrer_host IN "
+                           f"('heroliss.github.io', 'liss.pythonanywhere.com') GROUP BY s.referrer, s.site", params_s):
+        ref = row['referrer'] or ''
+        source = 'forum' if 'liss.pythonanywhere.com' in ref else ('atoll' if '/play/glass-atoll' in ref else 'works')
+        if source != row['site']:
+            flows[(source, row['site'])] += row['c']
+
     def step(key):
         return dict(site=key[0], path=key[1], title=_label(titles.get(key, ''), key[1]))
     total = len(visits)
