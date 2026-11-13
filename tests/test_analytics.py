@@ -461,6 +461,7 @@ class AnalyticsTests(unittest.TestCase):
         self.login()
         page = self.client.get('/admin/analytics/server').get_data(as_text=True)
         self.assertIn('服务器日志', page)
+        self.assertIn('日志文件最后更新', page)
         self.assertIn('Googlebot', page)
         self.assertIn('/wp-login.php', page)
         self.assertIn('66.249.66.1', page)

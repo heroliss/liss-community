@@ -828,7 +828,9 @@ def analytics_server():
                       Counter(h['path'].split('?')[0] for h in scope if h['status'] == 404 and h['kind'] != 'probe').most_common(10)]),
         slow=sorted((h for h in scope if h['rt'] is not None and h['kind'] == 'human'), key=lambda h: -h['rt'])[:8])
     args = {key: value for key, value in dict(show=show if show == 'all' else '', k=kind, st=status, q=q).items() if value}
+    updated = max((int(p.stat().st_mtime * 1000) for p in files), default=None)
     return render('admin/analytics/server.html', analytics_page='server', base=base, files=files, summary=summary,
+                  updated=updated, stale=bool(updated and now_ms() - updated > 2 * 3_600_000),
                   rows=rows[(page - 1) * per_page: page * per_page], result=dict(page=page, pages=pages, total=len(rows)),
                   show=show, kind=kind, status=status, q=q, args=args, server_kinds=SERVER_KINDS)
 

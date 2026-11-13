@@ -258,3 +258,4 @@ h1 .an-kind { font-size: .75rem; margin-left: 6px; }
 .an-chip small { margin-left: 4px; opacity: .7; }
 @media (min-width: 861px) and (max-width: 1180px) { .an-kpis-compact { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .an-hit-cloud { color: #c09224; background: color-mix(in srgb, #c09224 16%, transparent); }
+.an-stale { color: #c09224; }

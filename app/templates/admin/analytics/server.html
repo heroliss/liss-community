@@ -5,6 +5,7 @@
 {% if not files %}
 <p class="an-empty an-empty-tall">没有找到访问日志 <code>{{ base }}</code>。在 PythonAnywhere 上日志位于 <code>/var/log/&lt;域名&gt;.access.log</code>；其他环境可设置 <code>ANALYTICS_ACCESS_LOG</code>。</p>
 {% else %}
+<p class="an-help{% if stale %} an-stale{% endif %}">日志文件最后更新：{{ updated|at('%Y-%m-%d %H:%M') }}（{{ updated|ago }}）{% if stale %}。PythonAnywhere 把日志同步到账户有延迟，较新的请求暂时还看不到，稍后会补上。{% endif %}</p>
 <form method="get" class="an-filters" data-an-filters>
   <div class="an-range" role="group" aria-label="请求来源">
     {% for value, label in server_kinds %}<label class="an-chip{% if kind == value %} is-active{% endif %}"><input type="radio" name="k" value="{{ value }}"{% if kind == value %} checked{% endif %} data-an-autosubmit="1">{{ label }}{% if value %} <small>{{ summary.kinds.get(value, 0) }}</small>{% else %} <small>{{ summary.total }}</small>{% endif %}</label>{% endfor %}
