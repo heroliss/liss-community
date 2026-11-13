@@ -1,14 +1,14 @@
 {% extends "admin/base.html" %}
 {% import "admin/analytics/_macros.html" as an with context %}
 {% block title %}{{ super() }} · 访问统计{% endblock %}
-{% block head %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='admin-analytics.css') }}?v=20261113-6">{% endblock %}
+{% block head %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='admin-analytics.css') }}?v=20261113-9">{% endblock %}
 {% block admin_label %}访问统计{% endblock %}
 {% block admin_content %}
 <nav class="an-tabs" aria-label="访问统计">
-  {% for key, endpoint, label, icon in [('overview','analytics','概览','chart'),('live','analytics_live','实时','live'),('visitors','analytics_visitors','访客','users'),('pages','analytics_pages','页面','book'),('events','analytics_events','点击与事件','pointer'),('server','analytics_server','服务器日志','globe'),('data','analytics_data','数据管理','database')] %}
-  <a href="{{ url_for('admin.' ~ endpoint, **(f.args() if f is defined and key not in ['live', 'data', 'server'] else {})) }}"{% if analytics_page == key %} class="is-active" aria-current="page"{% endif %}>{{ ui.icon(icon) }}<span>{{ label }}</span></a>
+  {% for key, endpoint, label, icon in [('overview','analytics','概览','chart'),('live','analytics_live','实时','live'),('visitors','analytics_visitors','访客','users'),('sources','analytics_sources','来源','globe'),('pages','analytics_pages','页面','book'),('journeys','analytics_journeys','访问路径','arrow'),('events','analytics_events','点击与事件','pointer'),('server','analytics_server','服务器日志','shield'),('data','analytics_data','数据管理','database'),('help','analytics_help','帮助','comment')] %}
+  <a href="{{ url_for('admin.' ~ endpoint, **(f.args() if f is defined and key not in ['live', 'data', 'server', 'help'] else {})) }}"{% if analytics_page == key %} class="is-active" aria-current="page"{% endif %}>{{ ui.icon(icon) }}<span>{{ label }}</span></a>
   {% endfor %}
 </nav>
 {% block analytics_content %}{% endblock %}
 {% endblock %}
-{% block scripts %}{{ super() }}<script src="{{ url_for('static', filename='admin-analytics.js') }}?v=20261112-1" defer></script>{% endblock %}
+{% block scripts %}{{ super() }}<script src="{{ url_for('static', filename='admin-analytics.js') }}?v=20261113-1" defer></script>{% endblock %}

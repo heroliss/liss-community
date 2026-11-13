@@ -483,5 +483,59 @@ class AnalyticsTests(unittest.TestCase):
         self.assertIn('没有找到访问日志', self.client.get('/admin/analytics/server').get_data(as_text=True))
 
 
+    def test_sources_share_links_paths_and_engagement(self):
+        from app.analytics_insights import classify_source, share_url
+        self.assertEqual(classify_source('google.com.hk'), ('search', 'Google'))
+        self.assertEqual(classify_source('chatgpt.com'), ('ai', 'ChatGPT'))
+        self.assertEqual(classify_source('', '', '微信 8'), ('social', '微信（应用内打开）'))
+        self.assertEqual(classify_source('bing.com', 'from=简历'), ('campaign', '简历'))
+        self.assertEqual(classify_source('heroliss.github.io'), ('internal', '来自作品站'))
+        self.assertEqual(share_url('https://heroliss.github.io/liss-works/?a=1', '微信群'),
+                         'https://heroliss.github.io/liss-works/?a=1&from=%E5%BE%AE%E4%BF%A1%E7%BE%A4')
+        # Visit 1 (Google): two pages, works -> forum. Visit 2 (share link): one short page, no interaction.
+        first = batch()
+        self.collect(first)
+        second_page = batch(site='forum', pv=dict(batch()['pv'], id='z' * 24, path='/', url='https://liss.pythonanywhere.com/',
+                                                  title='社区首页', active=3000))
+        second_page.pop('sref')
+        self.collect(second_page, origin='https://liss.pythonanywhere.com')
+        shared = batch(vid='d' * 24, sid='e' * 24, pv=dict(batch()['pv'], id='f' * 24, active=2000), utm='from=简历',
+                       sref='', ev=[])
+        self.collect(shared, ip='203.0.113.9', client=self.app.test_client())
+        self.login()
+        overview = self.client.get('/admin/analytics?range=all').get_data(as_text=True)
+        self.assertIn('有效访问', overview)
+        self.assertIn('来源渠道', overview)
+        self.assertIn('第一次看？', overview)
+        sources = self.client.get('/admin/analytics/sources?range=all').get_data(as_text=True)
+        self.assertIn('搜索引擎', sources)
+        self.assertIn('分享链接', sources)
+        self.assertIn('简历', sources)
+        token = self.csrf('/admin/analytics/sources')
+        response = self.client.post('/admin/analytics/campaign', data={'name': '简历', 'target': 'works', 'csrf_token': token})
+        self.assertEqual(response.status_code, 302)
+        listed = self.client.get('/admin/analytics/sources?range=all').get_data(as_text=True)
+        self.assertIn('from=%E7%AE%80%E5%8E%86', listed)
+        self.client.post('/admin/analytics/campaign', data={'name': 'bad&name', 'target': 'works', 'csrf_token': token})
+        self.client.post('/admin/analytics/campaign', data={'name': '外站', 'target': 'custom', 'custom': 'https://evil.example/',
+                                                             'csrf_token': token})
+        self.assertEqual(self.store().scalar('SELECT COUNT(*) FROM campaigns'), 1)
+        self.client.post('/admin/analytics/campaign/delete', data={'name': '简历', 'csrf_token': token})
+        self.assertEqual(self.store().scalar('SELECT COUNT(*) FROM campaigns'), 0)
+        journeys = self.client.get('/admin/analytics/journeys?range=all').get_data(as_text=True)
+        self.assertIn('最常见的路径', journeys)
+        self.assertIn('社区首页', journeys)
+        page = self.client.get('/admin/analytics/page?range=all&s=works&path=/liss-works/projects/glass-atoll/').get_data(as_text=True)
+        self.assertIn('下一步去了哪', page)
+        self.assertIn('离开', page)
+        pages = self.client.get('/admin/analytics/pages?range=all&sort=rate').get_data(as_text=True)
+        self.assertIn('有效浏览率', pages)
+        self.assertIn('帮助', self.client.get('/admin/analytics/help').get_data(as_text=True))
+        from app.analytics_admin import Filters, kpis
+        with self.app.test_request_context('/admin/analytics?range=all'):
+            numbers = kpis(Filters({'range': 'all'}))
+        self.assertEqual((numbers['sessions'], numbers['engaged']), (2, 1))  # The shared visit bounced quickly.
+
+
 if __name__ == '__main__':
     unittest.main()

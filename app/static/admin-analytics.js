@@ -38,3 +38,30 @@
     document.addEventListener('visibilitychange', refresh);
   }
 })();
+
+// Beginner guide: open until the admin closes it once.
+(function () {
+  'use strict';
+  var guide = document.querySelector('[data-an-guide]');
+  if (guide) {
+    try { if (localStorage.getItem('liss-an-guide') === 'closed') guide.open = false; } catch (e) {}
+    guide.addEventListener('toggle', function () {
+      try { localStorage.setItem('liss-an-guide', guide.open ? 'open' : 'closed'); } catch (e) {}
+    });
+  }
+  // Share links: copy button and the custom-address field.
+  document.querySelectorAll('[data-an-copy]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var input = button.parentNode.querySelector('[data-an-copy-source]');
+      if (!input) return;
+      var done = function () { var old = button.textContent; button.textContent = '已复制'; setTimeout(function () { button.textContent = old; }, 1500); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(input.value).then(done, function () { input.select(); });
+      else { input.select(); try { document.execCommand('copy'); done(); } catch (e) {} }
+    });
+  });
+  var target = document.querySelector('[data-an-target]'), custom = document.querySelector('[data-an-custom]');
+  if (target && custom) {
+    var sync = function () { custom.hidden = target.value !== 'custom'; custom.querySelector('input').required = target.value === 'custom'; };
+    target.addEventListener('change', sync); sync();
+  }
+})();

@@ -16,6 +16,11 @@
   <section class="an-card"><div class="an-card-head"><h2>滚动深度分布</h2><span class="an-muted">读到页面哪里</span></div>{{ an.bar_list(scroll, unit='次') }}</section>
   <section class="an-card"><div class="an-card-head"><h2>来源</h2></div>{{ an.bar_list(referrers) }}</section>
 </div>
+{% macro step_cell(row) %}{% if row.marker %}<span class="an-muted">{{ row.title }}</span>{% else %}{{ an.site_tag(row.site) }}{{ an.page_link(f, row.site, row.path, row.title) }}{% endif %}{% endmacro %}
+<div class="an-grid-2">
+  <section class="an-card"><div class="an-card-head"><h2>上一步从哪来 {{ an.tip('访客打开这个页面之前看的那一页；“入口”表示这是本次访问的第一页。') }}</h2></div>{{ an.bar_list(before, link=step_cell, empty='暂无数据') }}</section>
+  <section class="an-card"><div class="an-card-head"><h2>下一步去了哪 {{ an.tip('看完这个页面后接着打开的页面；“离开”表示看完就走了。') }}</h2></div>{{ an.bar_list(after, link=step_cell, empty='暂无数据') }}</section>
+</div>
 <section class="an-card"><div class="an-card-head"><h2>页面上的点击</h2></div>
   {% macro click_cell(row) %}<span class="an-click"><strong>{{ row.label or '（无文字）' }}</strong><small>{{ row.target }}{% if row.href %} → {{ row.href|truncate(70, true, '…') }}{% endif %} · {{ row.visitors }} 位访客</small></span>{% endmacro %}{{ an.bar_list(clicks, link=click_cell, empty='没有记录到点击。') }}</section>
 <section class="an-card"><div class="an-card-head"><h2>逐次浏览</h2><span class="an-muted">共 {{ visits.total }} 次</span></div>

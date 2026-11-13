@@ -1,0 +1,42 @@
+{% extends "admin/analytics/_base.html" %}
+{% import "admin/analytics/_macros.html" as an with context %}
+{% block analytics_content %}
+<header class="admin-heading"><div><h1>来源</h1><p>访客是从哪里来的，以及每个来源带来的人有没有真正看内容（有效访问率）。想准确知道某次分享带来了多少人，用下方的“分享链接”。</p></div></header>
+{{ an.filters(f, 'admin.analytics_sources', hidden=({'g': group} if group else {})) }}
+
+<div class="an-grid-2">
+  <section class="an-card"><div class="an-card-head"><h2>渠道</h2><span class="an-muted">共 {{ data.total }} 次访问</span></div>
+    {% if data.groups %}<ol class="an-bars">{% for g in data.groups %}<li><div class="an-bar-label"><a href="{{ url_for('admin.analytics_sources', **f.args(g=g.key)) }}"{% if group == g.key %} class="is-current"{% endif %}>{{ g.name }}</a>{{ an.tip(g.help) }}</div><span class="an-bar-value">{{ g.count }}<small>次 · {{ g.pct }}% · 有效 {{ g.rate }}%</small></span><span class="an-bar" style="--share: {{ g.share }}%" aria-hidden="true"></span></li>{% endfor %}</ol>
+    {% else %}<p class="an-empty">这个时间范围内还没有访问。</p>{% endif %}
+  </section>
+  <section class="an-card"><div class="an-card-head"><h2>怎么看这一页</h2></div>
+    <ul class="an-guide-list">
+      <li><strong>有效访问率</strong>：这个来源带来的访问里，有多少停留超过 10 秒、有操作或看了两个以上页面。比单纯的人数更能说明来源质量。</li>
+      <li><strong>直接访问</strong>不一定真是直接输入网址：很多 App 和浏览器会隐藏来源。微信、QQ 内置浏览器打开的会单独显示为“应用内打开”。</li>
+      <li><strong>分享链接</strong>最准确：在下方为每个分享渠道生成专用链接，发出去后，通过它进来的访问都会归到这个名称下。</li>
+    </ul>
+  </section>
+</div>
+
+<section class="an-section"><div class="an-card-head"><h2>{% if group %}{{ dict(groups)[group] }}{% else %}全部来源{% endif %}</h2>{% if group %}<a href="{{ url_for('admin.analytics_sources', **f.args()) }}">显示全部 {{ ui.icon('arrow') }}</a>{% endif %}</div>
+{% if sources %}<table class="an-table an-table-wide an-table-rows"><thead><tr><th>来源</th><th>渠道</th><th>访问</th><th>访客</th><th>有效访问</th><th>最近</th></tr></thead><tbody>
+{% for s in sources[:100] %}<tr><td>{{ s.name }}</td><td><a href="{{ url_for('admin.analytics_sources', **f.args(g=s.group)) }}" class="an-chip-link">{{ s.group_name }}</a></td><td>{{ s.visits }}</td><td>{{ s.visitors }}</td><td>{{ s.engaged }}<small class="an-muted"> · {{ s.rate }}%</small></td><td class="an-small">{{ s.last|ago }}</td></tr>{% endfor %}
+</tbody></table>{% else %}<p class="an-empty">没有记录。</p>{% endif %}
+</section>
+
+<section class="an-card an-share" aria-labelledby="share-heading"><div class="an-card-head"><h2 id="share-heading">分享链接</h2><span class="an-muted">为每个分享渠道生成一个专用链接</span></div>
+  <p class="an-help">例如发到微信群用“微信群”，写在简历里用“简历”，贴到 B 站用“B 站”。链接只是在网址后面加了 <code>?from=名称</code>，打开的还是同一个页面；通过它进来的访问会在上面的来源里显示为“分享链接 · 名称”。</p>
+  <form method="post" action="{{ url_for('admin.analytics_campaign') }}" class="an-inline-form an-share-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>渠道名称<input name="name" required maxlength="40" placeholder="例如：微信群、简历、B 站"></label>
+    <label>打开哪个页面<select name="target" data-an-target>{% for key, label, url in targets %}<option value="{{ key }}">{{ label }}</option>{% endfor %}<option value="custom">其他页面（填写地址）</option></select></label>
+    <label class="an-share-custom" data-an-custom hidden>页面地址<input name="custom" type="url" maxlength="500" placeholder="https://heroliss.github.io/liss-works/projects/..."></label>
+    <label>备注（可选）<input name="note" maxlength="100" placeholder="例如：11 月发到大学同学群"></label>
+    <button class="button button-small" type="submit">生成链接</button></form>
+  {% if campaigns %}<table class="an-table an-table-wide"><thead><tr><th>名称</th><th>链接</th><th>访问</th><th>有效</th><th>最近</th><th></th></tr></thead><tbody>
+  {% for c in campaigns %}<tr><td><strong>{{ c.name }}</strong>{% if c.note %}<small class="an-note">{{ c.note }}</small>{% endif %}</td>
+    <td class="an-small"><div class="an-copy"><input type="text" readonly value="{{ c.url }}" aria-label="{{ c.name }} 的分享链接" data-an-copy-source><button type="button" class="button button-small button-secondary" data-an-copy>复制</button></div></td>
+    <td>{{ c.stats.visits if c.stats else 0 }}</td><td>{{ (c.stats.rate ~ '%') if c.stats else '—' }}</td><td class="an-small">{{ c.stats.last|ago if c.stats else '还没有人通过它访问' }}</td>
+    <td><form method="post" action="{{ url_for('admin.analytics_campaign_delete') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="name" value="{{ c.name }}"><button class="button button-small button-secondary" type="submit" title="只从列表移除，已有访问记录保留">移除</button></form></td></tr>{% endfor %}
+  </tbody></table>{% else %}<p class="an-empty">还没有生成分享链接。</p>{% endif %}
+</section>
+{% endblock %}

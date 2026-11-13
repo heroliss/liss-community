@@ -1,11 +1,12 @@
 {% extends "admin/analytics/_base.html" %}
 {% import "admin/analytics/_macros.html" as an with context %}
 {% block analytics_content %}
-<header class="admin-heading"><div><h1>页面</h1><p>{{ f.label }}内被浏览的页面，按浏览量排序。点击页面查看来源、滚动深度和点击分布。</p></div></header>
+<header class="admin-heading"><div><h1>页面</h1><p>{{ f.label }}内被看过的页面。想知道哪些内容真正被读了，按“有效浏览率”或“平均停留”排序；点页面名看它的来源、前后路径、读到哪里和点了什么。</p></div></header>
 {% set extra %}<label class="an-search">搜索<input type="search" name="q" value="{{ q }}" maxlength="100" placeholder="路径或标题"></label>{% endset %}
 {{ an.filters(f, 'admin.analytics_pages', extra=extra) }}
-<p class="admin-list-summary"><span>共 <strong>{{ pages|length }}</strong> 个页面{% if pages|length >= 300 %}（显示前 300）{% endif %}</span><span>平均停留只统计有效停留</span></p>
-{% if pages %}<table class="an-table an-table-wide an-table-rows"><thead><tr><th>页面</th><th>浏览</th><th>访客</th><th>平均停留</th><th>平均滚动</th><th>点击</th><th>最近</th></tr></thead><tbody>
-{% for p in pages %}<tr><td>{{ an.site_tag(p.site) }}{{ an.page_link(f, p.site, p.path, p.title) }}</td><td>{{ p.pv }}</td><td>{{ p.uv }}</td><td>{{ p.active|dur }}</td><td><span class="an-meter" style="--share: {{ p.scroll|round|int }}%"></span>{{ p.scroll|round|int }}%</td><td>{{ p.clicks or 0 }}</td><td class="an-small">{{ p.last|ago }}</td></tr>{% endfor %}
+<div class="an-toolbar"><div class="an-segment" role="group" aria-label="排序">{% for key, label in [('pv','浏览量'),('engaged','有效浏览'),('rate','有效浏览率'),('active','平均停留'),('scroll','平均滚动')] %}<a href="{{ url_for('admin.analytics_pages', **f.args(q=q, sort=key)) }}"{% if sort == key %} class="is-active"{% endif %}>{{ label }}</a>{% endfor %}</div></div>
+<p class="admin-list-summary"><span>共 <strong>{{ pages|length }}</strong> 个页面{% if pages|length >= 300 %}（显示前 300）{% endif %}</span><span>有效浏览 = 停留 10 秒以上、有操作或有点击的浏览 {{ an.tip('打开就走的浏览不算有效浏览。有效浏览率越高，说明这个页面越能留住人。') }}</span></p>
+{% if pages %}<table class="an-table an-table-wide an-table-rows"><thead><tr><th>页面</th><th>浏览</th><th>访客</th><th>有效浏览</th><th>平均停留</th><th>平均滚动</th><th>点击</th><th>最近</th></tr></thead><tbody>
+{% for p in pages %}<tr><td>{{ an.site_tag(p.site) }}{{ an.page_link(f, p.site, p.path, p.title) }}</td><td>{{ p.pv }}</td><td>{{ p.uv }}</td><td>{{ p.engaged or 0 }}<small class="an-muted"> · {{ p.rate }}%</small></td><td>{{ p.active|dur }}</td><td><span class="an-meter" style="--share: {{ p.scroll|round|int }}%"></span>{{ p.scroll|round|int }}%</td><td>{{ p.clicks or 0 }}</td><td class="an-small">{{ p.last|ago }}</td></tr>{% endfor %}
 </tbody></table>{% else %}<p class="an-empty an-empty-tall">没有符合条件的页面。</p>{% endif %}
 {% endblock %}

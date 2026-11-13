@@ -1,0 +1,54 @@
+{% extends "admin/analytics/_base.html" %}
+{% import "admin/analytics/_macros.html" as an with context %}
+{% block analytics_content %}
+<header class="admin-heading"><div><h1>帮助</h1><p>访问统计里每一页能看什么、每个词是什么意思，以及常见问题。</p></div></header>
+
+<section class="an-card"><div class="an-card-head"><h2>想知道……就看这里</h2></div>
+  <dl class="an-help-map">
+    <div><dt>最近来了多少人、整体趋势</dt><dd><a href="{{ url_for('admin.analytics') }}">概览</a>：最上面的数字和趋势图；每个数字旁的 ? 有解释。</dd></div>
+    <div><dt>现在有没有人在看</dt><dd><a href="{{ url_for('admin.analytics_live') }}">实时</a>：最近 5 分钟仍在浏览的人，每 20 秒自动刷新。</dd></div>
+    <div><dt>某个人具体看了什么</dt><dd><a href="{{ url_for('admin.analytics_visitors') }}">访客</a>：点开任意访客，能看到他的每次访问、每一页、停留和点击，以及判断他是真人还是机器人的依据。</dd></div>
+    <div><dt>人从哪里来、哪次分享有效</dt><dd><a href="{{ url_for('admin.analytics_sources') }}">来源</a>：搜索、社交、AI 助手等渠道；可以生成分享链接准确追踪。</dd></div>
+    <div><dt>哪些内容真正被看了</dt><dd><a href="{{ url_for('admin.analytics_pages') }}">页面</a>：按有效浏览率或平均停留排序；点开某页看读到哪里、点了什么、前后去了哪。</dd></div>
+    <div><dt>大家通常怎么逛</dt><dd><a href="{{ url_for('admin.analytics_journeys') }}">访问路径</a>：最常见的页面顺序和站点之间的跳转。</dd></div>
+    <div><dt>点了哪些按钮和链接、有没有报错</dt><dd><a href="{{ url_for('admin.analytics_events') }}">点击与事件</a>。</dd></div>
+    <div><dt>搜索引擎和爬虫来了多少</dt><dd><a href="{{ url_for('admin.analytics_server') }}">服务器日志</a>：不运行 JavaScript 的爬虫、扫描和本站监控只在这里出现。</dd></div>
+    <div><dt>清理数据、排除自己、每周邮件</dt><dd><a href="{{ url_for('admin.analytics_data') }}">数据管理</a>。</dd></div>
+  </dl>
+</section>
+
+<div class="an-grid-2">
+  <section class="an-card"><div class="an-card-head"><h2>名词解释</h2></div>
+    <dl class="an-glossary">
+      <div><dt>访客</dt><dd>一个浏览器算一位访客。同一个人换手机、换浏览器或清除浏览器数据，会算成新访客；社区和作品站分别记录，Chrome 系浏览器会自动关联成同一设备。</dd></div>
+      <div><dt>访问次数</dt><dd>一次连续的浏览。离开 30 分钟以上再回来算新的一次。</dd></div>
+      <div><dt>浏览量</dt><dd>打开页面的次数，刷新也算。</dd></div>
+      <div><dt>有效访问 / 有效浏览</dt><dd>停留超过 {{ engaged_seconds }} 秒、有过鼠标/触摸/键盘操作或点击，或看了两个以上页面（有效访问）。打开就走的不算。</dd></div>
+      <div><dt>停留时长</dt><dd>页面在前台、并且最近有操作的时间；切到别的标签页或长时间不动不计入。</dd></div>
+      <div><dt>滚动深度</dt><dd>页面往下看到了多少，100% 是看到底。</dd></div>
+      <div><dt>跳出</dt><dd>只看了一个页面就离开的访问。</dd></div>
+      <div><dt>入口页 / 离开页</dt><dd>一次访问的第一页和最后一页。</dd></div>
+      <div><dt>新访客 / 回访</dt><dd>第一次来访在所选时间范围内的是新访客，之前来过的是回访。</dd></div>
+    </dl>
+  </section>
+  <section class="an-card"><div class="an-card-head"><h2>访客类型</h2></div>
+    <dl class="an-glossary">
+      <div><dt>{{ an.kind_badge(0) }}</dt><dd>真实访客，统计默认只显示这一类。</dd></div>
+      <div><dt>{{ an.kind_badge(4) }}</dt><dd>你自己：和你登录后台时同一个网络（前后 12 小时内），或被标记为本人的浏览器。</dd></div>
+      <div><dt>{{ an.kind_badge(3) }}</dt><dd>测试访问，例如 Claude 内置浏览器或从你的网络发出的自动化检查。</dd></div>
+      <div><dt>{{ an.kind_badge(1) }}</dt><dd>自报身份的爬虫和工具（Googlebot、bingbot 等）。</dd></div>
+      <div><dt>{{ an.kind_badge(2) }}</dt><dd>伪装成普通浏览器、但有明显破绽的程序。访客详情页列出判断依据，判错了可以手动改。</dd></div>
+    </dl>
+  </section>
+</div>
+
+<section class="an-card"><div class="an-card-head"><h2>常见问题</h2></div>
+  <dl class="an-faq">
+    <div><dt>我自己刚看了网站，统计里为什么没变化？</dt><dd>你的访问被归为“本人”，默认视图不显示。筛选栏“类型”切到“本人”就能看到。后台页面本身不记录访问。</dd></div>
+    <div><dt>刷新统计页会有延迟吗？</dt><dd>打开页面约 1 秒内就会记录，停留时长每 15 秒更新一次。统计页刷新即可看到；“实时”页每 20 秒自动刷新。服务器日志依赖 PythonAnywhere 同步，可能晚几个小时。</dd></div>
+    <div><dt>为什么很多访问显示“直接访问”？</dt><dd>很多 App、浏览器和网站会隐藏来源。分享时用“来源”页生成的分享链接，就能准确知道是哪次分享带来的。</dd></div>
+    <div><dt>访客数比实际少或多？</dt><dd>禁用 JavaScript 或屏蔽统计脚本的访问不会被记录；同一个人用多台设备会算多位访客。数字适合看趋势，不必精确到个位。</dd></div>
+    <div><dt>机器人会不会混进来？</dt><dd>会运行脚本的爬虫可能被记录，但会按特征自动归为“机器人”或“疑似机器人”，默认不显示。偶尔判错可在访客详情页手动修正。</dd></div>
+  </dl>
+</section>
+{% endblock %}

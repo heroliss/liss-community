@@ -259,3 +259,50 @@ h1 .an-kind { font-size: .75rem; margin-left: 6px; }
 @media (min-width: 861px) and (max-width: 1180px) { .an-kpis-compact { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .an-hit-cloud { color: #c09224; background: color-mix(in srgb, #c09224 16%, transparent); }
 .an-stale { color: #c09224; }
+
+/* Help tips */
+.an-tip { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; margin-left: 3px; border-radius: 50%; border: 1px solid var(--line); color: var(--subtle); font-size: .625rem; font-weight: 700; line-height: 1; cursor: help; vertical-align: 1px; }
+.an-tip:hover, .an-tip:focus { color: var(--accent); border-color: var(--accent); outline: none; }
+.an-tip::after { content: attr(data-tip); position: absolute; left: 50%; top: calc(100% + 8px); transform: translateX(-50%); z-index: 30; width: max-content; max-width: 260px; padding: 8px 10px; border-radius: 8px; background: var(--raised, #1d2a2d); color: var(--text); border: 1px solid var(--line); box-shadow: 0 8px 24px #0006; font-size: .75rem; font-weight: 400; line-height: 1.6; text-align: left; white-space: normal; opacity: 0; pointer-events: none; transition: opacity .15s; }
+.an-tip:hover::after, .an-tip:focus::after { opacity: 1; }
+/* Guide */
+.an-guide { margin: 0 0 18px; padding: 12px 16px; border-radius: 10px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+.an-guide summary { cursor: pointer; font-weight: 600; color: var(--accent); font-size: .875rem; }
+.an-guide ol { margin: 10px 0 6px; padding-left: 20px; display: grid; gap: 6px; font-size: .8125rem; line-height: 1.7; }
+.an-guide p { margin: 0; font-size: .75rem; }
+.an-guide-list { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: .8125rem; line-height: 1.7; color: var(--muted); }
+.an-guide-list strong { color: var(--text); }
+.an-kpi-key { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+.an-chip-link { font-size: .75rem; color: var(--muted); }
+.an-bar-label a.is-current { color: var(--accent); font-weight: 600; }
+/* Paths */
+.an-paths { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.an-paths li { display: flex; align-items: flex-start; gap: 14px; padding: 10px 14px; border-radius: 8px; background: var(--surface); }
+.an-path-count { flex: 0 0 52px; font-size: 1.125rem; font-weight: 700; color: var(--text); }
+.an-path-count small { font-size: .6875rem; font-weight: 400; color: var(--subtle); margin-left: 2px; }
+.an-path-steps { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; }
+.an-path-step { display: inline-flex; align-items: center; gap: 4px; max-width: 260px; font-size: .8125rem; }
+.an-path-step .an-page strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.an-path-step .an-page small { display: none; }
+.an-path-arrow { color: var(--subtle); }
+.an-moves { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: .8125rem; }
+.an-moves li { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; }
+.an-moves li:nth-child(odd) { background: var(--surface); }
+.an-moves li strong { margin-left: auto; }
+.an-moves li > span:not(.an-path-arrow) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Share links */
+.an-share { margin-bottom: 24px; }
+.an-share-form { margin-bottom: 16px; }
+.an-copy { display: flex; gap: 6px; min-width: 260px; }
+.an-copy input { flex: 1; min-width: 0; min-height: 32px; background: var(--input); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font-size: .75rem; }
+/* Help page */
+.an-help-map, .an-glossary, .an-faq { margin: 0; display: grid; gap: 10px; }
+.an-help-map div, .an-glossary div, .an-faq div { display: grid; grid-template-columns: minmax(150px, 34%) 1fr; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.an-faq div { grid-template-columns: 1fr; gap: 4px; }
+.an-help-map dt, .an-glossary dt, .an-faq dt { font-weight: 600; color: var(--text); font-size: .8125rem; }
+.an-help-map dd, .an-glossary dd, .an-faq dd { margin: 0; color: var(--muted); font-size: .8125rem; line-height: 1.7; }
+@media (max-width: 560px) { .an-help-map div, .an-glossary div { grid-template-columns: 1fr; gap: 2px; } .an-paths li { flex-direction: column; gap: 6px; } }
+.an-inline-form select { min-height: 38px; background: var(--input); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; font: inherit; font-size: .8125rem; }
+.an-inline-form label > span { display: inline-flex; align-items: center; }
+.an-glossary div { grid-template-columns: 7.5em 1fr; }
+@media (max-width: 560px) { .an-glossary div { grid-template-columns: 1fr; } }

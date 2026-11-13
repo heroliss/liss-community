@@ -17,7 +17,7 @@
 {%- endmacro %}
 
 {% macro kind_select(f) -%}
-<label title="默认只看真实访客；本人、测试、机器人可在这里单独查看">类型<select name="who" data-an-autosubmit="1">{% for value, label in kind_filters %}<option value="{{ value }}"{% if f.kind == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+<label title="默认只看真实访客；本人、测试、机器人可在这里单独查看"><span>类型 {{ tip('“仅访客”已自动排除你自己（本人）、测试访问和机器人。想看被排除的访问，在这里切换。') }}</span><select name="who" data-an-autosubmit="1">{% for value, label in kind_filters %}<option value="{{ value }}"{% if f.kind == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
 {%- endmacro %}
 
 {% macro kind_split_row(split, f, endpoint='admin.analytics_visitors', extra={}) -%}
@@ -27,6 +27,8 @@
 {% macro kind_badge(code, reason='', locked=false) -%}
 <span class="an-kind an-kind-{{ kind_keys.get(code, 'visitor') }}"{% if reason %} title="{{ reason }}{% if locked %}（手动设置）{% endif %}"{% endif %}>{{ kinds.get(code, '访客') }}{% if locked %} ·手动{% endif %}</span>
 {%- endmacro %}
+
+{% macro tip(text) -%}<span class="an-tip" tabindex="0" role="note" aria-label="{{ text }}" data-tip="{{ text }}">?</span>{%- endmacro %}
 
 {% macro delta(value, invert=false) -%}
 {% if value is not none %}<span class="an-delta {{ 'is-up' if (value > 0) != invert else 'is-down' if value != 0 else '' }}" title="与上一个同长度时段相比">{{ '+' if value > 0 }}{{ value }}%</span>{% endif %}

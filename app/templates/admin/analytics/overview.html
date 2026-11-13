@@ -3,16 +3,21 @@
 {% block analytics_content %}
 <header class="admin-heading"><div><h1>访问统计</h1><p>{{ f.label }}，{{ '全部站点' if f.site == 'all' else sites[f.site] }}，{{ '仅真实访客（已排除本人、测试与机器人）' if not f.kind else f.kind_label }}。时间按 UTC{{ '%+d'|format(config.ANALYTICS_UTC_OFFSET_MINUTES // 60) }} 显示。</p></div>
   <a class="an-live-pill" href="{{ url_for('admin.analytics_live') }}"><span class="an-pulse" aria-hidden="true"></span>{{ live_count }} 人在线</a></header>
+<details class="an-guide" data-an-guide open><summary>第一次看？三句话读懂这一页</summary>
+  <ol><li><strong>默认只看真实访客</strong>：你自己（登录后台时用的网络）、测试访问和机器人都已自动排除，想看它们用筛选栏的“类型”切换。</li>
+  <li><strong>先看最上面的数字</strong>：访客是多少人，浏览量是看了多少页，<strong>有效访问</strong>是真正停留或操作过的访问——它比浏览量更能说明内容有没有被看。</li>
+  <li><strong>想知道人从哪来</strong>看“来源”；<strong>看了什么、看多久</strong>看“页面”；<strong>怎么逛的</strong>看“访问路径”；每个词的意思在“帮助”里。</li></ol>
+  <p class="an-muted">点标题可以收起，之后不再自动展开。</p></details>
 {{ an.filters(f, 'admin.analytics') }}
 {{ an.kind_split_row(kind_split, f) }}
 
 <div class="an-kpis" aria-label="核心指标">
-  <div class="an-kpi"><span>访客</span><strong>{{ kpi.uv }}</strong>{{ an.delta(changes.uv) }}<small>新 {{ kpi.new }} · 回访 {{ kpi.returning }}</small></div>
-  <div class="an-kpi"><span>浏览量</span><strong>{{ kpi.pv }}</strong>{{ an.delta(changes.pv) }}<small>每次访问 {{ kpi.per_session }} 页</small></div>
-  <div class="an-kpi"><span>访问次数</span><strong>{{ kpi.sessions }}</strong>{{ an.delta(changes.sessions) }}<small>跳出率 {{ kpi.bounce }}%</small></div>
-  <div class="an-kpi"><span>独立 IP</span><strong>{{ kpi.ips }}</strong>{{ an.delta(changes.ips) }}<small>{{ kpi.clicks }} 次点击</small></div>
-  <div class="an-kpi"><span>平均访问时长</span><strong class="an-kpi-text">{{ kpi.avg_session|dur }}</strong><small>总停留 {{ kpi.active|dur }}</small></div>
-  <div class="an-kpi"><span>平均滚动深度</span><strong>{{ kpi.scroll|round|int }}<em>%</em></strong><small>按单页最大值</small></div>
+  <div class="an-kpi"><span>访客 {{ an.tip('来访的人数。同一浏览器多次来访算 1 位；换浏览器、换设备或清除浏览器数据会算作新访客。') }}</span><strong>{{ kpi.uv }}</strong>{{ an.delta(changes.uv) }}<small>新 {{ kpi.new }} · 回访 {{ kpi.returning }}</small></div>
+  <div class="an-kpi"><span>浏览量 {{ an.tip('一共打开了多少个页面，刷新也算一次。') }}</span><strong>{{ kpi.pv }}</strong>{{ an.delta(changes.pv) }}<small>每次访问 {{ kpi.per_session }} 页</small></div>
+  <div class="an-kpi"><span>访问次数 {{ an.tip('一次连续的浏览算一次访问；离开超过 30 分钟再回来算新的一次。跳出率 = 只看了一个页面就走的访问占比。') }}</span><strong>{{ kpi.sessions }}</strong>{{ an.delta(changes.sessions) }}<small>跳出率 {{ kpi.bounce }}% · 独立 IP {{ kpi.ips }}</small></div>
+  <div class="an-kpi an-kpi-key"><span>有效访问 {{ an.tip('停留超过 10 秒、有过鼠标/触摸/键盘操作、点击过，或看了两个以上页面的访问。打开就走、误点进来的不算。') }}</span><strong>{{ kpi.engaged }}</strong>{{ an.delta(changes.engaged) }}<small>占全部访问 {{ kpi.engaged_rate }}% · {{ kpi.clicks }} 次点击</small></div>
+  <div class="an-kpi"><span>平均访问时长 {{ an.tip('每次访问中页面可见且有操作的时间；切到别的标签页或长时间不动不计入。') }}</span><strong class="an-kpi-text">{{ kpi.avg_session|dur }}</strong><small>总停留 {{ kpi.active|dur }}</small></div>
+  <div class="an-kpi"><span>平均滚动深度 {{ an.tip('页面往下看到了百分之多少，100% 表示看到了底部。') }}</span><strong>{{ kpi.scroll|round|int }}<em>%</em></strong><small>按单页最大值</small></div>
 </div>
 
 <section class="an-card an-trend" aria-labelledby="trend-heading">
@@ -33,7 +38,8 @@
     {% for p in pages %}<tr><td>{{ an.site_tag(p.site) }}{{ an.page_link(f, p.site, p.path, p.title) }}</td><td>{{ p.pv }}</td><td>{{ p.uv }}</td><td>{{ p.active|dur }}</td><td>{{ p.scroll|round|int }}%</td></tr>{% endfor %}
     </tbody></table>{% else %}<p class="an-empty">暂无数据</p>{% endif %}
   </section>
-  <section class="an-card" aria-labelledby="ref-heading"><div class="an-card-head"><h2 id="ref-heading">访问来源</h2></div>{{ an.bar_list(referrers) }}
+  <section class="an-card" aria-labelledby="ref-heading"><div class="an-card-head"><h2 id="ref-heading">来源渠道 {{ an.tip('访客从哪里来。微信、QQ 里打开的链接常常不带来源，会显示为“应用内打开”或“直接访问”；想准确区分渠道，在“来源”页生成分享链接。') }}</h2><a href="{{ url_for('admin.analytics_sources', **f.args()) }}">详细来源 {{ ui.icon('arrow') }}</a></div>
+    {% if channels.groups %}<ol class="an-bars">{% for g in channels.groups %}<li><div class="an-bar-label"><a href="{{ url_for('admin.analytics_sources', **f.args(g=g.key)) }}" title="{{ g.help }}">{{ g.name }}</a></div><span class="an-bar-value">{{ g.count }}<small>次 · 有效 {{ g.rate }}%</small></span><span class="an-bar" style="--share: {{ g.share }}%" aria-hidden="true"></span></li>{% endfor %}</ol>{% else %}<p class="an-empty">暂无数据</p>{% endif %}
     {% if areas is not none %}<div class="an-card-head an-sub"><h2>地区</h2><span class="an-muted">按访问次数，国内按省份</span></div>{{ an.bar_list(areas) }}{% endif %}
     <div class="an-card-head an-sub"><h2>站点分布</h2></div>{{ an.bar_list(sites_split, unit='次浏览') }}</section>
 </div>

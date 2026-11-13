@@ -1,0 +1,25 @@
+{% extends "admin/analytics/_base.html" %}
+{% import "admin/analytics/_macros.html" as an with context %}
+{% block analytics_content %}
+<header class="admin-heading"><div><h1>访问路径</h1><p>访客一次访问中依次看了哪些页面。能看出哪些入口把人带进了更深的内容、人们在作品站和社区之间怎么走，以及大多数人在哪一步离开。</p></div></header>
+{{ an.filters(f, 'admin.analytics_journeys') }}
+<div class="an-kpis an-kpis-compact">
+  <div class="an-kpi"><span>访问次数</span><strong>{{ j.total }}</strong></div>
+  <div class="an-kpi"><span>只看一页 {{ an.tip('打开一个页面就离开的访问（跳出）。') }}</span><strong>{{ j.single }}</strong><small>{{ ((j.single / j.total * 100)|round|int) if j.total else 0 }}%</small></div>
+  <div class="an-kpi"><span>看了多页</span><strong>{{ j.multi }}</strong><small>{{ ((j.multi / j.total * 100)|round|int) if j.total else 0 }}%</small></div>
+  <div class="an-kpi"><span>跨站访问 {{ an.tip('在作品站、玻璃海和社区之间跳转过的次数。') }}</span><strong>{{ j.flows|sum(attribute='count') }}</strong></div>
+</div>
+
+<section class="an-section"><div class="an-card-head"><h2>最常见的路径</h2><span class="an-muted">只统计看了两页以上的访问，最多显示前 5 步</span></div>
+{% if j.top %}<ol class="an-paths">{% for p in j.top %}<li><span class="an-path-count">{{ p.count }}<small>次</small></span><div class="an-path-steps">{% for s in p.steps %}{% if not loop.first %}<span class="an-path-arrow" aria-hidden="true">→</span>{% endif %}<span class="an-path-step">{{ an.site_tag(s.site) }}{{ an.page_link(f, s.site, s.path, s.title) }}</span>{% endfor %}</div></li>{% endfor %}</ol>
+{% else %}<p class="an-empty an-empty-tall">还没有看过两页以上的访问。访客多起来后，这里会显示他们通常怎么逛。</p>{% endif %}
+</section>
+
+<div class="an-grid-2">
+  <section class="an-card"><div class="an-card-head"><h2>最常见的下一步</h2><span class="an-muted">从一个页面到另一个页面</span></div>
+    {% if j.moves %}<ol class="an-moves">{% for m in j.moves %}<li><span>{{ an.site_tag(m.a.site) }}{{ m.a.title|truncate(26, true, '…') }}</span><span class="an-path-arrow" aria-hidden="true">→</span><span>{{ an.site_tag(m.b.site) }}{{ m.b.title|truncate(26, true, '…') }}</span><strong>{{ m.count }}</strong></li>{% endfor %}</ol>{% else %}<p class="an-empty">暂无数据</p>{% endif %}</section>
+  <section class="an-card"><div class="an-card-head"><h2>站点之间</h2><span class="an-muted">作品站、玻璃海与社区互相带来的访问</span></div>
+    {% if j.flows %}<ol class="an-moves">{% for fl in j.flows %}<li><span>{{ an.site_tag(fl.a) }}</span><span class="an-path-arrow" aria-hidden="true">→</span><span>{{ an.site_tag(fl.b) }}</span><strong>{{ fl.count }}</strong></li>{% endfor %}</ol>{% else %}<p class="an-empty">这段时间没有跨站访问。</p>{% endif %}
+    <p class="an-help">想看某一页“之前从哪来、之后去了哪”，在“页面”里点开那一页。</p></section>
+</div>
+{% endblock %}

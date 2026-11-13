@@ -18,7 +18,7 @@ from . import db
 from .admin import AdminAudit, admin
 from collections import Counter
 
-from . import access_log
+from . import access_log, analytics_insights as insights
 from .analytics_store import (EVENT_TYPES, ID, KINDS, SITES, display_zone, env_facts, fmt_bytes, fmt_duration,
                               fmt_time, network_type, now_ms, signals, tz_matches_region, valid_ip)
 from .models import Permission, Role, User
@@ -169,11 +169,15 @@ def kpis(f: Filters, start=None, end=None):
                         f'COALESCE(AVG(scroll),0) scroll, COALESCE(SUM(clicks),0) clicks FROM pageviews p WHERE {where}', params)[0]
     bounce = store().scalar(f'SELECT COUNT(*) FROM (SELECT session_id, COUNT(*) c FROM pageviews p WHERE {where} '
                             f'GROUP BY session_id) WHERE c = 1', params) or 0
+    engaged = store().scalar(f'SELECT COUNT(*) FROM (SELECT session_id, COUNT(*) c, MAX(active_ms) a, MAX(inputs) i, '
+                             f'SUM(clicks) k FROM pageviews p WHERE {where} GROUP BY session_id) '
+                             f'WHERE c >= 2 OR a >= {insights.ENGAGED_MS} OR i > 0 OR k > 0', params) or 0
     first = f.start if start is None else start
     new = store().scalar(f'SELECT COUNT(DISTINCT p.visitor_id) FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
                          f'WHERE {where} AND v.first_seen >= ?', params + (first,)) or 0
     sessions = row['sessions'] or 0
-    row.update(bounce=round(bounce / sessions * 100) if sessions else 0,
+    row.update(bounce=round(bounce / sessions * 100) if sessions else 0, engaged=engaged,
+               engaged_rate=round(engaged / sessions * 100) if sessions else 0,
                per_session=round(row['pv'] / sessions, 1) if sessions else 0,
                avg_session=row['active'] / sessions if sessions else 0,
                new=new, returning=max(0, (row['uv'] or 0) - new))
@@ -214,14 +218,23 @@ def trend(f: Filters):
                 label_every=label_every, line=' '.join(f"{p['cx']},{p['uy']}" for p in points))
 
 
-def top_pages(f: Filters, limit=15, q=''):
+PAGE_SORTS = {'pv': 'pv DESC, uv DESC', 'engaged': 'engaged DESC, pv DESC', 'active': 'active DESC',
+              'scroll': 'scroll DESC', 'rate': 'engaged * 1.0 / pv DESC, pv DESC'}
+
+
+def top_pages(f: Filters, limit=15, q='', sort='pv'):
     where, params = f.where()
     if q:
         where += ' AND (p.path LIKE ? ESCAPE char(92) OR p.title LIKE ? ESCAPE char(92))'
         params += (search_like(q), search_like(q))
-    return store().query(f'SELECT site, path, MAX(title) title, COUNT(*) pv, COUNT(DISTINCT visitor_id) uv, '
-                         f'AVG(NULLIF(active_ms,0)) active, AVG(scroll) scroll, SUM(clicks) clicks, MAX(last_seen) last '
-                         f'FROM pageviews p WHERE {where} GROUP BY site, path ORDER BY pv DESC, uv DESC LIMIT {int(limit)}', params)
+    rows = store().query(f'SELECT site, path, MAX(title) title, COUNT(*) pv, COUNT(DISTINCT visitor_id) uv, '
+                         f'AVG(NULLIF(active_ms,0)) active, AVG(scroll) scroll, SUM(clicks) clicks, MAX(last_seen) last, '
+                         f'SUM(CASE WHEN {insights.ENGAGED_VIEW_SQL} THEN 1 ELSE 0 END) engaged '
+                         f'FROM pageviews p WHERE {where} GROUP BY site, path ORDER BY {PAGE_SORTS.get(sort, PAGE_SORTS["pv"])} '
+                         f'LIMIT {int(limit)}', params)
+    for row in rows:
+        row['rate'] = round((row['engaged'] or 0) / row['pv'] * 100) if row['pv'] else 0
+    return rows
 
 
 def entry_exit(f: Filters):
@@ -422,13 +435,13 @@ def analytics():
     f = Filters(request.args)
     span = f.end - f.start
     current, previous = kpis(f), kpis(f, f.start - span, f.start)
-    changes = {key: pct_change(current[key] or 0, previous[key] or 0) for key in ('pv', 'uv', 'sessions', 'ips', 'active')}
+    changes = {key: pct_change(current[key] or 0, previous[key] or 0) for key in ('pv', 'uv', 'sessions', 'ips', 'active', 'engaged')}
     entries, exits = entry_exit(f)
     live = store().scalar('SELECT COUNT(DISTINCT visitor_id) FROM pageviews WHERE last_seen >= ? AND bot = 0',
                           (now_ms() - LIVE_WINDOW_MS,)) or 0
     return render('admin/analytics/overview.html', analytics_page='overview', f=f, kpi=current, changes=changes,
                   trend=trend(f), pages=top_pages(f), entries=entries, exits=exits,
-                  referrers=breakdown(f, 'referrer_host', empty='直接访问 / 站内'),
+                  referrers=breakdown(f, 'referrer_host', empty='直接访问 / 站内'), channels=insights.channels(store(), f),
                   browsers=breakdown(f, 'browser'), systems=breakdown(f, 'os'), devices=breakdown(f, 'device'),
                   screens=breakdown(f, 'screen', 8), languages=breakdown(f, 'lang', 8), zones=breakdown(f, 'tz', 8),
                   sites_split=site_split(f), heat=heatmap(f), clicks=top_clicks(f, 12), perf=performance(f),
@@ -559,7 +572,74 @@ def analytics_ip(address):
 def analytics_pages():
     f = Filters(request.args)
     q = request.args.get('q', '').strip()[:100]
-    return render('admin/analytics/pages.html', analytics_page='pages', f=f, q=q, pages=top_pages(f, 300, q))
+    sort = request.args.get('sort', 'pv') if request.args.get('sort') in PAGE_SORTS else 'pv'
+    return render('admin/analytics/pages.html', analytics_page='pages', f=f, q=q, sort=sort, pages=top_pages(f, 300, q, sort))
+
+
+SHARE_TARGETS = [('works', '作品站首页', 'https://heroliss.github.io/liss-works/'),
+                 ('atoll', '玻璃海（直接进入场景）', 'https://heroliss.github.io/liss-works/play/glass-atoll/'),
+                 ('projects', '作品站 · 工程库', 'https://heroliss.github.io/liss-works/projects/'),
+                 ('forum', '社区首页', 'https://liss.pythonanywhere.com/')]
+SHARE_HOSTS = ('heroliss.github.io', 'liss.pythonanywhere.com', 'localhost', '127.0.0.1')
+
+
+@admin.get('/analytics/sources')
+def analytics_sources():
+    f = Filters(request.args)
+    data = insights.channels(store(), f)
+    campaigns = store().query('SELECT * FROM campaigns ORDER BY created_at DESC')
+    seen = {row['name']: row for row in data['sources'] if row['group'] == 'campaign'}
+    for row in campaigns:
+        row['url'] = insights.share_url(row['target'], row['name'])
+        row['stats'] = seen.get(row['name'])
+    group = request.args.get('g', '')
+    sources = [row for row in data['sources'] if not group or row['group'] == group]
+    return render('admin/analytics/sources.html', analytics_page='sources', f=f, data=data, sources=sources, group=group,
+                  groups=insights.GROUPS, campaigns=campaigns, targets=SHARE_TARGETS)
+
+
+@admin.post('/analytics/campaign')
+def analytics_campaign():
+    name = (request.form.get('name') or '').strip()
+    target_key = request.form.get('target', 'works')
+    target = request.form.get('custom', '').strip() if target_key == 'custom' else dict((k, u) for k, _, u in SHARE_TARGETS).get(target_key, '')
+    parts = None
+    try:
+        from urllib.parse import urlsplit
+        parts = urlsplit(target)
+    except ValueError:
+        pass
+    if not name or len(name) > 40 or any(c in name for c in '&=#?/\\') or any(ord(c) < 32 for c in name):
+        flash('渠道名称需要 1–40 个字，不能包含 & = # ? / 等符号。')
+    elif not parts or parts.scheme not in ('https', 'http') or (parts.hostname or '') not in SHARE_HOSTS:
+        flash('目标地址必须是作品站（heroliss.github.io）或社区（liss.pythonanywhere.com）上的页面。')
+    else:
+        with store().connect() as connection:
+            connection.execute('INSERT OR REPLACE INTO campaigns (name, target, note, created_at) VALUES (?, ?, ?, ?)',
+                               (name, target, (request.form.get('note') or '').strip()[:100], now_ms()))
+        audit('analytics.campaign', f'分享链接 {name}', [dict(label='目标', before='—', after=target)])
+        flash(f'已生成分享链接“{name}”，复制下面列表中的链接去分享即可。')
+    return redirect(url_for('admin.analytics_sources', **({'range': request.form['range']} if request.form.get('range') else {})))
+
+
+@admin.post('/analytics/campaign/delete')
+def analytics_campaign_delete():
+    name = request.form.get('name', '')
+    with store().connect() as connection:
+        connection.execute('DELETE FROM campaigns WHERE name = ?', (name,))
+    flash(f'已从列表移除“{name}”。已有的访问记录保留，仍会在来源统计中显示。')
+    return redirect(url_for('admin.analytics_sources'))
+
+
+@admin.get('/analytics/journeys')
+def analytics_journeys():
+    f = Filters(request.args)
+    return render('admin/analytics/journeys.html', analytics_page='journeys', f=f, j=insights.journeys(store(), f))
+
+
+@admin.get('/analytics/help')
+def analytics_help():
+    return render('admin/analytics/help.html', analytics_page='help', engaged_seconds=insights.ENGAGED_MS // 1000)
 
 
 @admin.get('/analytics/page')
@@ -582,8 +662,10 @@ def analytics_page():
                               f"FROM pageviews p WHERE {where} GROUP BY name ORDER BY count DESC LIMIT 12", params)
     visits = paged(f'SELECT p.*, v.browser, v.os, v.device, v.username FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
                    f'WHERE {where} ORDER BY p.started_at DESC', f'SELECT COUNT(*) FROM pageviews p WHERE {where}', params, page_number())
+    before, after = insights.neighbours(insights.journeys(store(), f), site, path)
     return render('admin/analytics/page.html', analytics_page='pages', f=f, site=site, path=path, summary=summary,
-                  scroll=scroll_rows, referrers=bars(referrers), clicks=top_clicks(f, 30, path, site), visits=visits)
+                  scroll=scroll_rows, referrers=bars(referrers), clicks=top_clicks(f, 30, path, site), visits=visits,
+                  before=before, after=after)
 
 
 @admin.get('/analytics/events')
