@@ -16,14 +16,21 @@
   var store = (function () { try { var k = '__liss_a_probe'; localStorage.setItem(k, '1'); localStorage.removeItem(k); return localStorage; } catch (e) { return null; } })();
   var get = function (key) { try { return store ? store.getItem(key) : null; } catch (e) { return null; } };
   var set = function (key, value) { try { if (store) store.setItem(key, value); } catch (e) {} };
+  // First-party cookies back up what lives in storage (Safari clears script storage after 7 days
+  // without a visit): the visitor id, and the opt-out / owner flags, which must survive just as long.
+  var readCookie = function (name, pattern) { try { var m = document.cookie.match(new RegExp('(?:^|;\\s*)' + name + '=(' + pattern + ')(?:;|$)')); return m ? m[1] : null; } catch (e) { return null; } };
+  var writeCookie = function (name, value) { try { document.cookie = name + '=' + value + '; max-age=' + (value ? 63072000 : 0) + '; path=/; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : ''); } catch (e) {} };
+  var setFlag = function (key, on) { if (on) set('liss-a:' + key, '1'); else { try { store && store.removeItem('liss-a:' + key); } catch (e) {} } writeCookie('liss_' + key, on ? '1' : ''); };
+  var hasFlag = function (key) { return get('liss-a:' + key) === '1' || readCookie('liss_' + key, '1') === '1'; };
   try {
     var flag = new URLSearchParams(location.search).get('liss_analytics');
-    if (flag === 'off') set('liss-a:optout', '1');
-    if (flag === 'on') { try { store && store.removeItem('liss-a:optout'); } catch (e) {} }
-    if (flag === 'me') set('liss-a:me', '1');
-    if (flag === 'notme') { try { store && store.removeItem('liss-a:me'); } catch (e) {} }
+    if (flag === 'off') { setFlag('optout', true); writeCookie('liss_vid', ''); }
+    if (flag === 'on') setFlag('optout', false);
+    if (flag === 'me') setFlag('me', true);
+    if (flag === 'notme') setFlag('me', false);
   } catch (e) {}
-  if (get('liss-a:optout') === '1') return;
+  if (hasFlag('optout')) return;
+  if (hasFlag('me')) setFlag('me', true);  // Restore whichever copy was cleared.
 
   var random = function () {
     var bytes = new Uint8Array(12);
@@ -31,16 +38,15 @@
     return Array.prototype.map.call(bytes, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
   };
   var now = function () { return Date.now(); };
-  // The visitor id lives in this site's storage, backed up in a first-party cookie (and, on the
-  // community, a server cookie handed over as data-vid): Safari clears script storage after 7 days
-  // without a visit, and either copy restores the other.
+  // The visitor id: this site's storage, the liss_vid cookie, or (community) the server cookie handed
+  // over as data-vid. Any surviving copy restores the others.
   var VID = /^[a-f0-9]{24}$/;
-  var cookieVid = function () { try { var m = document.cookie.match(/(?:^|;\s*)liss_vid=([a-f0-9]{24})(?:;|$)/); return m ? m[1] : null; } catch (e) { return null; } };
+  var cookieVid = function () { return readCookie('liss_vid', '[a-f0-9]{24}'); };
   var vid = get('liss-a:vid');
   if (!vid || !VID.test(vid)) vid = VID.test(data.vid || '') ? data.vid : cookieVid();
   if (!vid || !VID.test(vid)) vid = random();
   set('liss-a:vid', vid);
-  try { if (cookieVid() !== vid) document.cookie = 'liss_vid=' + vid + '; max-age=63072000; path=/; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : ''); } catch (e) {}
+  if (cookieVid() !== vid) writeCookie('liss_vid', vid);
   var SESSION_IDLE = 30 * 60 * 1000;
   var session = null;
   try { session = JSON.parse(get('liss-a:session') || 'null'); } catch (e) {}
@@ -124,7 +130,7 @@
           out.hl = /Headless/i.test(names);
         }
       } catch (e) {}
-      try { if (get('liss-a:me') === '1') out.me = true; } catch (e) {}
+      try { if (hasFlag('me')) out.me = true; } catch (e) {}
       try {
         var gl = document.createElement('canvas').getContext('webgl');
         if (gl) {

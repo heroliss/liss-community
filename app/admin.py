@@ -65,7 +65,9 @@ class AdminAudit(db.Model):
                 'backgrounds.update': '更新背景图库', 'backgrounds.upload': '添加背景图片',
                 'user.grant_admin': '授予管理员权限', 'user.merge_site_owner': '合并站点作者身份',
                 'analytics.delete': '清理访问统计', 'analytics.ignore': '排除统计 IP',
-                'analytics.unignore': '恢复统计 IP', 'analytics.note': '备注访客'}.get(self.action, self.action)
+                'analytics.unignore': '恢复统计 IP', 'analytics.note': '备注访客',
+                'analytics.kind': '修改访客类型', 'analytics.reclassify': '重新判断访客类型',
+                'analytics.campaign': '管理分享链接', 'analytics.person': '合并 / 拆分访客'}.get(self.action, self.action)
 
     @property
     def changes(self):

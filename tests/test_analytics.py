@@ -3,6 +3,8 @@ import html
 import json
 from pathlib import Path
 import re
+import shutil
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -676,5 +678,57 @@ class AnalyticsTests(unittest.TestCase):
         self.assertIn('统一访客', csv_text.splitlines()[0])
 
 
+
+@unittest.skipUnless(shutil.which('node'), 'Node.js is needed to run the tracker script')
+class TrackerScriptTests(unittest.TestCase):
+    """The browser tracker in a minimal fake DOM (tests/js/tracker_harness.cjs)."""
+    def run_tracker(self, **state):
+        harness = Path(__file__).with_name('js') / 'tracker_harness.cjs'
+        out = subprocess.run(['node', str(harness), json.dumps(state)], capture_output=True, text=True,
+                             encoding='utf-8', timeout=60)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        return json.loads(out.stdout)
+
+    def test_new_visitor_gets_id_in_storage_and_cookie(self):
+        result = self.run_tracker()
+        vid = result['storage']['liss-a:vid']
+        self.assertRegex(vid, r'^[a-f0-9]{24}$')
+        self.assertEqual(result['cookies']['liss_vid'], vid)
+        self.assertEqual(result['beacons'][0]['vid'], vid)
+
+    def test_id_restored_from_cookie_or_server_copy(self):
+        cookie = '0123456789abcdef01234567'
+        result = self.run_tracker(storage={}, cookies={'other': 'x', 'liss_vid': cookie})
+        self.assertEqual((result['storage']['liss-a:vid'], result['beacons'][0]['vid']), (cookie, cookie))
+        server = 'fedcba9876543210fedcba98'
+        result = self.run_tracker(storage={}, dataset={'site': 'forum', 'vid': server, 'uid': '7', 'usig': 'f' * 32})
+        self.assertEqual(result['beacons'][0]['vid'], server)
+        self.assertEqual(result['cookies']['liss_vid'], server)
+        self.assertEqual((result['beacons'][0]['ctx']['uid'], result['beacons'][0]['ctx']['usig']), ('7', 'f' * 32))
+        # Without storage at all (blocked), the cookie still keeps the id.
+        result = self.run_tracker(storage=None, cookies={'liss_vid': cookie})
+        self.assertEqual(result['beacons'][0]['vid'], cookie)
+
+    def test_opt_out_and_owner_flags_survive_storage_cleanup(self):
+        opted = self.run_tracker(search='?liss_analytics=off', cookies={'liss_vid': '0123456789abcdef01234567'})
+        self.assertEqual(opted['beacons'], [])
+        self.assertNotIn('liss_vid', opted['cookies'])
+        self.assertEqual(opted['cookies']['liss_optout'], '1')
+        later = self.run_tracker(storage={}, cookies=opted['cookies'])  # Storage cleared, cookie kept.
+        self.assertEqual(later['beacons'], [])
+        back = self.run_tracker(search='?liss_analytics=on', cookies=opted['cookies'])
+        self.assertTrue(back['beacons'])
+        self.assertNotIn('liss_optout', back['cookies'])
+        me = self.run_tracker(search='?liss_analytics=me')
+        self.assertEqual(me['cookies']['liss_me'], '1')
+        restored = self.run_tracker(storage={}, cookies={'liss_me': '1'})
+        self.assertEqual(restored['storage']['liss-a:me'], '1')
+        self.assertIs(restored['beacons'][0]['ctx']['env']['me'], True)
+        cleared = self.run_tracker(search='?liss_analytics=notme', cookies={'liss_me': '1'}, storage={'liss-a:me': '1'})
+        self.assertNotIn('liss_me', cleared['cookies'])
+        self.assertNotIn('me', cleared['beacons'][0]['ctx']['env'])
+
+
 if __name__ == '__main__':
     unittest.main()
+
