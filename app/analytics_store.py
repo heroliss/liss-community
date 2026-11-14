@@ -628,7 +628,11 @@ class AnalyticsStore:
                 clicks += etype in {'click', 'outbound'}
             if clicks:
                 db.execute('UPDATE pageviews SET clicks=clicks+? WHERE id=?', (clicks, page['id']))
-            self._reclassify(db, [vid])
+            # The record's type follows its visitor's shared evidence; the other records only need a
+            # recompute when the group changed or this record's type did (e.g. it was just marked 本人).
+            self._reclassify(db, [vid], expand=relink)
+            if not relink and db.execute('SELECT bot FROM visitors WHERE id=?', (vid,)).fetchone()[0] != kind:
+                self._reclassify(db, [vid])
         return {'stored': True, 'events': stored_events}
 
     # ----------------------------------------------------------- visitor types
@@ -638,7 +642,7 @@ class AnalyticsStore:
         except Exception:
             return ''
 
-    def _reclassify(self, db, visitor_ids=None):
+    def _reclassify(self, db, visitor_ids=None, expand=True):
         """Recompute the type of the given visitors (all when None) and copy it onto their rows.
         Records of one unified visitor (same device cookie, same community account or merged by the
         admin) share owner evidence, so they are recomputed together."""
@@ -649,7 +653,7 @@ class AnalyticsStore:
             if not ids:
                 return
             marks = ','.join('?' * len(ids))
-            persons = [r[0] for r in db.execute(f"SELECT DISTINCT person_id FROM visitors WHERE id IN ({marks}) "
+            persons = [] if not expand else [r[0] for r in db.execute(f"SELECT DISTINCT person_id FROM visitors WHERE id IN ({marks}) "
                                                 f"AND person_id <> ''", ids)]
             if persons:
                 ids += [r[0] for r in db.execute(f'SELECT id FROM visitors WHERE person_id IN ({",".join("?" * len(persons))})',
@@ -694,29 +698,40 @@ class AnalyticsStore:
     # admin. IP addresses never join records on their own: carrier NAT and shared Wi-Fi put strangers
     # behind one address. person_id is the record seen first, so it stays put as records join.
     @staticmethod
-    def _component(db, start, detached):
-        seen, todo = {start}, [start]
+    def _component(db, start, detached, links):
+        """Records joined to `start`. Each device id / account is looked up once, so a large group (one
+        browser with many records, or a client replaying one cookie) costs one query per key, not per record."""
+        seen, todo, keys = {start}, [start], set()
+        row = db.execute('SELECT device_id, user_id FROM visitors WHERE id=?', (start,)).fetchone()
+        info = {start: (row['device_id'], row['user_id']) if row else ('', None)}
         while todo:
             vid = todo.pop()
-            found = []
+            found = list(links.get(vid, ()))
             if vid not in detached:
-                row = db.execute('SELECT device_id, user_id FROM visitors WHERE id=?', (vid,)).fetchone()
-                if row is not None and row['device_id']:
-                    found += [r[0] for r in db.execute('SELECT id FROM visitors WHERE device_id=?', (row['device_id'],))]
-                if row is not None and row['user_id']:
-                    found += [r[0] for r in db.execute('SELECT id FROM visitors WHERE user_id=?', (row['user_id'],))]
-                found = [other for other in found if other not in detached]
-            found += [r[0] for r in db.execute('SELECT b FROM person_links WHERE a=? UNION SELECT a FROM person_links WHERE b=?',
-                                               (vid, vid))]
+                device, user = info.get(vid, ('', None))
+                for column, value in (('device_id', device), ('user_id', user)):
+                    if value and (column, value) not in keys:
+                        keys.add((column, value))
+                        for r in db.execute(f'SELECT id, device_id, user_id FROM visitors WHERE {column}=?', (value,)):
+                            info.setdefault(r['id'], (r['device_id'], r['user_id']))
+                            if r['id'] not in detached:
+                                found.append(r['id'])
             for other in found:
                 if other not in seen:
                     seen.add(other)
                     todo.append(other)
+                    if other not in info:
+                        r = db.execute('SELECT device_id, user_id FROM visitors WHERE id=?', (other,)).fetchone()
+                        info[other] = (r['device_id'], r['user_id']) if r else ('', None)
         return seen
 
     def _relink(self, db, seeds=None) -> list[str]:
         """Recompute person_id for the groups of `seeds` (every record when None); returns moved records."""
         detached = {r[0] for r in db.execute('SELECT visitor_id FROM person_detached')}
+        links = {}
+        for a, b in db.execute('SELECT a, b FROM person_links'):
+            links.setdefault(a, set()).add(b)
+            links.setdefault(b, set()).add(a)
         if seeds is None:
             pending = [r[0] for r in db.execute('SELECT id FROM visitors')]
         else:
@@ -732,7 +747,7 @@ class AnalyticsStore:
         for start in pending:
             if start in done:
                 continue
-            group = self._component(db, start, detached)
+            group = self._component(db, start, detached, links)
             done |= group
             ids = list(group)
             rows = db.execute(f"SELECT id, first_seen, person_id FROM visitors WHERE id IN ({','.join('?' * len(ids))})",
@@ -843,10 +858,11 @@ class AnalyticsStore:
 
     def suggestions(self, person_id: str = '', limit: int = 50, strict: bool = True) -> list[dict]:
         """Records in different unified visitors with the same hardware fingerprint. With `strict`, only
-        pairs that also used the same IP or network (/24, IPv6 /64); identical phones share a fingerprint,
-        so these are offered for the admin to confirm, never merged automatically."""
+        pairs that also used the same IP, or (computers only) the same /24 / IPv6 /64 network. Phones of one
+        model and system version share a fingerprint and carriers put strangers in one /24, so a phone pair
+        needs the very same address. Offered for the admin to confirm, never merged automatically."""
         with self.connect() as db:
-            sql = ("SELECT a.id ai, b.id bi, a.person_id ap, b.person_id bp, MAX(a.last_seen, b.last_seen) last "
+            sql = ("SELECT a.id ai, b.id bi, a.person_id ap, b.person_id bp, a.device, MAX(a.last_seen, b.last_seen) last "
                    "FROM visitors a JOIN visitors b ON b.fp = a.fp AND b.person_id <> a.person_id "
                    "WHERE a.fp <> '' AND a.bot NOT IN (1, 2) AND b.bot NOT IN (1, 2) "
                    "AND NOT EXISTS (SELECT 1 FROM person_dismissed d JOIN visitors x ON x.id = d.a JOIN visitors y ON y.id = d.b "
@@ -859,17 +875,21 @@ class AnalyticsStore:
             else:
                 sql += 'AND a.person_id < b.person_id '
             pairs = db.execute(sql + 'ORDER BY last DESC LIMIT 2000', params).fetchall()
-            ips = {}
-            def addresses(vid):
-                if vid not in ips:
-                    ips[vid] = {r[0] for r in db.execute('SELECT DISTINCT ip FROM pageviews WHERE visitor_id=? AND ip<>?', (vid, ''))}
-                return ips[vid]
+            vids = list({p['ai'] for p in pairs} | {p['bi'] for p in pairs})
+            ips = {vid: set() for vid in vids}
+            for i in range(0, len(vids), 500):  # One query per 500 records instead of one per pair.
+                chunk = vids[i:i + 500]
+                for r in db.execute(f"SELECT DISTINCT visitor_id, ip FROM pageviews WHERE ip <> '' "
+                                    f"AND visitor_id IN ({','.join('?' * len(chunk))})", chunk):
+                    ips[r[0]].add(r[1])
             best = {}
             for pair in pairs:
-                left, right = addresses(pair['ai']), addresses(pair['bi'])
+                left, right = ips[pair['ai']], ips[pair['bi']]
                 shared = sorted(left & right)
                 if shared:
                     level, label = 2, '同一 IP'
+                elif pair['device'] in ('手机', '平板'):
+                    level, label = 0, '仅硬件相同'
                 else:
                     nets = {network_of(ip) for ip in left} & {network_of(ip) for ip in right}
                     nets.discard('')

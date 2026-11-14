@@ -54,12 +54,12 @@ def allowed_origin(origin: str) -> bool:
     return loopback and host in {'localhost', '127.0.0.1', '::1'}
 
 
-def uid_signature(uid) -> str:
-    """HMAC of a community account id, rendered into that user's own pages. The tracker sends it back
-    with the id; beacons are unauthenticated, so an unsigned id is dropped instead of trusted (it links
-    records into one visitor and feeds owner detection)."""
+def uid_signature(uid, uname='') -> str:
+    """HMAC of a community account id and name, rendered into that user's own pages. The tracker sends it
+    back with them; beacons are unauthenticated, so an unsigned id is dropped instead of trusted (it links
+    records into one visitor and feeds owner detection), and the name cannot be swapped for another."""
     key = str(current_app.config.get('SECRET_KEY') or '').encode('utf-8')
-    return hmac.new(key, f'liss-analytics-uid:{uid}'.encode('utf-8'), hashlib.sha256).hexdigest()[:32]
+    return hmac.new(key, f'liss-analytics-uid:{uid}:{uname}'.encode('utf-8'), hashlib.sha256).hexdigest()[:32]
 
 
 def verified_ctx(payload):
@@ -68,7 +68,8 @@ def verified_ctx(payload):
     if not isinstance(ctx, dict) or not (ctx.get('uid') or ctx.get('uname')):
         return
     uid, signature = str(ctx.get('uid') or '').strip(), ctx.get('usig')
-    if not (uid.isdigit() and isinstance(signature, str) and hmac.compare_digest(signature, uid_signature(uid))):
+    uname = ctx.get('uname') if isinstance(ctx.get('uname'), str) else ''
+    if not (uid.isdigit() and isinstance(signature, str) and hmac.compare_digest(signature, uid_signature(uid, uname))):
         ctx.pop('uid', None)
         ctx.pop('uname', None)
     ctx.pop('usig', None)
@@ -141,7 +142,7 @@ def tracker_context():
     except Exception:
         pass
     vid = request.cookies.get(VISITOR_COOKIE, '') if has_request_context() else ''  # Mail renders have no request.
-    return dict(analytics_tracker=dict(site='forum', uid=uid, uname=uname, usig=uid_signature(uid) if uid else '',
+    return dict(analytics_tracker=dict(site='forum', uid=uid, uname=uname, usig=uid_signature(uid, uname) if uid else '',
                                        vid=vid if VID.fullmatch(vid) else '',
                                        endpoint=current_app.config.get('ANALYTICS_ENDPOINT') or '/analytics/collect'))
 

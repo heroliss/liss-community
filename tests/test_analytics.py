@@ -570,10 +570,10 @@ class AnalyticsTests(unittest.TestCase):
         self.collect(batch(), client=self.app.test_client())
         self.assertEqual(self.store().scalar('SELECT device_id FROM visitors WHERE id = ?', (VID,)), first)
 
-    def signed(self, uid):
+    def signed(self, uid, uname='mei'):
         from app.analytics import uid_signature
         with self.app.app_context():
-            return uid_signature(str(uid))
+            return uid_signature(str(uid), uname)
 
     def test_community_account_links_records_and_counts_once(self):
         phone, sig = self.app.test_client(), self.signed(7)
@@ -644,7 +644,7 @@ class AnalyticsTests(unittest.TestCase):
         # Beacons are unauthenticated: claiming someone's account must not join their visitor.
         self.collect(self.pv('1' * 24, '2' * 24, '3' * 24, site='forum', uid='7', uname='mei', usig=self.signed(7)),
                      origin='https://liss.pythonanywhere.com', client=self.app.test_client())
-        for usig in ('', 'f' * 32, self.signed(8)):
+        for usig in ('', 'f' * 32, self.signed(8), self.signed(7, 'someone_else')):
             vid = secrets_hex()
             self.collect(self.pv(vid, secrets_hex(), secrets_hex(), uid='7', uname='mei', usig=usig),
                          client=self.app.test_client())
@@ -658,7 +658,7 @@ class AnalyticsTests(unittest.TestCase):
         page = self.client.get('/').get_data(as_text=True)
         tag = re.search(r'<script[^>]+liss-analytics\.js[^>]*>', page).group(0)
         uid = re.search(r'data-uid="(\d+)"', tag).group(1)
-        self.assertIn(f'data-usig="{self.signed(uid)}"', tag)
+        self.assertIn(f'data-usig="{self.signed(uid, "stats_owner")}"', tag)
         self.assertIn('data-vid="' + 'a' * 24 + '"', tag)
         self.client.set_cookie('liss_v', 'not-a-visitor-id')
         self.assertIn('data-vid=""', self.client.get('/').get_data(as_text=True))
@@ -676,6 +676,36 @@ class AnalyticsTests(unittest.TestCase):
         self.assertIn('an-kind-visitor', row)
         csv_text = self.client.get('/admin/analytics/export?kind=pageviews&range=all&who=all').get_data(as_text=True)
         self.assertIn('统一访客', csv_text.splitlines()[0])
+
+
+    def test_phone_suggestions_need_the_same_address(self):
+        iphone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 Version/18.1 Mobile/15E148 Safari/604.1'
+        env = {'gpu': 'Apple GPU', 'hc': 6, 'tp': 5, 'cv': 'abcd1234'}
+        for vid, ip in (('1' * 24, '198.51.100.10'), ('4' * 24, '198.51.100.11')):  # Same carrier /24.
+            self.collect(self.pv(vid, secrets_hex(), secrets_hex(), screen='390x844@3', env=env), ip=ip, ua=iphone,
+                         client=self.app.test_client())
+        self.assertEqual(self.store().suggestions(), [])
+        self.assertEqual(self.store().suggestions('1' * 24, strict=False)[0]['label'], '仅硬件相同')
+        self.collect(self.pv('7' * 24, secrets_hex(), secrets_hex(), screen='390x844@3', env=env), ip='198.51.100.10',
+                     ua=iphone, client=self.app.test_client())
+        found = self.store().suggestions()
+        self.assertEqual([(f['label'], f['shared']) for f in found], [('同一 IP', ['198.51.100.10'])])
+
+    def test_large_group_on_one_cookie_stays_cheap(self):
+        import time
+        store = self.store()
+        for i in range(300):  # A client replaying one device cookie with many ids.
+            store.ingest(self.pv(f'{i:024x}', f'{i + 1000:024x}', f'{i + 5000:024x}'), ip='192.0.2.1', ua=CHROME,
+                         device_id='d' * 24)
+        self.assertEqual(store.scalar('SELECT COUNT(DISTINCT person_id) FROM visitors'), 1)
+        started = time.perf_counter()
+        for i in range(20):
+            store.ingest(self.pv(f'{i + 300:024x}', f'{i + 9000:024x}', f'{i + 9500:024x}'), ip='192.0.2.1', ua=CHROME,
+                         device_id='d' * 24)
+            store.ingest(self.pv(f'{i:024x}', f'{i + 1000:024x}', f'{i + 5000:024x}'), ip='192.0.2.1', ua=CHROME,
+                         device_id='d' * 24)  # Heartbeat of an existing record.
+        self.assertLess(time.perf_counter() - started, 8)
+        self.assertEqual(store.scalar("SELECT COUNT(*) FROM pageviews WHERE person_id <> ?", (f'{0:024x}',)), 0)
 
 
 
