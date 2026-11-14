@@ -1,15 +1,31 @@
 {% extends "admin/analytics/_base.html" %}
 {% import "admin/analytics/_macros.html" as an with context %}
 {% block analytics_content %}
-<header class="admin-heading"><div><h1>访客</h1><p>{{ f.label }}内的访客{% if mode == 'ip' %}，按 IP 汇总{% elif mode == 'device' %}，按设备汇总（同一浏览器在社区和作品站的记录合并；Safari / Firefox 无法跨站关联）{% else %}，按浏览器身份汇总（同一浏览器多次访问视为同一访客，即使 IP 不同；社区与作品站分开记录）{% endif %}。</p></div></header>
+{% set by = '' if mode == 'visitor' else mode %}
+<header class="admin-heading"><div><h1>访客</h1><p>{% if mode == 'suggest' %}硬件指纹相同、又用过同一 IP 或同一网段的访客，可能是同一个人。同型号同设置的手机指纹也会相同，所以不会自动合并，请逐个确认。{% else %}{{ f.label }}内的访客{% if mode == 'ip' %}，按 IP 汇总{% elif mode == 'record' %}，按原始记录列出（每个浏览器在每个站点各有一条记录，未合并）{% else %}。同一浏览器在社区和作品站的记录、同一社区账号的记录、手动合并的记录算作同一位访客；IP 相同不会合并{% endif %}。{% endif %}</p></div></header>
+{% if mode != 'suggest' %}
 {% set extra %}<input type="hidden" name="by" value="{{ mode }}"><input type="hidden" name="sort" value="{{ sort }}"><label class="an-search">搜索<input type="search" name="q" value="{{ q }}" maxlength="100" placeholder="IP、访客编号、用户名或备注"></label>{% endset %}
 {{ an.filters(f, 'admin.analytics_visitors', extra=extra) }}
-{{ an.kind_split_row(kind_split, f, extra={'by': ('' if mode == 'visitor' else mode), 'q': q, 'sort': sort}) }}
+{{ an.kind_split_row(kind_split, f, extra={'by': by, 'q': q, 'sort': sort}) }}
+{% endif %}
 <div class="an-toolbar">
-  <div class="an-segment" role="group" aria-label="汇总方式"><a href="{{ url_for('admin.analytics_visitors', **f.args(q=q, sort=sort)) }}"{% if mode == 'visitor' %} class="is-active"{% endif %}>按访客</a><a href="{{ url_for('admin.analytics_visitors', **f.args(by='device', q=q, sort=sort)) }}"{% if mode == 'device' %} class="is-active"{% endif %}>按设备</a><a href="{{ url_for('admin.analytics_visitors', **f.args(by='ip', q=q, sort=sort)) }}"{% if mode == 'ip' %} class="is-active"{% endif %}>按 IP</a></div>
-  <div class="an-segment" role="group" aria-label="排序">{% for key, label in [('last','最近活动'),('first','最早来访'),('pv','浏览量'),('sessions','访问次数'),('active','停留时长')] %}<a href="{{ url_for('admin.analytics_visitors', **f.args(by=('' if mode == 'visitor' else mode), q=q, sort=key)) }}"{% if sort == key %} class="is-active"{% endif %}>{{ label }}</a>{% endfor %}</div>
+  <div class="an-segment" role="group" aria-label="汇总方式"><a href="{{ url_for('admin.analytics_visitors', **f.args(q=q, sort=sort)) }}"{% if mode == 'visitor' %} class="is-active"{% endif %}>按访客</a><a href="{{ url_for('admin.analytics_visitors', **f.args(by='ip', q=q, sort=sort)) }}"{% if mode == 'ip' %} class="is-active"{% endif %}>按 IP</a><a href="{{ url_for('admin.analytics_visitors', **f.args(by='record', q=q, sort=sort)) }}"{% if mode == 'record' %} class="is-active"{% endif %}>原始记录</a><a href="{{ url_for('admin.analytics_visitors', **f.args(by='suggest')) }}"{% if mode == 'suggest' %} class="is-active"{% endif %}>可能是同一人{% if pending %} <span class="admin-status">{{ pending }}</span>{% endif %}</a></div>
+  {% if mode != 'suggest' %}<div class="an-segment" role="group" aria-label="排序">{% for key, label in [('last','最近活动'),('first','最早来访'),('pv','浏览量'),('sessions','访问次数'),('active','停留时长')] %}<a href="{{ url_for('admin.analytics_visitors', **f.args(by=by, q=q, sort=key)) }}"{% if sort == key %} class="is-active"{% endif %}>{{ label }}</a>{% endfor %}</div>{% endif %}
 </div>
-<p class="admin-list-summary"><span>共 <strong>{{ result.total }}</strong> {{ '个 IP' if mode == 'ip' else '台设备' if mode == 'device' else '位访客' }}</span><span>点击查看完整访问轨迹</span></p>
+{% if mode == 'suggest' %}
+{% if suggestions %}
+<p class="admin-list-summary"><span>共 <strong>{{ suggestions|length }}</strong> 组待确认</span><span>合并后可在访客详情中随时拆出</span></p>
+<table class="an-table an-table-wide an-table-rows"><thead><tr><th>访客 A</th><th>访客 B</th><th>依据</th><th>最近</th><th></th></tr></thead><tbody>
+{% for s in suggestions %}<tr>
+  {% for v in (s.left, s.right) %}<td>{{ an.visitor_link(v.id, ('@' ~ v.username) if v.username else None) }} {{ an.kind_badge(v.bot, v.kind_reason, v.kind_locked) }}{% for site in (v.sites or '').split(',') if site %}{{ an.site_tag(site) }}{% endfor %}<br><span class="an-small">{{ v.browser }} · {{ v.os }} · {{ v.device }}{% if v.screen %} · {{ v.screen }}{% endif %}</span><br><span class="an-muted an-small">{{ v.pv }} 次浏览 · {{ v.last_ip }}</span></td>{% endfor %}
+  <td class="an-small">硬件指纹相同<br>{{ s.label }}{% for ip in s.shared %}<br>{{ an.ip_link(ip) }}{% endfor %}</td>
+  <td class="an-small">{{ s.last|ago }}</td>
+  <td>{{ an.person_buttons(s.a, s.b, url_for('admin.analytics_visitors', by='suggest')) }}</td>
+</tr>{% endfor %}
+</tbody></table>
+{% else %}<p class="an-empty an-empty-tall">没有待确认的访客。</p>{% endif %}
+{% else %}
+<p class="admin-list-summary"><span>共 <strong>{{ result.total }}</strong> {{ '个 IP' if mode == 'ip' else '条记录' if mode == 'record' else '位访客' }}</span><span>点击查看完整访问轨迹</span></p>
 {% if result.rows %}
 <table class="an-table an-table-wide an-table-rows"><thead><tr>
   {% if mode == 'ip' %}<th>IP</th><th>访客数</th><th>浏览器 / 系统</th>{% else %}<th>访客</th><th>IP</th><th>设备</th>{% endif %}
@@ -18,13 +34,14 @@
   {% if mode == 'ip' %}
   <td>{{ an.ip_link(r.ip) }}{% if r.ignored %} <span class="admin-status">已排除</span>{% endif %}</td><td>{{ r.visitors }}</td><td class="an-small">{{ (r.agents or '')|replace(',', '，') }}</td>
   {% else %}
-  <td>{{ an.visitor_link(r.visitor_id, ('@' ~ r.username) if r.username else None) }}{% if r.kind %} {{ an.kind_badge(r.kind, r.kind_reason, r.kind_locked) }}{% endif %}{% if r.is_new %} <span class="admin-status is-positive" title="首次来访在所选时间范围内">新</span>{% endif %}{% if r.records and r.records > 1 %} <span class="admin-status" title="同一设备在社区和作品站的 {{ r.records }} 条访客记录已合并">跨站 {{ r.records }}</span>{% endif %}{% if r.note %}<small class="an-note">{{ r.note }}</small>{% endif %}</td>
+  <td>{{ an.visitor_link(r.visitor_id, ('@' ~ r.username) if r.username else None) }}{% if r.kind is not none %} {{ an.kind_badge(r.kind, r.kind_reason, r.kind_locked) }}{% endif %}{% if r.is_new %} <span class="admin-status is-positive" title="首次来访在所选时间范围内">新</span>{% endif %}{% if mode == 'visitor' and r.records > 1 %} <span class="admin-status" title="这位访客由 {{ r.records }} 条浏览器记录合并而成">{{ r.records }} 条记录</span>{% endif %}{% if mode == 'record' and r.members > 1 %} <a class="admin-status" href="{{ url_for('admin.analytics_visitor', visitor_id=r.visitor_id) }}" title="与另外 {{ r.members - 1 }} 条记录属于同一位访客">属于合并访客</a>{% endif %}{% if r.note %}<small class="an-note">{{ r.note }}</small>{% endif %}</td>
   <td class="an-small">{% for ip in r.ip_list[:3] %}{{ an.ip_link(ip) }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% if r.ip_list|length > 3 %}<br><span class="an-muted">等 {{ r.ip_list|length }} 个</span>{% endif %}{% if r.proxy %}<br><span class="an-net an-net-proxy" title="浏览器时区与 IP 所在地不一致">可能用代理</span>{% endif %}</td>
-  <td class="an-small">{{ r.browser }}<br>{{ r.os }} · {{ r.device }}{% if r.screen %} · {{ r.screen }}{% endif %}</td>
+  <td class="an-small">{% if mode == 'visitor' and r.agents|length > 1 %}{% for a in r.agents[:3] %}{{ a }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% if r.agents|length > 3 %}<br><span class="an-muted">等 {{ r.agents|length }} 种</span>{% endif %}{% else %}{{ r.browser }}<br>{{ r.os }} · {{ r.device }}{% if r.screen %} · {{ r.screen }}{% endif %}{% endif %}</td>
   {% endif %}
   <td>{% for s in r.site_list %}{{ an.site_tag(s) }}{% endfor %}</td><td>{{ r.sessions }}</td><td>{{ r.pv }}</td><td>{{ r.active|dur }}</td><td class="an-small">{{ r.first|at('%m-%d %H:%M') }}</td><td class="an-small">{{ r.last|at('%m-%d %H:%M') }}<br><span class="an-muted">{{ r.last|ago }}</span></td>
 </tr>{% endfor %}
 </tbody></table>
-{{ an.pager(result, 'admin.analytics_visitors', f.args(by=('' if mode == 'visitor' else mode), q=q, sort=sort)) }}
+{{ an.pager(result, 'admin.analytics_visitors', f.args(by=by, q=q, sort=sort)) }}
 {% else %}<p class="an-empty an-empty-tall">没有符合条件的访客。</p>{% endif %}
+{% endif %}
 {% endblock %}

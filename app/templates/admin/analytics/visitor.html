@@ -1,17 +1,43 @@
 {% extends "admin/analytics/_base.html" %}
 {% import "admin/analytics/_macros.html" as an with context %}
 {% block analytics_content %}
+{% set merged = members|length > 1 %}
 <a class="an-back" href="{{ url_for('admin.analytics_visitors') }}">{{ ui.icon('back') }}访客列表</a>
-<header class="admin-heading"><div><h1>{% if visitor.username %}@{{ visitor.username }}{% else %}访客 {{ visitor.id[:8] }}{% endif %} {{ an.kind_badge(visitor.bot, visitor.kind_reason, visitor.kind_locked) }}</h1><p class="an-visitor-summary"><span>{{ visitor.browser }}</span><span>{{ visitor.os }}</span><span>{{ visitor.device }}</span>{% set where = visitor.last_ip|region %}{% if where %}<span>{{ where }}</span>{% endif %}<span>{{ ips|length }} 个 IP</span>{% if linked %}<span>跨站 {{ linked|length + 1 }} 条记录</span>{% endif %}</p>
-  <p class="an-muted">编号 <code>{{ visitor.id }}</code> · 首次来访 {{ visitor.first_seen|at('%Y-%m-%d %H:%M') }} · 最近 {{ visitor.last_seen|ago }}</p></div></header>
+<header class="admin-heading"><div><h1>{% if username %}@{{ username }}{% else %}访客 {{ person[:8] }}{% endif %}{% if not merged %} {{ an.kind_badge(visitor.bot, visitor.kind_reason, visitor.kind_locked) }}{% endif %}</h1><p class="an-visitor-summary">{% if merged %}<span>{{ members|length }} 条记录合并</span>{% else %}<span>{{ visitor.browser }}</span><span>{{ visitor.os }}</span><span>{{ visitor.device }}</span>{% endif %}{% set where = visitor.last_ip|region %}{% if where %}<span>{{ where }}</span>{% endif %}<span>{{ ips|length }} 个 IP</span></p>
+  <p class="an-muted">访客编号 <code>{{ person }}</code> · 首次来访 {{ first_seen|at('%Y-%m-%d %H:%M') }} · 最近 {{ totals.last|ago }}</p></div></header>
 <div class="an-kpis an-kpis-compact">
   <div class="an-kpi"><span>访问次数</span><strong>{{ totals.sessions }}</strong></div>
   <div class="an-kpi"><span>浏览量</span><strong>{{ totals.pv }}</strong><small>{{ totals.pages }} 个不同页面</small></div>
   <div class="an-kpi"><span>累计停留</span><strong class="an-kpi-text">{{ totals.active|dur }}</strong></div>
   <div class="an-kpi"><span>点击</span><strong>{{ totals.clicks }}</strong></div>
 </div>
+<section class="an-card an-records" aria-labelledby="records-heading"><div class="an-card-head"><h2 id="records-heading">访客记录</h2><span class="an-muted">每个浏览器在每个站点各有一条记录</span></div>
+  <p class="an-help">{% if merged %}以下记录算作同一位访客：同一浏览器在社区和作品站（设备标识相同）、同一社区账号，或你手动合并。下方的类型、设备和备注按当前记录显示，点其他记录可切换。{% else %}这位访客目前只有一条记录。同一浏览器在另一站点的记录、同一社区账号的记录会自动合并进来；也可以在下面手动合并。{% endif %}</p>
+  <table class="an-table an-table-wide"><thead><tr><th>记录</th><th>设备</th><th>站点</th><th>关联依据</th><th>浏览</th><th>最近</th><th></th></tr></thead><tbody>
+  {% for m in members %}<tr{% if m.id == visitor.id %} class="is-current"{% endif %}>
+    <td>{% if m.id == visitor.id %}<strong>{{ m.id[:8] }}</strong> <span class="an-muted">当前</span>{% else %}{{ an.visitor_link(m.id, m.id[:8]) }}{% endif %} {{ an.kind_badge(m.bot, m.kind_reason, m.kind_locked) }}{% if m.username %} <span class="admin-status is-positive">@{{ m.username }}</span>{% endif %}{% if m.note %}<small class="an-note">{{ m.note }}</small>{% endif %}</td>
+    <td class="an-small">{{ m.browser }} · {{ m.os }} · {{ m.device }}{% if m.screen %}<br>{{ m.screen }}{% endif %}</td>
+    <td>{% for s in (m.sites or '').split(',') if s %}{{ an.site_tag(s) }}{% endfor %}</td>
+    <td class="an-small">{% if m.reasons %}{{ m.reasons|join('、') }}{% elif m.detached %}已拆出，不自动关联{% else %}—{% endif %}</td>
+    <td>{{ m.pv }}</td><td class="an-small">{{ m.last_seen|ago }}<br>{{ an.ip_link(m.last_ip, false) }}</td>
+    <td>{% if merged %}{{ an.person_form('detach', m.id, '拆出', return_to=url_for('admin.analytics_visitor', visitor_id=m.id)) }}{% elif m.detached %}{{ an.person_form('attach', m.id, '恢复自动关联') }}{% endif %}</td>
+  </tr>{% endfor %}
+  </tbody></table>
+  {% if suggestions %}<div class="an-card-head an-sub"><h2>可能是同一人</h2></div>
+  <p class="an-help">硬件指纹相同的其他访客（显卡、CPU、屏幕、时区等完全一致；同型号同设置的手机也会相同）。用过同一 IP 或同一网段的更可能是同一人。确认后才会合并。</p>
+  <table class="an-table an-table-wide"><thead><tr><th>访客</th><th>设备</th><th>依据</th><th>最近</th><th></th></tr></thead><tbody>
+  {% for s in suggestions %}{% set v = s.right %}<tr>
+    <td>{{ an.visitor_link(v.id, ('@' ~ v.username) if v.username else None) }} {{ an.kind_badge(v.bot, v.kind_reason, v.kind_locked) }}{% for site in (v.sites or '').split(',') if site %}{{ an.site_tag(site) }}{% endfor %}</td>
+    <td class="an-small">{{ v.browser }} · {{ v.os }} · {{ v.device }}{% if v.screen %} · {{ v.screen }}{% endif %}</td>
+    <td class="an-small">{{ s.label }}{% for ip in s.shared %}<br>{{ an.ip_link(ip, false) }}{% endfor %}</td>
+    <td class="an-small">{{ v.last_seen|ago }}</td>
+    <td>{{ an.person_buttons(s.a, s.b) }}</td>
+  </tr>{% endfor %}
+  </tbody></table>{% endif %}
+  <form method="post" action="{{ url_for('admin.analytics_person') }}" class="an-note-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="merge"><input type="hidden" name="visitor" value="{{ visitor.id }}"><label>与另一位访客合并<input name="other" maxlength="40" pattern="[A-Za-z0-9_\-]{8,40}" placeholder="对方的访客编号（详情页顶部）" required></label><button class="button button-small button-secondary" type="submit">合并</button></form>
+</section>
 {% set ev = visitor.evidence %}
-<section class="an-card an-evidence" aria-labelledby="evidence-heading"><div class="an-card-head"><h2 id="evidence-heading">类型与判断依据</h2>{{ an.kind_badge(visitor.bot, '', visitor.kind_locked) }}</div>
+<section class="an-card an-evidence" aria-labelledby="evidence-heading"><div class="an-card-head"><h2 id="evidence-heading">{% if merged %}当前记录的{% endif %}类型与判断依据</h2>{{ an.kind_badge(visitor.bot, '', visitor.kind_locked) }}</div>
   <p class="an-evidence-reason">{{ visitor.kind_reason or '没有可疑特征' }}</p>
   <div class="an-evidence-grid">
     <div><h3>可疑特征</h3>{% if ev.strong or ev.weak %}<ul class="an-signals">{% for t in ev.strong %}<li class="is-strong" title="强证据：出现一项即判为疑似机器人">{{ t }}</li>{% endfor %}{% for t in ev.weak %}<li class="is-weak" title="辅助证据：两项以上且没有真人操作时判为疑似机器人">{{ t }}</li>{% endfor %}</ul>{% else %}<p class="an-muted">无</p>{% endif %}</div>
@@ -21,7 +47,7 @@
   <form method="post" action="{{ url_for('admin.analytics_kind') }}" class="an-note-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="visitor" value="{{ visitor.id }}"><label>手动改为<select name="kind"><option value="auto"{% if not visitor.kind_locked %} selected{% endif %}>自动判断</option>{% for code, label in kinds.items() %}<option value="{{ code }}"{% if visitor.kind_locked and visitor.bot == code %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label><button class="button button-small button-secondary" type="submit">保存类型</button></form>
 </section>
 <div class="an-grid-2">
-  <section class="an-card"><div class="an-card-head"><h2>设备与环境</h2></div>
+  <section class="an-card"><div class="an-card-head"><h2>{% if merged %}当前记录的{% endif %}设备与环境</h2>{% if merged %}<code class="an-muted">{{ visitor.id[:8] }}</code>{% endif %}</div>
     <dl class="an-facts"><div><dt>浏览器</dt><dd>{{ visitor.browser }}</dd></div><div><dt>系统</dt><dd>{{ visitor.os }}</dd></div><div><dt>设备</dt><dd>{{ visitor.device }}</dd></div><div><dt>屏幕</dt><dd>{{ visitor.screen or '—' }}</dd></div><div><dt>语言</dt><dd>{{ visitor.lang or '—' }}</dd></div><div><dt>时区</dt><dd>{{ visitor.tz or '—' }}</dd></div>{% if visitor.username %}<div><dt>社区账号</dt><dd>@{{ visitor.username }}{% if visitor.user_id %} · #{{ visitor.user_id }}{% endif %}</dd></div>{% endif %}{% for label, value in visitor.facts %}<div{% if value|length > 26 %} class="an-fact-wide"{% endif %}><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}<div class="an-fact-wide"><dt>User-Agent</dt><dd><code>{{ visitor.ua }}</code></dd></div></dl>
 
     <form method="post" action="{{ url_for('admin.analytics_note') }}" class="an-note-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="visitor" value="{{ visitor.id }}"><label>备注<input name="note" value="{{ visitor.note }}" maxlength="200" placeholder="例如：朋友 A 的手机"></label><button class="button button-small button-secondary" type="submit">保存备注</button></form>
@@ -32,14 +58,8 @@
     <ol class="an-bars an-bars-plain">{% for p in favourite %}<li><div class="an-bar-label">{{ an.site_tag(p.site) }}<a href="{{ p|page_url }}" target="_blank" rel="noopener noreferrer">{{ p.title or p.path }}</a></div><span class="an-bar-value">{{ p.active|dur }}<small> · {{ p.pv }} 次</small></span></li>{% endfor %}</ol>
   </section>
 </div>
-{% if linked or similar %}<section class="an-card an-linked"><div class="an-card-head"><h2>同一设备的其他记录</h2></div>
-  {% if linked %}<p class="an-help">确定是同一个浏览器（共享设备标识），通常是同一台设备分别访问社区和作品站：</p>
-  <ul class="an-linked-list">{% for v in linked %}<li>{{ an.visitor_link(v.id, ('@' ~ v.username) if v.username else None) }} {{ an.kind_badge(v.bot, v.kind_reason, v.kind_locked) }}{% for s in (v.sites or '').split(',') if s %}{{ an.site_tag(s) }}{% endfor %}<span class="an-muted">{{ v.pv }} 次浏览 · 最近 {{ v.last_seen|ago }} · {{ v.last_ip }}</span></li>{% endfor %}</ul>{% endif %}
-  {% if similar %}<p class="an-help">可能是同一台设备（硬件与设置完全相同；同型号同设置的手机也会相同，仅供参考）：</p>
-  <ul class="an-linked-list">{% for v in similar %}<li>{{ an.visitor_link(v.id, ('@' ~ v.username) if v.username else None) }} {{ an.kind_badge(v.bot, v.kind_reason, v.kind_locked) }}{% for s in (v.sites or '').split(',') if s %}{{ an.site_tag(s) }}{% endfor %}<span class="an-muted">{{ v.pv }} 次浏览 · 最近 {{ v.last_seen|ago }} · {{ v.last_ip }}</span></li>{% endfor %}</ul>{% endif %}
-</section>{% endif %}
-<section class="an-section"><div class="an-card-head"><h2>访问轨迹</h2><span class="an-muted">每次访问内按时间顺序列出页面与点击</span></div>
+<section class="an-section"><div class="an-card-head"><h2>访问轨迹</h2><span class="an-muted">{% if merged %}全部 {{ members|length }} 条记录的访问，{% endif %}每次访问内按时间顺序列出页面与点击</span></div>
   {{ an.timeline(sessions, 'admin.analytics_visitor', {'visitor_id': visitor.id}) }}</section>
-<details class="an-danger"><summary>删除这位访客的全部记录</summary>
+<details class="an-danger"><summary>删除这位访客的全部记录{% if merged %}（{{ members|length }} 条记录）{% endif %}</summary>
   <form method="post" action="{{ url_for('admin.analytics_delete_preview') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="scope" value="visitor"><input type="hidden" name="visitor" value="{{ visitor.id }}"><input type="hidden" name="return_to" value="{{ url_for('admin.analytics_visitors') }}"><p>先预览将删除的数量，确认后才会生效，且无法恢复。</p><button class="button button-small button-secondary" type="submit">预览删除</button></form></details>
 {% endblock %}

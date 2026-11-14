@@ -82,7 +82,7 @@ def classify_source(host: str, utm: str = '', browser: str = '') -> tuple[str, s
 def channels(store, f) -> dict:
     """Visits per channel group and per source, with engaged visits, for the filtered range."""
     where, params = f.where('s')
-    rows = store.query(f'SELECT s.referrer_host host, s.utm, s.browser, COUNT(*) visits, COUNT(DISTINCT s.visitor_id) visitors, '
+    rows = store.query(f'SELECT s.referrer_host host, s.utm, s.browser, COUNT(*) visits, COUNT(DISTINCT s.person_id) visitors, '
                        f'COALESCE(SUM(e.engaged), 0) engaged, MAX(s.last_seen) last FROM sessions s '
                        f'LEFT JOIN ({ENGAGED_SESSIONS_SQL}) e ON e.session_id = s.id WHERE {where} '
                        f'GROUP BY s.referrer_host, s.utm, s.browser', params)

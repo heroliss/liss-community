@@ -164,7 +164,7 @@ def bars(rows, key='count'):
 # ---------------------------------------------------------------- statistics
 def kpis(f: Filters, start=None, end=None):
     where, params = f.where(start=start, end=end)
-    row = store().query(f'SELECT COUNT(*) pv, COUNT(DISTINCT visitor_id) uv, COUNT(DISTINCT ip) ips, '
+    row = store().query(f'SELECT COUNT(*) pv, COUNT(DISTINCT person_id) uv, COUNT(DISTINCT ip) ips, '
                         f'COUNT(DISTINCT session_id) sessions, COALESCE(SUM(active_ms),0) active, '
                         f'COALESCE(AVG(scroll),0) scroll, COALESCE(SUM(clicks),0) clicks FROM pageviews p WHERE {where}', params)[0]
     bounce = store().scalar(f'SELECT COUNT(*) FROM (SELECT session_id, COUNT(*) c FROM pageviews p WHERE {where} '
@@ -173,7 +173,8 @@ def kpis(f: Filters, start=None, end=None):
                              f'SUM(clicks) k FROM pageviews p WHERE {where} GROUP BY session_id) '
                              f'WHERE c >= 2 OR a >= {insights.ENGAGED_MS} OR i > 0 OR k > 0', params) or 0
     first = f.start if start is None else start
-    new = store().scalar(f'SELECT COUNT(DISTINCT p.visitor_id) FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
+    # person_id is the unified visitor's earliest record, so its first_seen is the visitor's first visit.
+    new = store().scalar(f'SELECT COUNT(DISTINCT p.person_id) FROM pageviews p JOIN visitors v ON v.id = p.person_id '
                          f'WHERE {where} AND v.first_seen >= ?', params + (first,)) or 0
     sessions = row['sessions'] or 0
     row.update(bounce=round(bounce / sessions * 100) if sessions else 0, engaged=engaged,
@@ -188,7 +189,7 @@ def trend(f: Filters):
     hourly = f.end - f.start <= 2 * 86_400_000
     bucket = 3_600_000 if hourly else 86_400_000
     where, params = f.where()
-    rows = store().query(f'SELECT (started_at + ?) / ? b, COUNT(*) pv, COUNT(DISTINCT visitor_id) uv, '
+    rows = store().query(f'SELECT (started_at + ?) / ? b, COUNT(*) pv, COUNT(DISTINCT person_id) uv, '
                          f'COUNT(DISTINCT session_id) sessions FROM pageviews p WHERE {where} GROUP BY b',
                          (offset_ms(), bucket) + params)
     found = {row['b']: row for row in rows}
@@ -227,7 +228,7 @@ def top_pages(f: Filters, limit=15, q='', sort='pv'):
     if q:
         where += ' AND (p.path LIKE ? ESCAPE char(92) OR p.title LIKE ? ESCAPE char(92))'
         params += (search_like(q), search_like(q))
-    rows = store().query(f'SELECT site, path, MAX(title) title, COUNT(*) pv, COUNT(DISTINCT visitor_id) uv, '
+    rows = store().query(f'SELECT site, path, MAX(title) title, COUNT(*) pv, COUNT(DISTINCT person_id) uv, '
                          f'AVG(NULLIF(active_ms,0)) active, AVG(scroll) scroll, SUM(clicks) clicks, MAX(last_seen) last, '
                          f'SUM(CASE WHEN {insights.ENGAGED_VIEW_SQL} THEN 1 ELSE 0 END) engaged '
                          f'FROM pageviews p WHERE {where} GROUP BY site, path ORDER BY {PAGE_SORTS.get(sort, PAGE_SORTS["pv"])} '
@@ -250,7 +251,7 @@ def entry_exit(f: Filters):
 
 def breakdown(f: Filters, column, limit=10, empty='（未知）'):
     where, params = f.where('s')
-    rows = store().query(f'SELECT {column} name, COUNT(*) count, COUNT(DISTINCT visitor_id) visitors FROM sessions s '
+    rows = store().query(f'SELECT {column} name, COUNT(*) count, COUNT(DISTINCT person_id) visitors FROM sessions s '
                          f'WHERE {where} GROUP BY {column} ORDER BY count DESC LIMIT {int(limit)}', params)
     for row in rows:
         row['name'] = row['name'] or empty
@@ -278,7 +279,7 @@ def top_clicks(f: Filters, limit=15, path=None, site=None):
         where += ' AND e.path = ? AND e.site = ?'
         params += (path, site)
     return bars(store().query(f'SELECT site, path, label, target, MAX(href) href, type, COUNT(*) count, '
-                              f'COUNT(DISTINCT visitor_id) visitors FROM events e WHERE {where} '
+                              f'COUNT(DISTINCT person_id) visitors FROM events e WHERE {where} '
                               f'GROUP BY site, path, label, target, type ORDER BY count DESC LIMIT {int(limit)}', params))
 
 
@@ -300,7 +301,7 @@ NOT_FOUND = "(p.title LIKE '%没有找到页面%' OR p.title LIKE '%· 404' OR p
 def not_found(f: Filters, limit=10):
     """Pages that rendered a 404: broken links and where visitors found them."""
     where, params = f.where()
-    rows = store().query(f"SELECT site, path, COUNT(*) count, COUNT(DISTINCT visitor_id) visitors, MAX(started_at) last, "
+    rows = store().query(f"SELECT site, path, COUNT(*) count, COUNT(DISTINCT person_id) visitors, MAX(started_at) last, "
                          f"GROUP_CONCAT(DISTINCT NULLIF(referrer, '')) refs FROM pageviews p WHERE {where} AND {NOT_FOUND} "
                          f"GROUP BY site, path ORDER BY count DESC LIMIT {int(limit)}", params)
     for row in rows:
@@ -310,7 +311,7 @@ def not_found(f: Filters, limit=10):
 
 def site_split(f: Filters):
     where, params = f.where()
-    rows = store().query(f'SELECT site, COUNT(*) count, COUNT(DISTINCT visitor_id) visitors FROM pageviews p '
+    rows = store().query(f'SELECT site, COUNT(*) count, COUNT(DISTINCT person_id) visitors FROM pageviews p '
                          f'WHERE {where} GROUP BY site ORDER BY count DESC', params)
     for row in rows:
         row['name'] = SITES.get(row['site'], row['site'])
@@ -406,7 +407,7 @@ def regions(f: Filters, limit=12):
         return None
     where, params = f.where('s')
     counts, visitors = {}, {}
-    for row in store().query(f'SELECT ip, COUNT(*) c, COUNT(DISTINCT visitor_id) v FROM sessions s WHERE {where} GROUP BY ip', params):
+    for row in store().query(f'SELECT ip, COUNT(*) c, COUNT(DISTINCT person_id) v FROM sessions s WHERE {where} GROUP BY ip', params):
         name = area(lookup.lookup(row['ip']))
         counts[name] = counts.get(name, 0) + row['c']
         visitors[name] = visitors.get(name, 0) + row['v']
@@ -437,7 +438,7 @@ def analytics():
     current, previous = kpis(f), kpis(f, f.start - span, f.start)
     changes = {key: pct_change(current[key] or 0, previous[key] or 0) for key in ('pv', 'uv', 'sessions', 'ips', 'active', 'engaged')}
     entries, exits = entry_exit(f)
-    live = store().scalar('SELECT COUNT(DISTINCT visitor_id) FROM pageviews WHERE last_seen >= ? AND bot = 0',
+    live = store().scalar('SELECT COUNT(DISTINCT person_id) FROM pageviews WHERE last_seen >= ? AND bot = 0',
                           (now_ms() - LIVE_WINDOW_MS,)) or 0
     return render('admin/analytics/overview.html', analytics_page='overview', f=f, kpi=current, changes=changes,
                   trend=trend(f), pages=top_pages(f), entries=entries, exits=exits,
@@ -457,7 +458,7 @@ def analytics_live():
     where_p = f' AND {kind_p}' if kind_p else ''
     active = store().query('SELECT p.*, v.browser, v.os, v.device, v.username, v.note FROM pageviews p '
                            f'JOIN visitors v ON v.id = p.visitor_id WHERE p.last_seen >= ?{where_p} '
-                           'AND p.last_seen = (SELECT MAX(last_seen) FROM pageviews q WHERE q.visitor_id = p.visitor_id) '
+                           'AND p.last_seen = (SELECT MAX(last_seen) FROM pageviews q WHERE q.person_id = p.person_id) '
                            'ORDER BY p.last_seen DESC LIMIT 100', (since, *params))
     recent = store().query('SELECT p.*, v.browser, v.device, v.username FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
                            f'WHERE 1 = 1{where_p} ORDER BY p.started_at DESC LIMIT 60', tuple(params))
@@ -467,89 +468,130 @@ def analytics_live():
                   events=events, window_minutes=LIVE_WINDOW_MS // 60000)
 
 
+VISITOR_MODES = ('visitor', 'record', 'ip', 'suggest')
+
+
+def describe_people(rows, kind=None):
+    """Add the records of each unified visitor in `rows` (keyed by visitor_id = person id). Device and type
+    come from its most recent record, preferring records of `kind` when the list is filtered by type."""
+    persons = [row['visitor_id'] for row in rows]
+    if not persons:
+        return
+    members = {}
+    for member in store().query(f"SELECT * FROM visitors WHERE person_id IN ({','.join('?' * len(persons))}) "
+                                'ORDER BY last_seen DESC', tuple(persons)):
+        members.setdefault(member['person_id'], []).append(member)
+    for row in rows:
+        group = members.get(row['visitor_id']) or store().query('SELECT * FROM visitors WHERE id = ?', (row['visitor_id'],))
+        latest = next((m for m in group if m['bot'] == kind), group[0]) if group else {}
+        for key in ('browser', 'os', 'device', 'screen', 'tz', 'last_ip', 'kind_reason', 'kind_locked'):
+            row[key] = latest.get(key)
+        row['kind'] = latest.get('bot')
+        row['username'] = next((m['username'] for m in group if m['username']), '')
+        row['user_id'] = next((m['user_id'] for m in group if m['user_id']), None)
+        row['note'] = '；'.join(dict.fromkeys(m['note'] for m in group if m['note']))
+        row['records'] = len(group)
+        row['agents'] = list(dict.fromkeys(f"{m['browser']} · {m['os']} · {m['device']}" for m in group))
+
+
+def suggestion_rows(found):
+    """Attach both records' details to store().suggestions() pairs."""
+    ids = list({x for item in found for x in (item['a'], item['b'])})
+    records = {r['id']: r for r in store().query(
+        "SELECT v.*, (SELECT GROUP_CONCAT(DISTINCT site) FROM pageviews WHERE visitor_id = v.id) sites, "
+        "(SELECT COUNT(*) FROM pageviews WHERE visitor_id = v.id) pv FROM visitors v "
+        f"WHERE v.id IN ({','.join('?' * len(ids))})", tuple(ids))} if ids else {}
+    for item in found:
+        item['left'], item['right'] = records.get(item['a'], {}), records.get(item['b'], {})
+    return [item for item in found if item['left'] and item['right']]
+
+
 @admin.get('/analytics/visitors')
 def analytics_visitors():
     f = Filters(request.args)
-    mode = request.args.get('by') if request.args.get('by') in ('ip', 'device') else 'visitor'
+    mode = request.args.get('by') if request.args.get('by') in VISITOR_MODES else 'visitor'  # Old 'device' links: unified.
     q = request.args.get('q', '').strip()[:100]
+    sort = request.args.get('sort', 'last')
+    split = store().kind_split(f.start, f.end, f.site)
+    pending = store().suggestions(limit=100)
+    if mode == 'suggest':
+        return render('admin/analytics/visitors.html', analytics_page='visitors', f=f, mode=mode, q='', sort=sort,
+                      result=dict(rows=[], total=len(pending)), suggestions=suggestion_rows(pending),
+                      kind_split=split, pending=len(pending))
     where, params = f.where()
     if q:
         like = search_like(q)
-        where += (' AND (p.ip LIKE ? ESCAPE char(92) OR p.visitor_id LIKE ? ESCAPE char(92) OR p.visitor_id IN '
-                  '(SELECT id FROM visitors WHERE username LIKE ? ESCAPE char(92) OR note LIKE ? ESCAPE char(92)))')
+        where += (' AND (p.ip LIKE ? ESCAPE char(92) OR p.person_id IN (SELECT person_id FROM visitors WHERE id LIKE ? '
+                  'ESCAPE char(92) OR username LIKE ? ESCAPE char(92) OR note LIKE ? ESCAPE char(92)))')
         params += (like, like, like, like)
-    sort = request.args.get('sort', 'last')
     order = {'last': 'last DESC', 'pv': 'pv DESC', 'active': 'active DESC', 'first': 'first ASC',
              'sessions': 'sessions DESC'}.get(sort, 'last DESC')
     if mode == 'ip':
         sql = (f'SELECT p.ip, MIN(p.started_at) first, MAX(p.last_seen) last, COUNT(*) pv, COUNT(DISTINCT p.session_id) sessions, '
-               f'COUNT(DISTINCT p.visitor_id) visitors, SUM(p.active_ms) active, GROUP_CONCAT(DISTINCT p.site) sites, '
+               f'COUNT(DISTINCT p.person_id) visitors, SUM(p.active_ms) active, GROUP_CONCAT(DISTINCT p.site) sites, '
                f'(SELECT GROUP_CONCAT(DISTINCT v.browser || char(32,183,32) || v.os) FROM visitors v WHERE v.id IN '
                f'(SELECT visitor_id FROM pageviews WHERE ip = p.ip)) agents, '
                f'EXISTS(SELECT 1 FROM ignored_ips i WHERE i.ip = p.ip) ignored '
                f'FROM pageviews p WHERE {where} GROUP BY p.ip ORDER BY {order}')
         count = f'SELECT COUNT(DISTINCT p.ip) FROM pageviews p WHERE {where}'
-    elif mode == 'device':
-        # One row per device: visitors sharing the device cookie (forum + github.io) are merged.
-        sql = (f"SELECT COALESCE(NULLIF(v.device_id, ''), p.visitor_id) dkey, MAX(p.visitor_id) visitor_id, "
-               f'MIN(p.started_at) first, MAX(p.last_seen) last, COUNT(*) pv, COUNT(DISTINCT p.session_id) sessions, '
-               f'COUNT(DISTINCT p.visitor_id) records, SUM(p.active_ms) active, GROUP_CONCAT(DISTINCT p.ip) ips, '
-               f'GROUP_CONCAT(DISTINCT p.site) sites, MAX(v.browser) browser, MAX(v.os) os, MAX(v.device) device, '
-               f'MAX(v.screen) screen, MAX(v.username) username, MAX(v.user_id) user_id, MAX(v.note) note, '
-               f'MIN(v.first_seen) first_seen, MAX(v.bot) kind, MAX(v.kind_reason) kind_reason, MAX(v.kind_locked) kind_locked '
-               f'FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
-               f"WHERE {where} GROUP BY dkey ORDER BY {order}")
-        count = (f"SELECT COUNT(DISTINCT COALESCE(NULLIF(v.device_id, ''), p.visitor_id)) FROM pageviews p "
-                 f'JOIN visitors v ON v.id = p.visitor_id WHERE {where}')
-    else:
+    elif mode == 'record':
+        # One row per browser record (the raw id in each site's storage), before unification.
         sql = (f'SELECT p.visitor_id, MIN(p.started_at) first, MAX(p.last_seen) last, COUNT(*) pv, '
                f'COUNT(DISTINCT p.session_id) sessions, SUM(p.active_ms) active, GROUP_CONCAT(DISTINCT p.ip) ips, '
                f'GROUP_CONCAT(DISTINCT p.site) sites, v.browser, v.os, v.device, v.screen, v.username, v.user_id, '
-               f'v.note, v.first_seen, v.last_ip, v.tz, v.bot kind, v.kind_reason, v.kind_locked FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
+               f'v.note, v.first_seen, v.last_ip, v.tz, v.bot kind, v.kind_reason, v.kind_locked, v.person_id, '
+               f'(SELECT COUNT(*) FROM visitors m WHERE m.person_id = v.person_id) members '
+               f'FROM pageviews p JOIN visitors v ON v.id = p.visitor_id '
                f'WHERE {where} GROUP BY p.visitor_id ORDER BY {order}')
         count = f'SELECT COUNT(DISTINCT p.visitor_id) FROM pageviews p WHERE {where}'
+    else:
+        # One row per unified visitor: records joined by device cookie, community account or a confirmed merge.
+        sql = (f'SELECT p.person_id visitor_id, MIN(p.started_at) first, MAX(p.last_seen) last, COUNT(*) pv, '
+               f'COUNT(DISTINCT p.session_id) sessions, SUM(p.active_ms) active, GROUP_CONCAT(DISTINCT p.ip) ips, '
+               f'GROUP_CONCAT(DISTINCT p.site) sites, v.first_seen FROM pageviews p LEFT JOIN visitors v ON v.id = p.person_id '
+               f'WHERE {where} GROUP BY p.person_id ORDER BY {order}')
+        count = f'SELECT COUNT(DISTINCT p.person_id) FROM pageviews p WHERE {where}'
     result = paged(sql, count, params, page_number())
+    if mode == 'visitor':
+        describe_people(result['rows'], None if f.kind == 'all' else KIND_CODES.get(f.kind, 0))
     for row in result['rows']:
         row['site_list'] = [s for s in (row.get('sites') or '').split(',') if s]
-        if mode in ('visitor', 'device'):
+        if mode != 'ip':
             row['ip_list'] = [ip for ip in (row.get('ips') or '').split(',') if ip]
             row['proxy'] = tz_matches_region(row.get('tz') or '', raw_region(row.get('last_ip') or '')) is False
-            row['is_new'] = row['first_seen'] >= f.start
-    split = store().kind_split(f.start, f.end, f.site)
+            row['is_new'] = (row.get('first_seen') or 0) >= f.start
     return render('admin/analytics/visitors.html', analytics_page='visitors', f=f, mode=mode, q=q, sort=sort, result=result,
-                  kind_split=split)
+                  kind_split=split, pending=len(pending), suggestions=[])
 
 
 @admin.get('/analytics/visitor/<visitor_id>')
 def analytics_visitor(visitor_id):
+    """A unified visitor, entered through any of its records. `visitor` is the record in the URL, whose
+    device, type and note are shown; totals, IPs and the timeline cover every record of the visitor."""
     if not ID.fullmatch(visitor_id):
         abort(404)
     rows = store().query('SELECT * FROM visitors WHERE id = ?', (visitor_id,))
     if not rows:
         abort(404)
     visitor = rows[0]
+    person = visitor['person_id'] or visitor_id
     totals = store().query('SELECT COUNT(*) pv, COUNT(DISTINCT session_id) sessions, COALESCE(SUM(active_ms),0) active, '
                            'COALESCE(SUM(clicks),0) clicks, MIN(started_at) first, MAX(last_seen) last, '
-                           'COUNT(DISTINCT path) pages FROM pageviews WHERE visitor_id = ?', (visitor_id,))[0]
+                           'COUNT(DISTINCT path) pages FROM pageviews WHERE person_id = ?', (person,))[0]
     ips = store().query('SELECT ip, COUNT(*) pv, MIN(started_at) first, MAX(last_seen) last, '
                         'EXISTS(SELECT 1 FROM ignored_ips i WHERE i.ip = p.ip) ignored FROM pageviews p '
-                        'WHERE visitor_id = ? GROUP BY ip ORDER BY last DESC', (visitor_id,))
+                        'WHERE person_id = ? GROUP BY ip ORDER BY last DESC', (person,))
     favourite = store().query('SELECT site, path, MAX(title) title, COUNT(*) pv, SUM(active_ms) active FROM pageviews '
-                              'WHERE visitor_id = ? GROUP BY site, path ORDER BY active DESC LIMIT 8', (visitor_id,))
+                              'WHERE person_id = ? GROUP BY site, path ORDER BY active DESC LIMIT 8', (person,))
     visitor['facts'] = env_facts(visitor)
     visitor['evidence'] = signals(visitor, raw_region(visitor['last_ip']))
-    linked = store().query("SELECT v.*, (SELECT GROUP_CONCAT(DISTINCT site) FROM pageviews WHERE visitor_id = v.id) sites, "
-                           "(SELECT COUNT(*) FROM pageviews WHERE visitor_id = v.id) pv FROM visitors v "
-                           "WHERE v.device_id <> '' AND v.device_id = ? AND v.id <> ? ORDER BY v.last_seen DESC",
-                           (visitor['device_id'], visitor_id)) if visitor['device_id'] else []
-    similar = store().query("SELECT v.*, (SELECT GROUP_CONCAT(DISTINCT site) FROM pageviews WHERE visitor_id = v.id) sites, "
-                            "(SELECT COUNT(*) FROM pageviews WHERE visitor_id = v.id) pv FROM visitors v "
-                            "WHERE v.fp <> '' AND v.fp = ? AND v.id <> ? AND (v.device_id = '' OR v.device_id <> ?) "
-                            "ORDER BY v.last_seen DESC LIMIT 20", (visitor['fp'], visitor_id, visitor['device_id'])) \
-        if visitor['fp'] else []
-    return render('admin/analytics/visitor.html', analytics_page='visitors', visitor=visitor, totals=totals, ips=ips,
-                  linked=linked, similar=similar,
-                  favourite=favourite, sessions=timeline('s.visitor_id = ?', (visitor_id,), page_number()))
+    members = store().person_members(person) or [dict(visitor, reasons=[], detached=False, sites='', pv=totals['pv'])]
+    username = next((m['username'] for m in members if m['username']), '')
+    return render('admin/analytics/visitor.html', analytics_page='visitors', visitor=visitor, person=person,
+                  members=members, username=username, first_seen=min(m['first_seen'] for m in members),
+                  totals=totals, ips=ips, favourite=favourite,
+                  suggestions=suggestion_rows(store().suggestions(person, limit=20, strict=False)),
+                  sessions=timeline('s.person_id = ?', (person,), page_number()))
 
 
 @admin.get('/analytics/ip/<address>')
@@ -557,10 +599,11 @@ def analytics_ip(address):
     ip = valid_ip(address)
     if not ip:
         abort(404)
-    totals = store().query('SELECT COUNT(*) pv, COUNT(DISTINCT session_id) sessions, COUNT(DISTINCT visitor_id) visitors, '
+    totals = store().query('SELECT COUNT(*) pv, COUNT(DISTINCT session_id) sessions, COUNT(DISTINCT person_id) visitors, '
                            'COALESCE(SUM(active_ms),0) active, COALESCE(SUM(clicks),0) clicks, MIN(started_at) first, '
                            'MAX(last_seen) last FROM pageviews WHERE ip = ?', (ip,))[0]
-    visitors = store().query('SELECT v.*, v.bot kind, COUNT(p.id) pv, SUM(p.active_ms) active, MAX(p.last_seen) last FROM pageviews p '
+    visitors = store().query('SELECT v.*, v.bot kind, COUNT(p.id) pv, SUM(p.active_ms) active, MAX(p.last_seen) last, '
+                             '(SELECT COUNT(*) FROM visitors m WHERE m.person_id = v.person_id) members FROM pageviews p '
                              'JOIN visitors v ON v.id = p.visitor_id WHERE p.ip = ? GROUP BY v.id ORDER BY last DESC', (ip,))
     ignored = bool(store().scalar('SELECT 1 FROM ignored_ips WHERE ip = ?', (ip,)))
     return render('admin/analytics/ip.html', analytics_page='visitors', ip=ip, totals=totals, visitors=visitors,
@@ -651,7 +694,7 @@ def analytics_page():
     where, params = f.where()
     where += ' AND p.site = ? AND p.path = ?'
     params += (site, path)
-    summary = store().query(f'SELECT COUNT(*) pv, COUNT(DISTINCT visitor_id) uv, COUNT(DISTINCT ip) ips, '
+    summary = store().query(f'SELECT COUNT(*) pv, COUNT(DISTINCT person_id) uv, COUNT(DISTINCT ip) ips, '
                             f'AVG(NULLIF(active_ms,0)) active, AVG(scroll) scroll, SUM(clicks) clicks, MAX(title) title, '
                             f'MAX(url) url FROM pageviews p WHERE {where}', params)[0]
     scroll = store().query(f'SELECT CASE WHEN scroll >= 90 THEN 4 WHEN scroll >= 75 THEN 3 WHEN scroll >= 50 THEN 2 '
@@ -741,7 +784,7 @@ def analytics_export():
         rows = store().query(f'SELECT e.* FROM events e WHERE {where} ORDER BY e.ts', params)
         columns = [('时间', lambda r: fmt_time(r['ts'], tz)), ('类型', lambda r: EVENT_TYPES.get(r['type'], r['type'])),
                    ('站点', lambda r: SITES.get(r['site'])), ('页面', 'path'), ('内容', 'label'), ('元素', 'target'),
-                   ('链接', 'href'), ('X', 'x'), ('Y', 'y'), ('附加', 'data'), ('IP', 'ip'), ('访客', 'visitor_id'),
+                   ('链接', 'href'), ('X', 'x'), ('Y', 'y'), ('附加', 'data'), ('IP', 'ip'), ('访客', 'visitor_id'), ('统一访客', 'person_id'),
                    ('会话', 'session_id')]
     elif kind == 'sessions':
         where, params = f.where('s')
@@ -752,7 +795,7 @@ def analytics_export():
                    ('站点', lambda r: SITES.get(r['site'])), ('IP', 'ip'), ('浏览量', 'pv'),
                    ('停留(秒)', lambda r: round((r['active'] or 0) / 1000)), ('来源', 'referrer'), ('入口', 'landing'),
                    ('浏览器', 'browser'), ('系统', 'os'), ('设备', 'device'), ('屏幕', 'screen'), ('语言', 'lang'),
-                   ('时区', 'tz'), ('用户', 'username'), ('访客', 'visitor_id'), ('会话', 'id'), ('UA', 'ua')]
+                   ('时区', 'tz'), ('用户', 'username'), ('访客', 'visitor_id'), ('统一访客', 'person_id'), ('会话', 'id'), ('UA', 'ua')]
     else:
         kind = 'pageviews'
         where, params = f.where()
@@ -763,7 +806,7 @@ def analytics_export():
                    ('总时长(秒)', lambda r: round(r['total_ms'] / 1000)), ('滚动%', 'scroll'), ('点击', 'clicks'),
                    ('来源', 'referrer'), ('IP', 'ip'), ('浏览器', 'browser'), ('系统', 'os'), ('设备', 'device'),
                    ('视口', 'viewport'), ('首字节ms', 'ttfb_ms'), ('加载ms', 'load_ms'), ('用户', 'username'),
-                   ('访客', 'visitor_id'), ('会话', 'session_id'), ('网址', 'url')]
+                   ('访客', 'visitor_id'), ('统一访客', 'person_id'), ('会话', 'session_id'), ('网址', 'url')]
     buffer = io.StringIO()
     buffer.write('﻿')
     writer = csv.writer(buffer)
@@ -808,8 +851,9 @@ def deletion_plan(form):
         visitor = form.get('visitor', '')
         if not ID.fullmatch(visitor):
             abort(400, description='访客编号无效。')
-        return dict(scope=scope, value=visitor, where='visitor_id = ?', params=[visitor],
-                    title='删除某个访客的访问数据', label=f'访客 {visitor[:12]}')
+        person = store().scalar('SELECT person_id FROM visitors WHERE id = ?', (visitor,)) or visitor
+        return dict(scope=scope, value=visitor, where='person_id = ?', params=[person],
+                    title='删除某个访客的访问数据', label=f'访客 {visitor[:12]}（含同一访客的全部记录）')
     if scope == 'bots':
         return dict(scope=scope, value='', where='bot IN (1, 2)', params=[], title='删除机器人访问',
                     label='全部机器人与疑似机器人访问记录')
@@ -948,3 +992,27 @@ def analytics_note():
     audit('analytics.note', f'访客 {visitor[:12]}', [dict(label='备注', before='—', after=request.form.get('note', '')[:200] or '（清除）')])
     flash('访客备注已保存。')
     return redirect(url_for('admin.analytics_visitor', visitor_id=visitor))
+
+
+PERSON_ACTIONS = {'merge': '合并为同一访客', 'detach': '拆出为单独访客', 'attach': '恢复自动关联', 'dismiss': '标记为不同访客'}
+PERSON_DONE = {'merge': '已合并为同一访客。', 'detach': '已拆出为单独的访客；这条记录不再自动关联。',
+               'attach': '已恢复自动关联。', 'dismiss': '已标记为不同的访客，不再提示。'}
+
+
+@admin.post('/analytics/person')
+def analytics_person():
+    """Merge two records, take a record out of its visitor, undo that, or reject a suggestion."""
+    action = request.form.get('action', '')
+    visitor = request.form.get('visitor', '').strip()
+    other = request.form.get('other', '').strip().lower()  # Ids are lower-case hex; pasted ones may not be.
+    handlers = {'merge': lambda: store().merge(visitor, other), 'dismiss': lambda: store().dismiss(visitor, other),
+                'detach': lambda: store().detach(visitor), 'attach': lambda: store().attach(visitor)}
+    done = action in handlers and handlers[action]()
+    if done:
+        target = f'访客 {visitor[:12]}' + (f' 与 {other[:12]}' if action in ('merge', 'dismiss') else '')
+        audit('analytics.person', target, [dict(label='访客归并', before='—', after=PERSON_ACTIONS[action])])
+        flash(PERSON_DONE[action])
+    else:
+        flash('访客编号无效，或两条记录相同，未作更改。')
+    fallback = url_for('admin.analytics_visitor', visitor_id=visitor) if ID.fullmatch(visitor) else url_for('admin.analytics_visitors')
+    return redirect(safe_return(request.form.get('return_to'), fallback))

@@ -31,8 +31,16 @@
     return Array.prototype.map.call(bytes, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
   };
   var now = function () { return Date.now(); };
+  // The visitor id lives in this site's storage, backed up in a first-party cookie (and, on the
+  // community, a server cookie handed over as data-vid): Safari clears script storage after 7 days
+  // without a visit, and either copy restores the other.
+  var VID = /^[a-f0-9]{24}$/;
+  var cookieVid = function () { try { var m = document.cookie.match(/(?:^|;\s*)liss_vid=([a-f0-9]{24})(?:;|$)/); return m ? m[1] : null; } catch (e) { return null; } };
   var vid = get('liss-a:vid');
-  if (!vid || !/^[a-f0-9]{24}$/.test(vid)) { vid = random(); set('liss-a:vid', vid); }
+  if (!vid || !VID.test(vid)) vid = VID.test(data.vid || '') ? data.vid : cookieVid();
+  if (!vid || !VID.test(vid)) vid = random();
+  set('liss-a:vid', vid);
+  try { if (cookieVid() !== vid) document.cookie = 'liss_vid=' + vid + '; max-age=63072000; path=/; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : ''); } catch (e) {}
   var SESSION_IDLE = 30 * 60 * 1000;
   var session = null;
   try { session = JSON.parse(get('liss-a:session') || 'null'); } catch (e) {}
@@ -177,7 +185,7 @@
       ev: queue.splice(0, 100),
       ctx: { lang: (navigator.language || '').slice(0, 24), tz: (function () { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; } })(),
              screen: (screen.width || 0) + 'x' + (screen.height || 0) + (window.devicePixelRatio && window.devicePixelRatio !== 1 ? '@' + Math.round(window.devicePixelRatio * 100) / 100 : ''),
-             uid: data.uid || '', uname: data.uname || '' }
+             uid: data.uid || '', uname: data.uname || '', usig: data.usig || '' }
     };
     if (!sentFirst || !envSent) { body.ctx.env = env(); envSent = envPending === 0; }
     if (freshSession && !sentFirst) { body.sref = (document.referrer || '').slice(0, 600); body.landing = location.pathname.slice(0, 600); body.utm = utm; }

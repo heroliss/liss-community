@@ -45,6 +45,14 @@
 
 {% macro visitor_link(id, label=None) -%}<a class="an-visitor" href="{{ url_for('admin.analytics_visitor', visitor_id=id) }}" title="{{ id }}">{{ label or ('访客 ' ~ id[:8]) }}</a>{%- endmacro %}
 
+{% macro person_form(action, visitor, label, other='', return_to='', secondary=true) -%}
+<form method="post" action="{{ url_for('admin.analytics_person') }}" class="an-person-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="{{ action }}"><input type="hidden" name="visitor" value="{{ visitor }}">{% if other %}<input type="hidden" name="other" value="{{ other }}">{% endif %}{% if return_to %}<input type="hidden" name="return_to" value="{{ return_to }}">{% endif %}<button class="button button-small{% if secondary %} button-secondary{% endif %}" type="submit">{{ label }}</button></form>
+{%- endmacro %}
+
+{% macro person_buttons(a, b, return_to='') -%}
+<div class="an-person-actions">{{ person_form('merge', a, '是同一人，合并', b, return_to, false) }}{{ person_form('dismiss', a, '不是', b, return_to) }}</div>
+{%- endmacro %}
+
 {% macro page_link(f, site, path, title='') -%}<a class="an-page" href="{{ url_for('admin.analytics_page', **f.args(s=site, path=path)) }}" title="{{ path }}"><strong>{{ title or path }}</strong>{% if title %}<small>{{ path }}</small>{% endif %}</a>{%- endmacro %}
 
 {% macro pager(result, endpoint, args) -%}

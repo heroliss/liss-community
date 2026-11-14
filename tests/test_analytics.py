@@ -13,6 +13,11 @@ from app.analytics_store import classify, env_facts, network_type, parse_ua, ref
 from app.models import Role, User
 
 VID, SID, PV = 'a' * 24, 'b' * 24, 'c' * 24
+
+
+def secrets_hex():
+    import secrets
+    return secrets.token_hex(12)
 CHROME = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
           'Chrome/142.0.0.0 Safari/537.36')
 
@@ -110,7 +115,11 @@ class AnalyticsTests(unittest.TestCase):
         response = self.collect(batch(site='forum'), origin='http://localhost', client=self.app.test_client())
         self.assertEqual(response.status_code, 204)
         cookies = response.headers.getlist('Set-Cookie')
-        self.assertEqual([c.split('=')[0] for c in cookies], ['liss_d'])  # Only the device id, never a session.
+        # Only the device id and (community) the visitor id, never a session.
+        self.assertEqual(sorted(c.split('=')[0] for c in cookies), ['liss_d', 'liss_v'])
+        self.assertIn('liss_v=' + VID, ' '.join(cookies))
+        works = self.collect(batch(), client=self.app.test_client()).headers.getlist('Set-Cookie')
+        self.assertEqual([c.split('=')[0] for c in works], ['liss_d'])  # github.io cannot read pythonanywhere cookies.
 
     def test_dashboards_require_admin_and_render(self):
         self.collect(batch())
@@ -122,6 +131,7 @@ class AnalyticsTests(unittest.TestCase):
         pages = ['/admin/analytics', '/admin/analytics?range=today', '/admin/analytics?range=all&site=works&bots=1',
                  '/admin/analytics?range=custom&from=2020-01-01&to=2030-01-01', '/admin/analytics/live',
                  '/admin/analytics/visitors', '/admin/analytics/visitors?by=ip&sort=pv', '/admin/analytics/visitors?q=203.0',
+                 '/admin/analytics/visitors?by=record', '/admin/analytics/visitors?by=suggest', '/admin/analytics/visitors?by=device',
                  f'/admin/analytics/visitor/{VID}', '/admin/analytics/ip/203.0.113.7', '/admin/analytics/pages?range=all',
                  '/admin/analytics/page?range=all&s=works&path=/liss-works/projects/glass-atoll/',
                  '/admin/analytics/events?range=all&type=click', '/admin/analytics/data']
@@ -297,7 +307,8 @@ class AnalyticsTests(unittest.TestCase):
             connection.execute("UPDATE meta SET value = '1' WHERE key = 'schema'")
         store._ready = False
         self.assertEqual(store.scalar('SELECT COUNT(*) FROM pageviews WHERE bot = 2'), 1)
-        self.assertEqual(store.scalar("SELECT value FROM meta WHERE key = 'schema'"), '4')
+        self.assertEqual(store.scalar("SELECT value FROM meta WHERE key = 'schema'"), '5')
+        self.assertEqual(store.scalar('SELECT person_id FROM pageviews'), VID)
 
 
     def test_header_and_fingerprint_signals(self):
@@ -391,17 +402,18 @@ class AnalyticsTests(unittest.TestCase):
         self.collect(marked, origin='https://liss.pythonanywhere.com', ip='203.0.113.60', client=client)
         kinds = {r['id'][0]: (r['bot'], r['kind_reason']) for r in self.store().query('SELECT id, bot, kind_reason FROM visitors')}
         self.assertEqual(kinds['d'][0], 4)
-        self.assertEqual(kinds['a'], (4, '同一设备在另一站点的记录已标记为本人'))
+        self.assertEqual(kinds['a'], (4, '同一访客的其他记录已标记为本人'))
         # Another browser (no cookie) stays separate.
         self.collect(batch(vid='g' * 24, sid='h' * 24, pv=dict(batch()['pv'], id='i' * 24)), ip='192.0.2.70')
         self.assertNotEqual(self.store().scalar('SELECT device_id FROM visitors WHERE id = ?', ('g' * 24,)), rows['a'])
         self.login()
         page = self.client.get(f'/admin/analytics/visitor/{VID}').get_data(as_text=True)
-        self.assertIn('同一设备的其他记录', page)
+        self.assertIn('2 条记录合并', page)
+        self.assertIn('同一浏览器（设备标识）', page)
         self.assertIn('d' * 24, page)
-        devices = self.client.get('/admin/analytics/visitors?range=all&by=device&who=all').get_data(as_text=True)
-        self.assertIn('跨站 2', devices)
-        self.assertIn('台设备', devices)
+        visitors = self.client.get('/admin/analytics/visitors?range=all&who=all').get_data(as_text=True)
+        self.assertIn('2 条记录', visitors)
+        self.assertIn('共 <strong>2</strong> 位访客', visitors)  # The two linked records, plus the other browser.
 
 
     def test_evidence_network_and_proxy_hints(self):
@@ -538,6 +550,130 @@ class AnalyticsTests(unittest.TestCase):
         with self.app.test_request_context('/admin/analytics?range=all'):
             numbers = kpis(Filters({'range': 'all'}))
         self.assertEqual((numbers['sessions'], numbers['engaged']), (3, 2))  # The shared visit bounced quickly.
+
+    # ------------------------------------------------------------ unified visitors
+    def pv(self, vid, sid, pid, site='works', **ctx):
+        body = batch(site=site, vid=vid, sid=sid, pv=dict(batch()['pv'], id=pid))
+        if ctx:
+            body['ctx'] = dict(body['ctx'], **ctx)
+        return body
+
+    def person(self, vid):
+        return self.store().scalar('SELECT person_id FROM visitors WHERE id = ?', (vid,))
+
+    def test_minted_device_id_does_not_replace_stored_one(self):
+        # A browser that drops the cross-site cookie gets a new id on every batch; the first one stays.
+        self.collect(batch(), client=self.app.test_client())
+        first = self.store().scalar('SELECT device_id FROM visitors WHERE id = ?', (VID,))
+        self.collect(batch(), client=self.app.test_client())
+        self.assertEqual(self.store().scalar('SELECT device_id FROM visitors WHERE id = ?', (VID,)), first)
+
+    def signed(self, uid):
+        from app.analytics import uid_signature
+        with self.app.app_context():
+            return uid_signature(str(uid))
+
+    def test_community_account_links_records_and_counts_once(self):
+        phone, sig = self.app.test_client(), self.signed(7)
+        self.collect(self.pv('1' * 24, '2' * 24, '3' * 24, site='forum', uid='7', uname='mei', usig=sig),
+                     origin='https://liss.pythonanywhere.com', ip='198.51.100.9', client=phone)
+        self.collect(self.pv('4' * 24, '5' * 24, '6' * 24, site='forum', uid=7, uname='mei', usig=sig),
+                     origin='https://liss.pythonanywhere.com', ip='203.0.113.80', client=self.app.test_client())
+        self.assertEqual(self.person('4' * 24), '1' * 24)  # Earliest record names the visitor.
+        self.assertEqual(self.store().scalar('SELECT COUNT(DISTINCT person_id) FROM pageviews'), 1)
+        self.assertEqual(set(r['person_id'] for r in self.store().query('SELECT person_id FROM events')), {'1' * 24})
+        self.login()
+        listing = self.client.get('/admin/analytics/visitors?range=all&who=all').get_data(as_text=True)
+        self.assertIn('共 <strong>1</strong> 位访客', listing)
+        self.assertIn('@mei', listing)
+
+    def test_same_ip_alone_never_merges(self):
+        self.collect(self.pv('1' * 24, '2' * 24, '3' * 24), ip='198.51.100.20', client=self.app.test_client())
+        self.collect(self.pv('4' * 24, '5' * 24, '6' * 24), ip='198.51.100.20', client=self.app.test_client())
+        self.assertNotEqual(self.person('1' * 24), self.person('4' * 24))
+
+    def test_manual_merge_detach_attach_and_dismiss(self):
+        env = {'gpu': 'ANGLE (NVIDIA GeForce RTX 4070)', 'hc': 16, 'dm': 8}
+        self.collect(self.pv('1' * 24, '2' * 24, '3' * 24, env=env), ip='198.51.100.30', client=self.app.test_client())
+        self.collect(self.pv('4' * 24, '5' * 24, '6' * 24, env=env), ip='198.51.100.31', client=self.app.test_client())
+        store = self.store()
+        found = store.suggestions()
+        self.assertEqual(len(found), 1)
+        self.assertEqual(found[0]['label'], '同一网段')
+        self.login()
+        listing = self.client.get('/admin/analytics/visitors?by=suggest').get_data(as_text=True)
+        self.assertIn('是同一人，合并', listing)
+        token = self.csrf(f'/admin/analytics/visitor/{"1" * 24}')
+        self.client.post('/admin/analytics/person', data={'csrf_token': token, 'action': 'merge',
+                                                          'visitor': '1' * 24, 'other': '4' * 24})
+        self.assertEqual(self.person('4' * 24), '1' * 24)
+        self.assertEqual(store.scalar('SELECT COUNT(DISTINCT person_id) FROM sessions'), 1)
+        self.assertEqual(store.suggestions(), [])
+        page = self.client.get(f'/admin/analytics/visitor/{"4" * 24}').get_data(as_text=True)
+        self.assertIn('手动合并', page)
+        # Detach: back to two visitors, and automatic links no longer apply to that record.
+        self.client.post('/admin/analytics/person', data={'csrf_token': token, 'action': 'detach', 'visitor': '4' * 24})
+        self.assertEqual(self.person('4' * 24), '4' * 24)
+        self.assertEqual(store.scalar("SELECT person_id FROM pageviews WHERE visitor_id = ?", ('4' * 24,)), '4' * 24)
+        self.client.post('/admin/analytics/person', data={'csrf_token': token, 'action': 'attach', 'visitor': '4' * 24})
+        self.assertEqual(store.scalar('SELECT COUNT(*) FROM person_detached'), 0)
+        # Dismiss: the suggestion goes away for good.
+        self.client.post('/admin/analytics/person', data={'csrf_token': token, 'action': 'dismiss',
+                                                          'visitor': '1' * 24, 'other': '4' * 24})
+        self.assertEqual(store.suggestions(), [])
+        self.assertEqual(store.suggestions('1' * 24, strict=False), [])
+        bad = self.client.post('/admin/analytics/person', data={'csrf_token': token, 'action': 'merge',
+                                                                'visitor': '1' * 24, 'other': 'z' * 24})
+        self.assertEqual(bad.status_code, 302)
+        self.assertNotEqual(self.person('1' * 24), 'z' * 24)
+
+    def test_deleting_first_record_renames_person(self):
+        client = self.app.test_client()
+        self.collect(self.pv('1' * 24, '2' * 24, '3' * 24), ip='198.51.100.40', client=client)
+        self.collect(self.pv('4' * 24, '5' * 24, '6' * 24, site='forum'), origin='https://liss.pythonanywhere.com',
+                     ip='198.51.100.40', client=client)
+        self.assertEqual(self.person('4' * 24), '1' * 24)
+        self.store().delete_where('visitor_id = ?', ('1' * 24,))
+        self.assertEqual(self.person('4' * 24), '4' * 24)
+        self.assertEqual(self.store().scalar('SELECT person_id FROM pageviews'), '4' * 24)
+
+
+    def test_unsigned_account_id_is_dropped(self):
+        # Beacons are unauthenticated: claiming someone's account must not join their visitor.
+        self.collect(self.pv('1' * 24, '2' * 24, '3' * 24, site='forum', uid='7', uname='mei', usig=self.signed(7)),
+                     origin='https://liss.pythonanywhere.com', client=self.app.test_client())
+        for usig in ('', 'f' * 32, self.signed(8)):
+            vid = secrets_hex()
+            self.collect(self.pv(vid, secrets_hex(), secrets_hex(), uid='7', uname='mei', usig=usig),
+                         client=self.app.test_client())
+            row = self.store().query('SELECT user_id, username, person_id FROM visitors WHERE id = ?', (vid,))[0]
+            self.assertEqual((row['user_id'], row['username'], row['person_id']), (None, '', vid))
+        self.assertEqual(self.store().scalar('SELECT user_id FROM visitors WHERE id = ?', ('1' * 24,)), 7)
+
+    def test_tracker_tag_carries_signed_account_and_visitor_cookie(self):
+        self.login()
+        self.client.set_cookie('liss_v', 'a' * 24)
+        page = self.client.get('/').get_data(as_text=True)
+        tag = re.search(r'<script[^>]+liss-analytics\.js[^>]*>', page).group(0)
+        uid = re.search(r'data-uid="(\d+)"', tag).group(1)
+        self.assertIn(f'data-usig="{self.signed(uid)}"', tag)
+        self.assertIn('data-vid="' + 'a' * 24 + '"', tag)
+        self.client.set_cookie('liss_v', 'not-a-visitor-id')
+        self.assertIn('data-vid=""', self.client.get('/').get_data(as_text=True))
+
+    def test_filtered_list_badge_uses_matching_record(self):
+        client = self.app.test_client()
+        bot = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
+        self.collect(self.pv('1' * 24, '2' * 24, '3' * 24), ip='198.51.100.60', client=client)
+        self.collect(self.pv('4' * 24, '5' * 24, '6' * 24, site='forum'), origin='https://liss.pythonanywhere.com',
+                     ip='198.51.100.60', client=client, ua=bot)  # Same browser cookie, newer record is a bot.
+        self.assertEqual(self.person('4' * 24), '1' * 24)
+        self.login()
+        page = self.client.get('/admin/analytics/visitors?range=all').get_data(as_text=True)
+        row = page[page.index('/admin/analytics/visitor/' + '1' * 24):][:600]
+        self.assertIn('an-kind-visitor', row)
+        csv_text = self.client.get('/admin/analytics/export?kind=pageviews&range=all&who=all').get_data(as_text=True)
+        self.assertIn('统一访客', csv_text.splitlines()[0])
 
 
 if __name__ == '__main__':

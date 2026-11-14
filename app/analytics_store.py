@@ -18,7 +18,7 @@ import threading
 import time
 from urllib.parse import urlsplit
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5  # 5: unified visitors (person_id)
 _LOCK = threading.RLock()
 
 SCHEMA = """
@@ -60,6 +60,15 @@ CREATE TABLE IF NOT EXISTS campaigns (
   name TEXT PRIMARY KEY, target TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS owner_marks (
   ip TEXT NOT NULL, hour INTEGER NOT NULL, PRIMARY KEY (ip, hour));
+-- Unified visitors: browser records (visitors rows) joined into one person by strong links.
+-- person_links: merges confirmed by the admin (a < b). person_detached: records kept out of
+-- automatic links. person_dismissed: suggested pairs the admin said are different people.
+CREATE TABLE IF NOT EXISTS person_links (
+  a TEXT NOT NULL, b TEXT NOT NULL, created_at INTEGER NOT NULL, PRIMARY KEY (a, b));
+CREATE TABLE IF NOT EXISTS person_detached (visitor_id TEXT PRIMARY KEY, created_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS person_dismissed (
+  a TEXT NOT NULL, b TEXT NOT NULL, created_at INTEGER NOT NULL, PRIMARY KEY (a, b));
+CREATE INDEX IF NOT EXISTS pl_b ON person_links(b);
 CREATE INDEX IF NOT EXISTS pv_started ON pageviews(started_at);
 CREATE INDEX IF NOT EXISTS pv_session ON pageviews(session_id);
 CREATE INDEX IF NOT EXISTS pv_visitor ON pageviews(visitor_id);
@@ -82,8 +91,11 @@ KINDS = {VISITOR: '访客', OWNER: '本人', TEST: '测试', BOT_KIND: '机器�
 OWNER_WINDOW_HOURS = 12  # Visits from an IP within this many hours of admin activity there count as 本人.
 VISITOR_COLUMNS = (('env', "TEXT NOT NULL DEFAULT ''"), ('human', 'INTEGER NOT NULL DEFAULT 0'),
                    ('kind_locked', 'INTEGER NOT NULL DEFAULT 0'), ('kind_reason', "TEXT NOT NULL DEFAULT ''"),
-                   ('device_id', "TEXT NOT NULL DEFAULT ''"), ('fp', "TEXT NOT NULL DEFAULT ''"))
+                   ('device_id', "TEXT NOT NULL DEFAULT ''"), ('fp', "TEXT NOT NULL DEFAULT ''"),
+                   ('person_id', "TEXT NOT NULL DEFAULT ''"))
 PAGEVIEW_COLUMNS = (('inputs', 'INTEGER NOT NULL DEFAULT 0'),)
+PERSON_TABLES = ('sessions', 'pageviews', 'events')  # Carry a copy of person_id, like `bot`.
+PERSON_COLUMN = ('person_id', "TEXT NOT NULL DEFAULT ''")
 ENV_TEXT = {'cv': 16, 'pf': 40, 'langs': 80, 'gpu': 120, 'conn': 16, 'cs': 8, 'ptr': 8, 'uab': 120, 'pv': 24, 'mdl': 60,
             'arch': 16, 'al': 80, 'chua': 200, 'chp': 24, 'chm': 4}
 ENV_INT = {'hc': (0, 1024), 'dm': (0, 1024), 'tp': (0, 64), 'cd': (0, 64), 'tzo': (-1000, 1000), 'pl': (0, 1000),
@@ -384,7 +396,7 @@ def classify(visitor: dict, *, owner=False, region='', linked_me=False) -> tuple
     if env.get('me') and not owner:
         owner, owner_reason = True, '此浏览器已标记为本人'
     elif linked_me and not owner:
-        owner, owner_reason = True, '同一设备在另一站点的记录已标记为本人'
+        owner, owner_reason = True, '同一访客的其他记录已标记为本人'
     else:
         owner_reason = f'与后台登录同一 IP（前后 {OWNER_WINDOW_HOURS} 小时内）'
     if owner:
@@ -408,6 +420,15 @@ def referrer_host(referrer: str, own_hosts=()) -> str:
     if host.startswith('www.'):
         host = host[4:]
     return '' if host in own_hosts else host[:120]
+
+
+def network_of(ip: str) -> str:
+    """The /24 (IPv4) or /64 (IPv6) an address belongs to; '' when not an address."""
+    try:
+        address = ipaddress.ip_address(ip or '')
+    except ValueError:
+        return ''
+    return str(ipaddress.ip_network(f'{address}/{24 if address.version == 4 else 64}', strict=False))
 
 
 def valid_ip(value: str) -> str:
@@ -444,9 +465,16 @@ class AnalyticsStore:
                     for name, spec in PAGEVIEW_COLUMNS:
                         if name not in columns:
                             connection.execute(f'ALTER TABLE pageviews ADD COLUMN {name} {spec}')
+                    for table in PERSON_TABLES:
+                        if PERSON_COLUMN[0] not in {row[1] for row in connection.execute(f'PRAGMA table_info({table})')}:
+                            connection.execute(f'ALTER TABLE {table} ADD COLUMN {PERSON_COLUMN[0]} {PERSON_COLUMN[1]}')
+                    for table in PERSON_TABLES + ('visitors',):
+                        connection.execute(f'CREATE INDEX IF NOT EXISTS {table[:2]}_person ON {table}(person_id)')
+                    connection.execute('CREATE INDEX IF NOT EXISTS vi_user ON visitors(user_id)')
                     connection.execute("INSERT OR IGNORE INTO meta(key, value) VALUES ('created_at', ?)", (str(now_ms()),))
                     version = connection.execute("SELECT value FROM meta WHERE key='schema'").fetchone()
                     if version is None or int(version[0]) < SCHEMA_VERSION:
+                        self._relink(connection)  # Rows written before unified visitors have no person_id.
                         self._reclassify(connection)  # Rows written before types existed only knew bot / not bot.
                         connection.execute("INSERT OR REPLACE INTO meta(key, value) VALUES ('schema', ?)",
                                            (str(SCHEMA_VERSION),))
@@ -468,8 +496,11 @@ class AnalyticsStore:
         return self._ignored
 
     def ingest(self, payload: dict, *, ip: str, ua: str, own_hosts=(), server_now=None, headers=None,
-               device_id: str = '') -> dict:
-        """Record one tracker batch. Returns a small status dict; never raises on bad input."""
+               device_id: str = '', device_fresh: bool = False) -> dict:
+        """Record one tracker batch. Returns a small status dict; never raises on bad input.
+        `device_fresh` means the browser did not send the device cookie and `device_id` was just
+        minted: it is stored only for a record that has none yet (Safari / Firefox drop the cookie on
+        github.io, and a new id on every batch would break the link to the earlier one)."""
         server_now = server_now or now_ms()
         if not isinstance(payload, dict):
             return {'stored': False, 'reason': 'payload'}
@@ -497,7 +528,7 @@ class AnalyticsStore:
         device_id = device_id if ID.fullmatch(device_id or '') else ''
         ua = clip(ua, 400)
         with self.connect() as db:
-            visitor = db.execute('SELECT bot, env FROM visitors WHERE id=?', (vid,)).fetchone()
+            visitor = db.execute('SELECT bot, env, device_id, user_id FROM visitors WHERE id=?', (vid,)).fetchone()
             if visitor is not None and env:
                 try:  # Keep signals from earlier batches (client hints arrive later than the first beacon).
                     env = {**json.loads(visitor['env'] or '{}'), **env}
@@ -512,8 +543,13 @@ class AnalyticsStore:
                            'lang, tz, screen, user_id, username, env, human, device_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                            (vid, server_now, server_now, ip, ip, ua, info['browser'], info['os'], info['device'],
                             kind, lang, tz, screen, user_id, username, env_json or '', human, device_id))
+                relink = True
             else:
                 kind = visitor['bot']
+                if device_fresh and visitor['device_id']:
+                    device_id = ''  # Keep the stored id; this one was minted for a browser that drops the cookie.
+                relink = bool(device_id and device_id != visitor['device_id']) or \
+                    bool(user_id and user_id != visitor['user_id'])
                 db.execute('UPDATE visitors SET last_seen=?, last_ip=?, ua=?, browser=?, os=?, device=?, '
                            'lang=COALESCE(?, lang), tz=COALESCE(?, tz), '
                            'screen=COALESCE(?, screen), user_id=COALESCE(?, user_id), '
@@ -522,6 +558,9 @@ class AnalyticsStore:
                            (server_now, ip, ua, info['browser'], info['os'], info['device'],
                             lang or None, tz or None, screen or None, user_id, username or None, env_json, human,
                             device_id or None, vid))
+            if relink:
+                self._relink(db, [vid])
+            person = db.execute('SELECT person_id FROM visitors WHERE id=?', (vid,)).fetchone()[0] or vid
             session = db.execute('SELECT id, visitor_id FROM sessions WHERE id=?', (sid,)).fetchone()
             if session is not None and session['visitor_id'] != vid:
                 return {'stored': False, 'reason': 'session-owner'}
@@ -529,11 +568,11 @@ class AnalyticsStore:
                 referrer = clip(payload.get('sref'), 600)
                 landing = clip(payload.get('landing') or page.get('path'), 600)
                 db.execute('INSERT INTO sessions (id, visitor_id, site, started_at, last_seen, ip, ua, browser, os, device, bot, '
-                           'referrer, referrer_host, landing, utm, lang, tz, screen, user_id, username) '
-                           'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                           'referrer, referrer_host, landing, utm, lang, tz, screen, user_id, username, person_id) '
+                           'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                            (sid, vid, site, server_now, server_now, ip, ua, info['browser'], info['os'], info['device'],
                             kind, referrer, referrer_host(referrer, own_hosts), landing,
-                            clip(payload.get('utm'), 200), lang, tz, screen, user_id, username))
+                            clip(payload.get('utm'), 200), lang, tz, screen, user_id, username, person))
             else:
                 db.execute('UPDATE sessions SET last_seen=?, ip=?, user_id=COALESCE(?, user_id), '
                            'username=COALESCE(?, username) WHERE id=?',
@@ -552,12 +591,12 @@ class AnalyticsStore:
                 path = clip(page.get('path'), 600) or (urlsplit(url).path if url else '/')
                 started = server_now - min(values['total'], 86_400_000)
                 db.execute('INSERT INTO pageviews (id, session_id, visitor_id, site, ip, bot, url, path, title, referrer, '
-                           'started_at, last_seen, active_ms, total_ms, scroll, viewport, ttfb_ms, dom_ms, load_ms, ended, inputs) '
-                           'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                           'started_at, last_seen, active_ms, total_ms, scroll, viewport, ttfb_ms, dom_ms, load_ms, ended, inputs, person_id) '
+                           'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                            (page['id'], sid, vid, site, ip, kind, url, path, clip(page.get('title'), 300),
                             clip(page.get('ref'), 600), started, server_now, values['active'], values['total'],
                             values['scroll'], clip(page.get('vp'), 24), values['ttfb'], values['dom'], values['load'],
-                            1 if page.get('end') else 0, inputs))
+                            1 if page.get('end') else 0, inputs, person))
             else:
                 db.execute('UPDATE pageviews SET last_seen=?, active_ms=MAX(active_ms, ?), total_ms=MAX(total_ms, ?), '
                            'scroll=MAX(scroll, ?), ttfb_ms=COALESCE(ttfb_ms, ?), dom_ms=COALESCE(dom_ms, ?), '
@@ -580,11 +619,11 @@ class AnalyticsStore:
                 ts = max(server_now - 86_400_000, min(server_now, ts))
                 data = event.get('data')
                 data = clip(json.dumps(data, ensure_ascii=False, separators=(',', ':')), 1500) if isinstance(data, (dict, list)) else clip(data, 1500)
-                db.execute('INSERT INTO events (pageview_id, session_id, visitor_id, site, ip, bot, ts, type, label, target, href, path, x, y, data) '
-                           'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                db.execute('INSERT INTO events (pageview_id, session_id, visitor_id, site, ip, bot, ts, type, label, target, href, path, x, y, data, person_id) '
+                           'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                            (page['id'], sid, vid, site, ip, kind, ts, etype, clip(event.get('label'), 200),
                             clip(event.get('target'), 200), clip(event.get('href'), 600), path,
-                            as_int(event.get('x'), -100000, 1000000), as_int(event.get('y'), -100000, 10000000), data))
+                            as_int(event.get('x'), -100000, 1000000), as_int(event.get('y'), -100000, 10000000), data, person))
                 stored_events += 1
                 clicks += etype in {'click', 'outbound'}
             if clicks:
@@ -601,8 +640,8 @@ class AnalyticsStore:
 
     def _reclassify(self, db, visitor_ids=None):
         """Recompute the type of the given visitors (all when None) and copy it onto their rows.
-        Visitors sharing a device cookie (the same browser on the forum and on github.io) share owner
-        evidence, so they are recomputed together."""
+        Records of one unified visitor (same device cookie, same community account or merged by the
+        admin) share owner evidence, so they are recomputed together."""
         if visitor_ids is None:
             rows = db.execute('SELECT * FROM visitors').fetchall()
         else:
@@ -610,31 +649,33 @@ class AnalyticsStore:
             if not ids:
                 return
             marks = ','.join('?' * len(ids))
-            devices = [r[0] for r in db.execute(f"SELECT DISTINCT device_id FROM visitors WHERE id IN ({marks}) "
-                                                f"AND device_id <> ''", ids)]
-            if devices:
-                ids += [r[0] for r in db.execute(f'SELECT id FROM visitors WHERE device_id IN ({",".join("?" * len(devices))})',
-                                                 devices)]
+            persons = [r[0] for r in db.execute(f"SELECT DISTINCT person_id FROM visitors WHERE id IN ({marks}) "
+                                                f"AND person_id <> ''", ids)]
+            if persons:
+                ids += [r[0] for r in db.execute(f'SELECT id FROM visitors WHERE person_id IN ({",".join("?" * len(persons))})',
+                                                 persons)]
                 ids = list(dict.fromkeys(ids))
             rows = db.execute(f'SELECT * FROM visitors WHERE id IN ({",".join("?" * len(ids))})', ids).fetchall()
         window = OWNER_WINDOW_HOURS
+        evidence = {}  # Owner evidence is shared by a unified visitor's records: look it up once per visitor.
         for row in rows:
             visitor = dict(row)
-            group = [visitor['id']]
-            if visitor['device_id']:
-                group = [r[0] for r in db.execute('SELECT id FROM visitors WHERE device_id = ?', (visitor['device_id'],))]
             fp = fingerprint(visitor)
             if fp != visitor['fp']:
                 db.execute('UPDATE visitors SET fp=? WHERE id=?', (fp, visitor['id']))
             if visitor['kind_locked']:
                 kind, reason = visitor['bot'], visitor['kind_reason'] or '手动设置'
             else:
-                marks = ','.join('?' * len(group))
-                owner = db.execute('SELECT 1 FROM pageviews p JOIN owner_marks o ON o.ip = p.ip '
-                                   f'AND o.hour BETWEEN p.started_at / 3600000 - {window} AND p.started_at / 3600000 + {window} '
-                                   f'WHERE p.visitor_id IN ({marks}) LIMIT 1', group).fetchone() is not None
-                linked_me = db.execute(f'SELECT 1 FROM visitors WHERE id IN ({marks}) AND id <> ? AND env LIKE ? LIMIT 1',
-                                       (*group, visitor['id'], '%"me": true%')).fetchone() is not None
+                key, column = (visitor['person_id'], 'person_id') if visitor['person_id'] else (visitor['id'], 'visitor_id')
+                if key not in evidence:
+                    owner = db.execute('SELECT 1 FROM pageviews p JOIN owner_marks o ON o.ip = p.ip '
+                                       f'AND o.hour BETWEEN p.started_at / 3600000 - {window} AND p.started_at / 3600000 + {window} '
+                                       f'WHERE p.{column} = ? LIMIT 1', (key,)).fetchone() is not None
+                    marked = {r[0] for r in db.execute(f"SELECT id FROM visitors WHERE {'person_id' if column == 'person_id' else 'id'} = ? "
+                                                       'AND env LIKE ?', (key, '%"me": true%'))}
+                    evidence[key] = (owner, marked)
+                owner, marked = evidence[key]
+                linked_me = bool(marked - {visitor['id']})
                 kind, reasons = classify(visitor, owner=owner, region=self._region(visitor['last_ip']), linked_me=linked_me)
                 reason = '；'.join(reasons)
             if kind != visitor['bot'] or reason != visitor['kind_reason']:
@@ -645,6 +686,202 @@ class AnalyticsStore:
     def reclassify_all(self):
         with self.connect() as db:
             self._reclassify(db)
+
+    # --------------------------------------------------------- unified visitors
+    # A visitors row is one browser record (random id in that site's storage). Records are joined
+    # into one unified visitor (person_id) only by strong links: the same device cookie (one browser
+    # on the community and on github.io), the same community account, or a merge confirmed by the
+    # admin. IP addresses never join records on their own: carrier NAT and shared Wi-Fi put strangers
+    # behind one address. person_id is the record seen first, so it stays put as records join.
+    @staticmethod
+    def _component(db, start, detached):
+        seen, todo = {start}, [start]
+        while todo:
+            vid = todo.pop()
+            found = []
+            if vid not in detached:
+                row = db.execute('SELECT device_id, user_id FROM visitors WHERE id=?', (vid,)).fetchone()
+                if row is not None and row['device_id']:
+                    found += [r[0] for r in db.execute('SELECT id FROM visitors WHERE device_id=?', (row['device_id'],))]
+                if row is not None and row['user_id']:
+                    found += [r[0] for r in db.execute('SELECT id FROM visitors WHERE user_id=?', (row['user_id'],))]
+                found = [other for other in found if other not in detached]
+            found += [r[0] for r in db.execute('SELECT b FROM person_links WHERE a=? UNION SELECT a FROM person_links WHERE b=?',
+                                               (vid, vid))]
+            for other in found:
+                if other not in seen:
+                    seen.add(other)
+                    todo.append(other)
+        return seen
+
+    def _relink(self, db, seeds=None) -> list[str]:
+        """Recompute person_id for the groups of `seeds` (every record when None); returns moved records."""
+        detached = {r[0] for r in db.execute('SELECT visitor_id FROM person_detached')}
+        if seeds is None:
+            pending = [r[0] for r in db.execute('SELECT id FROM visitors')]
+        else:
+            pending = list(dict.fromkeys(seeds))
+            if not pending:
+                return []
+            # A record leaving a group can split it, so everyone who shared its person is recomputed.
+            olds = [r[0] for r in db.execute(f"SELECT DISTINCT person_id FROM visitors WHERE id IN ({','.join('?' * len(pending))}) "
+                                             "AND person_id <> ''", pending)]
+            if olds:
+                pending += [r[0] for r in db.execute(f"SELECT id FROM visitors WHERE person_id IN ({','.join('?' * len(olds))})", olds)]
+        done, moved_all = set(), []
+        for start in pending:
+            if start in done:
+                continue
+            group = self._component(db, start, detached)
+            done |= group
+            ids = list(group)
+            rows = db.execute(f"SELECT id, first_seen, person_id FROM visitors WHERE id IN ({','.join('?' * len(ids))})",
+                              ids).fetchall()
+            if not rows:
+                continue
+            person = min(rows, key=lambda r: (r['first_seen'], r['id']))['id']
+            moved = [r['id'] for r in rows if r['person_id'] != person]
+            if not moved:
+                continue
+            marks = ','.join('?' * len(moved))
+            db.execute(f'UPDATE visitors SET person_id=? WHERE id IN ({marks})', (person, *moved))
+            for table in PERSON_TABLES:
+                db.execute(f'UPDATE {table} SET person_id=? WHERE visitor_id IN ({marks})', (person, *moved))
+            moved_all += moved
+        return moved_all
+
+    def relink_all(self):
+        with self.connect() as db:
+            self._relink(db)
+            self._reclassify(db)
+
+    def _members(self, db, ids):
+        persons = {r[0] for r in db.execute(f"SELECT person_id FROM visitors WHERE id IN ({','.join('?' * len(ids))})", ids)}
+        persons.discard('')
+        if not persons:
+            return list(ids)
+        return list(dict.fromkeys(list(ids) + [r[0] for r in db.execute(
+            f"SELECT id FROM visitors WHERE person_id IN ({','.join('?' * len(persons))})", list(persons))]))
+
+    def _exist(self, db, *ids) -> bool:
+        return all(ID.fullmatch(i or '') for i in ids) and \
+            db.execute(f"SELECT COUNT(*) FROM visitors WHERE id IN ({','.join('?' * len(ids))})", ids).fetchone()[0] == len(set(ids))
+
+    def merge(self, first: str, second: str) -> bool:
+        """Admin-confirmed: these two records belong to the same person."""
+        if first == second:
+            return False
+        a, b = sorted((first, second))
+        with self.connect() as db:
+            if not self._exist(db, a, b):
+                return False
+            db.execute('INSERT OR IGNORE INTO person_links (a, b, created_at) VALUES (?,?,?)', (a, b, now_ms()))
+            db.execute('DELETE FROM person_dismissed WHERE a=? AND b=?', (a, b))
+            self._relink(db, [a, b])
+            self._reclassify(db, self._members(db, [a, b]))
+        return True
+
+    def detach(self, visitor_id: str) -> bool:
+        """Take one record out of its unified visitor (drops its merges and automatic links)."""
+        with self.connect() as db:
+            if not self._exist(db, visitor_id):
+                return False
+            before = self._members(db, [visitor_id])
+            db.execute('DELETE FROM person_links WHERE a=? OR b=?', (visitor_id, visitor_id))
+            db.execute('INSERT OR REPLACE INTO person_detached (visitor_id, created_at) VALUES (?,?)', (visitor_id, now_ms()))
+            self._relink(db, before)
+            self._reclassify(db, before)
+        return True
+
+    def attach(self, visitor_id: str) -> bool:
+        """Undo detach: automatic links apply to this record again."""
+        with self.connect() as db:
+            if not self._exist(db, visitor_id):
+                return False
+            db.execute('DELETE FROM person_detached WHERE visitor_id=?', (visitor_id,))
+            self._relink(db, [visitor_id])
+            self._reclassify(db, self._members(db, [visitor_id]))
+        return True
+
+    def dismiss(self, first: str, second: str) -> bool:
+        """Admin says a suggested pair are different people; the suggestion is not shown again."""
+        if first == second:
+            return False
+        a, b = sorted((first, second))
+        with self.connect() as db:
+            if not self._exist(db, a, b):
+                return False
+            db.execute('INSERT OR IGNORE INTO person_dismissed (a, b, created_at) VALUES (?,?,?)', (a, b, now_ms()))
+        return True
+
+    def person_members(self, person_id: str) -> list[dict]:
+        """Records of one unified visitor, newest first, each with why it belongs to the group."""
+        with self.connect() as db:
+            rows = [dict(r) for r in db.execute(
+                'SELECT v.*, (SELECT GROUP_CONCAT(DISTINCT site) FROM pageviews WHERE visitor_id = v.id) sites, '
+                '(SELECT COUNT(*) FROM pageviews WHERE visitor_id = v.id) pv FROM visitors v WHERE v.person_id = ? '
+                'ORDER BY v.last_seen DESC', (person_id,))]
+            detached = {r[0] for r in db.execute('SELECT visitor_id FROM person_detached')}
+            ids = [r['id'] for r in rows]
+            links = db.execute(f"SELECT a, b FROM person_links WHERE a IN ({','.join('?' * len(ids))}) "
+                               f"OR b IN ({','.join('?' * len(ids))})", ids + ids).fetchall() if ids else []
+        manual = {x for link in links for x in link}
+        for row in rows:
+            row['detached'] = row['id'] in detached
+        for row in rows:
+            reasons = []
+            if not row['detached']:
+                others = [r for r in rows if r['id'] != row['id'] and not r['detached']]
+                if row['device_id'] and any(r['device_id'] == row['device_id'] for r in others):
+                    reasons.append('同一浏览器（设备标识）')
+                if row['user_id'] and any(r['user_id'] == row['user_id'] for r in others):
+                    reasons.append('同一社区账号')
+            if row['id'] in manual:
+                reasons.append('手动合并')
+            row['reasons'] = reasons
+        return rows
+
+    def suggestions(self, person_id: str = '', limit: int = 50, strict: bool = True) -> list[dict]:
+        """Records in different unified visitors with the same hardware fingerprint. With `strict`, only
+        pairs that also used the same IP or network (/24, IPv6 /64); identical phones share a fingerprint,
+        so these are offered for the admin to confirm, never merged automatically."""
+        with self.connect() as db:
+            sql = ("SELECT a.id ai, b.id bi, a.person_id ap, b.person_id bp, MAX(a.last_seen, b.last_seen) last "
+                   "FROM visitors a JOIN visitors b ON b.fp = a.fp AND b.person_id <> a.person_id "
+                   "WHERE a.fp <> '' AND a.bot NOT IN (1, 2) AND b.bot NOT IN (1, 2) "
+                   "AND NOT EXISTS (SELECT 1 FROM person_dismissed d JOIN visitors x ON x.id = d.a JOIN visitors y ON y.id = d.b "
+                   "WHERE (x.person_id = a.person_id AND y.person_id = b.person_id) "
+                   "OR (x.person_id = b.person_id AND y.person_id = a.person_id)) ")
+            params = []
+            if person_id:
+                sql += 'AND a.person_id = ? '
+                params.append(person_id)
+            else:
+                sql += 'AND a.person_id < b.person_id '
+            pairs = db.execute(sql + 'ORDER BY last DESC LIMIT 2000', params).fetchall()
+            ips = {}
+            def addresses(vid):
+                if vid not in ips:
+                    ips[vid] = {r[0] for r in db.execute('SELECT DISTINCT ip FROM pageviews WHERE visitor_id=? AND ip<>?', (vid, ''))}
+                return ips[vid]
+            best = {}
+            for pair in pairs:
+                left, right = addresses(pair['ai']), addresses(pair['bi'])
+                shared = sorted(left & right)
+                if shared:
+                    level, label = 2, '同一 IP'
+                else:
+                    nets = {network_of(ip) for ip in left} & {network_of(ip) for ip in right}
+                    nets.discard('')
+                    level, label = (1, '同一网段') if nets else (0, '仅硬件相同')
+                if strict and level == 0:
+                    continue
+                key = (pair['ap'], pair['bp'])
+                if key not in best or level > best[key]['level']:
+                    best[key] = dict(a=pair['ai'], b=pair['bi'], person_a=pair['ap'], person_b=pair['bp'], level=level,
+                                     label=label, shared=shared[:3], last=pair['last'])
+        found = sorted(best.values(), key=lambda s: (-s['level'], -s['last']))
+        return found[:limit]
 
     def mark_owner(self, ip: str, when=None) -> bool:
         """Remember that the site owner (an administrator) used this IP now; returns True when new."""
@@ -689,12 +926,16 @@ class AnalyticsStore:
         return bool(changed)
 
     def kind_split(self, start: int, end: int, site: str = 'all') -> dict:
-        sql = 'SELECT bot, COUNT(DISTINCT visitor_id) n FROM pageviews WHERE started_at >= ? AND started_at < ?'
+        """Visitors per type. A unified visitor counts once, under the type of its latest view in range
+        (records of one visitor can differ, e.g. a test browser logged into the owner's account)."""
+        sql = 'SELECT person_id, bot, MAX(last_seen) FROM pageviews WHERE started_at >= ? AND started_at < ?'
         params = [start, end]
         if site != 'all':
             sql += ' AND site = ?'
             params.append(site)
-        return {row['bot']: row['n'] for row in self.query(sql + ' GROUP BY bot', params)}
+        # SQLite takes bare columns of an aggregate query from the row holding MAX().
+        return {row['bot']: row['n'] for row in self.query(f'SELECT bot, COUNT(*) n FROM ({sql} GROUP BY person_id) GROUP BY bot',
+                                                           params)}
 
     # ----------------------------------------------------------------- queries
     def query(self, sql, params=()):
@@ -732,6 +973,12 @@ class AnalyticsStore:
             db.execute('DELETE FROM events WHERE pageview_id NOT IN (SELECT id FROM pageviews)')
             sessions = db.execute('DELETE FROM sessions WHERE id NOT IN (SELECT DISTINCT session_id FROM pageviews)').rowcount
             visitors = db.execute('DELETE FROM visitors WHERE id NOT IN (SELECT DISTINCT visitor_id FROM pageviews)').rowcount
+            if visitors:  # A removed record may have been a group's first record or its only link.
+                for table, columns in (('person_links', ('a', 'b')), ('person_dismissed', ('a', 'b')),
+                                       ('person_detached', ('visitor_id',))):
+                    for column in columns:
+                        db.execute(f'DELETE FROM {table} WHERE {column} NOT IN (SELECT id FROM visitors)')
+                self._relink(db)
         self.vacuum()
         return dict(pageviews=pageviews, events=events, sessions=sessions, visitors=visitors)
 
