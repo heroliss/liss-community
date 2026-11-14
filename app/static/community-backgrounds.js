@@ -167,7 +167,9 @@
       randomSettings.hidden=false;poolChoices.replaceChildren();poolChoices.setAttribute('aria-label','参与随机的图片');
       Object.keys(catalogue).forEach(function(id){var e=catalogue[id];if(e.kind!=='image'&&!e.randomEligible)return;
         var label=document.createElement('label');label.className='background-choice background-pool-choice';var input=document.createElement('input');input.type='checkbox';input.name='liss_background_pool_v55';input.value=id;input.setAttribute('aria-label','将'+e.title+'加入随机范围');label.appendChild(input);
-        var thumb=document.createElement('span');thumb.className='background-thumb';thumb.setAttribute('aria-hidden','true');var image=document.createElement('img');image.dataset.backgroundPoolThumbnail=new URL(e.thumbnail||e.src,base).href;image.decoding='async';image.loading='lazy';image.alt='';image.width=360;image.height=240;thumb.appendChild(image);label.appendChild(thumb);
+        var thumb=document.createElement('span');thumb.className='background-thumb background-thumb-'+id;thumb.setAttribute('aria-hidden','true');var source=e.kind==='image'&&(e.thumbnail||e.src);
+        // Drawn scenes have no image file; thumbnails() paints them like the gallery does.
+        if(source){var image=document.createElement('img');image.dataset.backgroundPoolThumbnail=new URL(source,base).href;image.decoding='async';image.loading='lazy';image.alt='';image.width=360;image.height=240;thumb.appendChild(image);}label.appendChild(thumb);
         var copy=document.createElement('span');copy.className='background-choice-copy';var title=document.createElement('strong');title.textContent=e.title;var theme=document.createElement('small');theme.textContent=e.theme||e.description;copy.appendChild(title);copy.appendChild(theme);label.appendChild(copy);poolChoices.appendChild(label);poolInputs.push(input);
         input.addEventListener('change',function(){poolMode='custom';poolDraft=poolInputs.filter(function(node){return node.checked;}).map(function(node){return node.value;});randomDetail();},{signal:signal});
       });
@@ -183,7 +185,7 @@
     function showPool(value){
       poolView=!!value;if(poolChoices)poolChoices.hidden=!poolView;if(poolTools)poolTools.hidden=!poolView;if(filterRow)filterRow.hidden=poolView;if(selectionPanel)selectionPanel.hidden=poolView;
       dialog.dataset.backgroundPoolView=String(poolView);if(randomBrowse)randomBrowse.setAttribute('aria-expanded',String(poolView));
-      if(poolView&&scenePreviews)scenePreviews.releaseAll();filterCards();if(!poolView)detail();else randomDetail();
+      if(scenePreviews)scenePreviews.releaseAll();filterCards();if(!poolView)detail();else randomDetail();
     }
     function updatePool(ids,mode){poolDraft=ids.slice();poolMode=mode;poolInputs.forEach(function(input){input.checked=poolDraft.indexOf(input.value)!==-1;});randomDetail();}
     function matchesKind(e,kind){return kind==='all'||kind===e.kind;}
@@ -193,7 +195,7 @@
       scenePreviews.paint(thumb,entry(id),document.documentElement.dataset.theme==='light');
     }
     function thumbnails(){
-      if(poolView){poolInputs.forEach(function(input){var label=input.closest('label'),image=label.querySelector('img');if(!label.hidden&&image&&!image.getAttribute('src'))image.src=image.dataset.backgroundPoolThumbnail;});return;}
+      if(poolView){poolInputs.forEach(function(input){var label=input.closest('label'),image=label.querySelector('img');if(label.hidden)return;if(image){if(!image.getAttribute('src'))image.src=image.dataset.backgroundPoolThumbnail;}else paint(label.querySelector('.background-thumb'),input.value);});return;}
       radios.forEach(function(input){
         var label=input.closest('label');if(label.hidden)return;
         var thumb=label.querySelector('.background-thumb'),image=thumb.querySelector('img[data-background-thumbnail]');

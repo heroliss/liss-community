@@ -47,16 +47,16 @@
       }
     },
     "background-head": {
-      "file": "bundles/background-head.8d6b562c4eb4d17c.js",
-      "sha256": "8d6b562c4eb4d17c0f9d2acc3290b7fc7e37f854c68ec89f23b3260508be99d4",
-      "bytes": 87940,
-      "sourceBytes": 107301,
-      "gzipBytes": 21167,
+      "file": "bundles/background-head.7759dc8bc957b762.js",
+      "sha256": "7759dc8bc957b7621ae742d86a4c4eab134cc1c9d68e2065428dad8b96d80199",
+      "bytes": 88042,
+      "sourceBytes": 107540,
+      "gzipBytes": 21155,
       "sources": {
         "community-background-palettes-v40.js": "4e085544543a556994654a72dbe58faa9541421f257433236b17bc94dbf7fd7d",
         "community-background-candidates-v40.js": "4094947fec258d316f1fc1397297efb6ed3e01d8ae2bcd43e0119aeaf52249a9",
         "community-background-visits-v55.js": "62c038208227e37ebc8dfd36bbfd458c822737ed8e82165d094ca72aff1d1030",
-        "community-backgrounds.js": "e11e5082d583ee1c9f81266ce7120f330fc2bdf39b268391b1a786c936921c9b"
+        "community-backgrounds.js": "34e14116ddef55a1f22d0dbcda2f05defee5ee469e45963211057ddf7739e349"
       }
     },
     "transitions-head": {
